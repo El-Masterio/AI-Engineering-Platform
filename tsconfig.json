@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "Workspace-spanning view used by TOOLING ONLY (dependency-cruiser, editors). Each package still owns its own tsconfig.json for building — that is what `pnpm build` uses. This file emits nothing.",
+  "extends": "./packages/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "outDir": ".turbo/tsconfig-noemit",
+    // No `baseUrl` — deprecated in TS 7; `paths` resolves relative to this file.
+    // Maps workspace packages to SOURCE rather than dist. Without this,
+    // `@atelier/domain` resolves via `exports` to packages/domain/dist/index.d.ts,
+    // which .dependency-cruiser.cjs excludes — so every cross-package dependency
+    // vanished from the graph and the domain-purity and dev-dependency rules
+    // silently never fired. Tooling-only: package builds do not extend this file.
+    "paths": {
+      "@atelier/*": ["./packages/*/src/index.ts"]
+    }
+  },
+  "include": ["apps/*/src/**/*.ts", "apps/*/src/**/*.tsx", "packages/*/src/**/*.ts"],
+  "exclude": ["node_modules", "**/dist/**", "**/.turbo/**", "**/.next/**"]
+}
