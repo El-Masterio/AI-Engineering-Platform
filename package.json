@@ -22,14 +22,16 @@
     "format:check": "prettier --check .",
     "depcruise": "depcruise apps packages --config .dependency-cruiser.cjs",
     "depcruise:graph": "depcruise apps packages --config .dependency-cruiser.cjs --output-type dot",
-    "verify": "pnpm format:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm build",
-    "prepare": "husky"
+    "verify": "pnpm format:check && pnpm lint && pnpm depcruise && pnpm check:contrast && pnpm typecheck && pnpm build",
+    "prepare": "husky",
+    "check:contrast": "node scripts/check-contrast.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
     "@eslint/js": "^10.0.1",
+    "@tailwindcss/postcss": "^4.3.3",
     "dependency-cruiser": "^18.1.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
@@ -40,7 +42,9 @@
     "eslint-plugin-unicorn": "^72.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.2.0",
+    "postcss": "^8.5.23",
     "prettier": "^3.9.6",
+    "tailwindcss": "^4.3.3",
     "turbo": "^2.6.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.65.0"

@@ -1,0 +1,256 @@
+/**
+ * Atelier design tokens.
+ *
+ * The machine-readable form of docs/03-design/18-design-system.md.
+ *
+ * TWO LAYERS, and the separation is load-bearing:
+ *   • PRIMITIVES  (--n-*, --a-*, --ok-*, …) are raw scales. A component may
+ *     NEVER reference one directly — that is a review rejection.
+ *   • SEMANTIC    (--bg-*, --text-*, --border-*, …) are what components use.
+ *
+ * Theming therefore means remapping semantics, never editing components. That
+ * is what makes light mode a config change rather than a re-skin.
+ *
+ * Contrast is verified in CI by scripts/check-contrast.mjs. Changing a colour
+ * here without re-running it is how an accessibility regression ships.
+ */
+
+:root {
+  /* ── Primitives — neutral (slightly cool, never pure grey) ─────────────── */
+  --n-0: #ffffff;
+  --n-50: #f7f8f9;
+  --n-100: #eef0f2;
+  --n-200: #dde1e5;
+  --n-300: #c2c8cf;
+  --n-400: #9aa3ad;
+  --n-500: #727c88;
+  --n-600: #525c68;
+  --n-700: #3a434e;
+  --n-800: #252c35;
+  --n-850: #1b2129;
+  --n-900: #141920;
+  --n-950: #0d1116;
+  --n-1000: #080b0e;
+
+  /* ── Primitives — accent (deep teal: technical, calm, not "AI purple") ─── */
+  --a-300: #5eead4;
+  --a-400: #2dd4bf;
+  --a-500: #14b8a6;
+  --a-600: #0d9488;
+  --a-700: #0f766e;
+  --a-800: #115e59;
+
+  /* ── Primitives — status ───────────────────────────────────────────────── */
+  --ok-400: #4ade80;
+  --ok-600: #16a34a;
+  --warn-400: #fbbf24;
+  --warn-600: #d97706;
+  --err-400: #f87171;
+  --err-600: #dc2626;
+  --info-400: #60a5fa;
+  --info-600: #2563eb;
+  --run-400: #a78bfa;
+  --run-600: #7c3aed;
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", monospace;
+
+  --text-2xs: 0.6875rem; /* 11px — dense table meta, timestamps */
+  --text-xs: 0.75rem; /* 12px — labels, badges */
+  --text-sm: 0.8125rem; /* 13px — DEFAULT UI text and code */
+  --text-base: 0.9375rem; /* 15px — body prose */
+  --text-lg: 1.125rem; /* 18px — card titles */
+  --text-xl: 1.375rem; /* 22px — section headings */
+  --text-2xl: 1.75rem; /* 28px — page titles */
+  --text-3xl: 2.25rem; /* 36px — marketing only */
+
+  --leading-tight: 1.25;
+  --leading-snug: 1.4;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.7;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --tracking-tight: -0.011em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+
+  /* ── Spacing (4px base grid) ───────────────────────────────────────────── */
+  --space-0: 0;
+  --space-px: 1px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* ── Radius ────────────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* ── Layout ────────────────────────────────────────────────────────────── */
+  --container-content: 1280px;
+  --container-prose: 72ch;
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 56px;
+  --topbar-h: 52px;
+
+  /* ── Z-index scale ─────────────────────────────────────────────────────── */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+  --z-tooltip: 60;
+
+  /* ── Motion — informative only, never decorative (§18 motion budget) ───── */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-normal: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ══ SEMANTIC TOKENS — dark theme (default) ═══════════════════════════════ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-base: var(--n-950);
+  --bg-surface: var(--n-900);
+  --bg-surface-2: var(--n-850);
+  --bg-inset: var(--n-1000); /* code blocks, logs, terminals */
+  --bg-hover: var(--n-800);
+  --bg-selected: color-mix(in oklab, var(--a-500) 14%, transparent);
+
+  --border-subtle: var(--n-800); /* decorative divider — not a control boundary */
+  --border-default: var(--n-500); /* control boundary — MUST clear 3:1 (1.4.11) */
+  --border-strong: var(--n-400);
+  --border-focus: var(--a-400);
+
+  --text-primary: var(--n-50);
+  --text-secondary: var(--n-300);
+  --text-tertiary: var(--n-400);
+  --text-inverse: var(--n-950);
+  --text-accent: var(--a-400);
+
+  --accent-bg: var(--a-600);
+  --accent-bg-hover: var(--a-500);
+  --accent-fg: var(--n-950);
+
+  --status-ok: var(--ok-400);
+  --status-warn: var(--warn-400);
+  --status-err: var(--err-400);
+  --status-info: var(--info-400);
+  --status-running: var(--run-400);
+
+  --diff-add-bg: color-mix(in oklab, var(--ok-600) 18%, transparent);
+  --diff-del-bg: color-mix(in oklab, var(--err-600) 18%, transparent);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.45);
+}
+
+/* ══ SEMANTIC TOKENS — light theme ════════════════════════════════════════ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-base: var(--n-50);
+  --bg-surface: var(--n-0);
+  --bg-surface-2: var(--n-100);
+  --bg-inset: var(--n-100);
+  --bg-hover: var(--n-100);
+  --bg-selected: color-mix(in oklab, var(--a-500) 14%, transparent);
+
+  --border-subtle: var(--n-200); /* decorative divider — not a control boundary */
+  --border-default: var(--n-500); /* control boundary — MUST clear 3:1 (1.4.11) */
+  --border-strong: var(--n-600);
+  --border-focus: var(--a-700);
+
+  --text-primary: var(--n-900);
+  --text-secondary: var(--n-700);
+  --text-tertiary: var(--n-600);
+  --text-inverse: var(--n-0);
+  --text-accent: var(--a-800);
+
+  --accent-bg: var(--a-700);
+  --accent-bg-hover: var(--a-800);
+  --accent-fg: var(--n-0);
+
+  --status-ok: var(--ok-600);
+  --status-warn: var(--warn-600);
+  --status-err: var(--err-600);
+  --status-info: var(--info-600);
+  --status-running: var(--run-600);
+
+  --diff-add-bg: color-mix(in oklab, var(--ok-600) 14%, transparent);
+  --diff-del-bg: color-mix(in oklab, var(--err-600) 14%, transparent);
+
+  --shadow-sm: 0 1px 2px rgb(16 24 32 / 0.06);
+  --shadow-md: 0 4px 12px rgb(16 24 32 / 0.08);
+  --shadow-lg: 0 12px 32px rgb(16 24 32 / 0.12);
+}
+
+/* ══ Base element defaults ════════════════════════════════════════════════ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* rem-based type scale respects the browser font-size preference (NFR-A11Y). */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+}
+
+/* Visible, non-colour-dependent focus (NFR-A11Y-4). */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* §18 motion budget: all animation suppressible (NFR-A11Y-6). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

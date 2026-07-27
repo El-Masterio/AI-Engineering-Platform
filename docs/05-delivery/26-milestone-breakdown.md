@@ -106,7 +106,7 @@ Updated in the same commit as each milestone's work.
 | Phase | Done | Total | Progress |
 |---|---:|---:|---|
 | P0 Blueprint | 1 | 1 | ██████████ 100% |
-| P1 Foundation | 2 | 52 | ░░░░░░░░░░ 4% |
+| P1 Foundation | 3 | 52 | █░░░░░░░░░ 6% |
 | P2 Collaboration | 0 | 15 | ░░░░░░░░░░ 0% |
 | P3 Depth | 0 | 15 | ░░░░░░░░░░ 0% |
 | P4 Polish | 0 | 12 | ░░░░░░░░░░ 0% |
@@ -114,9 +114,9 @@ Updated in the same commit as each milestone's work.
 | P6 Commercial | 0 | 11 | ░░░░░░░░░░ 0% |
 | P7 Enterprise | 0 | 10 | ░░░░░░░░░░ 0% |
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
-| **Total** | **2** | **132** | ░░░░░░░░░░ **2%** |
+| **Total** | **3** | **132** | ░░░░░░░░░░ **2%** |
 
-**Currently in progress:** none. **Next up:** `M003 — CI pipeline: static analysis, test, build`.
+**Currently in progress:** none. **Next up:** `M008 — UI primitives` (sequence deviation: M007→M008→M009 pulled ahead of M003–M006, owner-approved — see BACKLOG.md).
 
 ### Completed
 
@@ -124,6 +124,7 @@ Updated in the same commit as each milestone's work.
 |---|---|---|---|
 | M001 | Initialize monorepo and tooling | 2026-07-27 | 14 workspace projects; 12/12 build; resolved ASSUMPTION-008 (Node 22 → 24 LTS) |
 | M002 | Shared config and enforced boundaries | 2026-07-27 | 10 adversarial gates verified rejecting; pre-commit 3992 ms; 3 latent misconfigs caught |
+| M007 | Design tokens | 2026-07-27 | 116 tokens; 40/40 WCAG pairs pass; caught 4 real contrast failures in §18's own values |
 
 ## Milestone hygiene rules
 

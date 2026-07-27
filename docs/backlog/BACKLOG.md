@@ -11,6 +11,22 @@ Complexity: XS · S · M · L (XL is prohibited — split it first)
 > **Do not implement any milestone automatically.** Per [CLAUDE.md](../../CLAUDE.md), work starts only
 > on an explicit "Start Milestone X" or "Implement the next milestone."
 
+## Active sequence deviation — owner-approved 2026-07-27
+
+**M007 → M008 → M009 pulled ahead of M003–M006.** After M002 the repository had no runnable surface
+(the first URL is M009), and the owner asked to reach something demonstrable sooner.
+
+This is a reordering, not a scope change: no milestone is added, removed, or altered, and
+[§25](../05-delivery/25-roadmap.md) already designates design-system and UI-shell work as
+parallelizable around the critical path. IDs are unchanged.
+
+| Consequence | Handling |
+|---|---|
+| **M003 (CI) is deferred**, so pushes are not pipeline-gated for three milestones | Local husky hooks and `pnpm verify` still gate every commit. Accepted, time-boxed to M009. |
+| M004 (Postgres + RLS) — the critical path — slips by three milestones | 🔒 Not skipped, only resequenced. Tenant isolation remains non-negotiable and lands before any data path exists. |
+
+**Order now:** M007 → M008 → M009 → M003 → M004 → M005 → M006 → M010 …
+
 ---
 
 # PHASE 1 — Foundation & Core Loop (MVP)
@@ -58,11 +74,13 @@ Complexity: XS · S · M · L (XL is prohibited — split it first)
 **Deliverables** `packages/observability`: OTel SDK setup, trace context propagation, structured JSON logger with **secret and PII redaction**, request-ID middleware, health/readiness endpoints.
 **Acceptance** A trace spans HTTP → service → DB · logs carry a correlation ID · a secret-shaped string is redacted in a test · `/healthz` and `/readyz` respond.
 
-### M007 · Design tokens · S · 🏗
+### M007 · Design tokens · S · 🏗 — ✅ **Done** (2026-07-27)
 **Objective** The §18 token system, live.
-**Dependencies** M001
+**Dependencies** M001 ✅
 **Deliverables** `packages/ui/tokens/tokens.css` (primitives + semantic, both themes), Tailwind config consuming CSS variables, `data-theme` switching.
 **Acceptance** All §18 tokens defined · both themes pass automated WCAG AA contrast checks · a hardcoded hex in a component fails lint.
+**Verified** 116 unique tokens across 12 groups · `scripts/check-contrast.mjs` → **40 pairs, 0 failing** in both themes · hex literal, `rgb()` call and direct primitive reference all rejected by lint, semantic token accepted · Tailwind compile confirms `bg-surface` → `var(--bg-surface)` with **zero** primitive utilities generated · theme API exported and typed. All six gates exit 0.
+**Notes** The contrast checker found **4 genuine WCAG 1.4.11 failures in §18's own specified values** (`--border-default` at 2.60:1 dark / 2.56:1 light against a 3:1 requirement). Tokens corrected and §18 amended with the machine-verified figures.
 
 ### M008 · UI primitives · M · ✨
 **Objective** The base component set.

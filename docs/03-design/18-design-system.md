@@ -73,14 +73,14 @@ what components use. Changing a theme means remapping semantics, not editing com
   --bg-hover:       var(--n-800);
   --bg-selected:    color-mix(in oklab, var(--a-500) 14%, transparent);
 
-  --border-subtle:  var(--n-800);
-  --border-default: var(--n-700);
-  --border-strong:  var(--n-600);
+  --border-subtle:  var(--n-800);   /* decorative divider only */
+  --border-default: var(--n-500);   /* control boundary — MUST clear 3:1 */
+  --border-strong:  var(--n-400);
   --border-focus:   var(--a-400);
 
   --text-primary:   var(--n-50);
   --text-secondary: var(--n-300);
-  --text-tertiary:  var(--n-400);   /* 4.6:1 on --bg-base — verified */
+  --text-tertiary:  var(--n-400);   /* 7.41:1 on --bg-base — CI-verified */
   --text-inverse:   var(--n-950);
   --text-accent:    var(--a-400);
 
@@ -105,12 +105,13 @@ what components use. Changing a theme means remapping semantics, not editing com
 /* ── Semantic tokens — light theme (Phase 4) ────────────────────────── */
 [data-theme="light"] {
   --bg-base: var(--n-50);   --bg-surface: var(--n-0);
-  --bg-surface-2: var(--n-50); --bg-inset: var(--n-100);
+  --bg-surface-2: var(--n-100); --bg-inset: var(--n-100);
   --bg-hover: var(--n-100);
-  --border-subtle: var(--n-200); --border-default: var(--n-300);
+  --border-subtle: var(--n-200); --border-default: var(--n-500);
   --text-primary: var(--n-900); --text-secondary: var(--n-700);
-  --text-tertiary: var(--n-500);  /* 4.7:1 on --bg-base — verified */
+  --text-tertiary: var(--n-600);  /* 6.39:1 on --bg-base — CI-verified */
   --accent-bg: var(--a-700); --accent-fg: var(--n-0);
+  --text-accent: var(--a-800); --border-focus: var(--a-700);
   --status-ok: var(--ok-600); --status-warn: var(--warn-600);
   --status-err: var(--err-600); --status-running: var(--run-600);
   --shadow-sm: 0 1px 2px rgb(16 24 32 / .06);
@@ -121,8 +122,16 @@ what components use. Changing a theme means remapping semantics, not editing com
 
 **Rules:**
 - Components reference **semantic tokens only**. A primitive in a component is a review rejection.
-- Both themes are contrast-verified against WCAG 2.2 AA (NFR-A11Y-3). Contrast is a build check, not
-  a designer's judgment.
+- Both themes are contrast-verified against WCAG 2.2 AA (NFR-A11Y-3) by
+  `scripts/check-contrast.mjs`, which runs in `pnpm verify`. **40 pairs, 0 failing.** Contrast is a
+  build check, not a designer's judgment.
+
+  > **Corrected at M007.** This section originally specified `--border-default` as `--n-700` (dark)
+  > and `--n-300` (light). Both failed WCAG 1.4.11 non-text contrast — 2.60:1 and 2.56:1 against a
+  > 3:1 requirement — and the inline "4.6:1 / 4.7:1" claims for `--text-tertiary` were wrong. The
+  > values above are the corrected, machine-verified ones. The lesson is recorded rather than
+  > quietly patched: a contrast figure written by hand into a design doc is a guess until a script
+  > computes it.
 - `--status-running` is the only place the violet appears. Reserving it makes "an agent is working"
   instantly readable, and keeps us clear of the generic AI-purple look everywhere else.
 - **Status is never communicated by color alone** (NFR-A11Y-5) — every status carries an icon and a
@@ -332,9 +341,10 @@ coalescing rule above is a hard requirement, not a refinement.
 
 ## Governance
 
-1. **No hardcoded values.** No hex color, px spacing, or raw font size in a component. Enforced by
-   lint.
-2. **Semantic tokens only** in components.
+1. **No hardcoded values.** No hex colour, `rgb()`/`hsl()` call, or raw font size in a component.
+   Enforced by `no-restricted-syntax` in `eslint.config.js` (live since M007).
+2. **Semantic tokens only** in components — a direct `var(--n-900)` primitive reference is a lint
+   error, and primitives generate no Tailwind utility, so there is no accidental path to one.
 3. **New component requires:** all states (default, hover, focus, active, disabled, loading, error,
    empty), both themes, keyboard operation, a11y test, and a Storybook entry.
 4. **New token requires** an ADR — the token set is a public contract with every future component.

@@ -108,7 +108,14 @@ export default tseslint.config(
       complexity: ["error", 15],
       "max-lines": ["warn", { max: 400, skipBlankLines: true, skipComments: true }],
       eqeqeq: ["error", "always", { null: "ignore" }],
-      "no-param-reassign": ["error", { props: true }],
+      "no-param-reassign": [
+        "error",
+        {
+          props: true,
+          // Mutating these IS the function's purpose; flagging it is noise.
+          ignorePropertyModificationsFor: ["document", "draft", "acc", "accumulator"],
+        },
+      ],
     },
   },
 
@@ -323,6 +330,45 @@ export default tseslint.config(
     },
   },
 
+  // ── §18 governance: no hardcoded design values in components ─────────────
+  // Components reference SEMANTIC tokens only. A literal colour or raw px size
+  // is invisible to theming, so it silently breaks light mode and the contrast
+  // guarantee that scripts/check-contrast.mjs enforces over the token set.
+  // tokens.css is exempt by construction — it is CSS, not linted here.
+  {
+    files: ["packages/ui/**/*.{ts,tsx}", "apps/web/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "TSEnumDeclaration",
+          message: "TS enums are prohibited (§21). Use an `as const` object plus a union type.",
+        },
+        {
+          // #fff / #ffffff / #ffffffff
+          selector: String.raw`Literal[value=/#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/]`,
+          message:
+            "Hardcoded colour. Use a semantic design token (§18) — e.g. `bg-surface`, `text-primary`, or var(--text-primary). Literals bypass theming and the contrast gate.",
+        },
+        {
+          selector: String.raw`TemplateElement[value.raw=/#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/]`,
+          message: "Hardcoded colour in a template literal. Use a semantic design token (§18).",
+        },
+        {
+          selector: String.raw`Literal[value=/\b(?:rgb|rgba|hsl|hsla)\(/]`,
+          message:
+            "Hardcoded colour function. Use a semantic design token (§18) rather than a literal colour.",
+        },
+        {
+          // Reaching past the semantic layer into a raw scale.
+          selector: String.raw`Literal[value=/var\(\s*--(?:n|a|ok|warn|err|info|run)-[0-9]/]`,
+          message:
+            "Primitive token referenced directly. Components must use SEMANTIC tokens (--bg-*, --text-*, --border-*, --status-*), never a raw scale (§18).",
+        },
+      ],
+    },
+  },
+
   // ── Unicorn: naming and modern idioms ────────────────────────────────────
   {
     plugins: { unicorn },
@@ -363,10 +409,15 @@ export default tseslint.config(
   // ── Scripts and tooling: console is the point ────────────────────────────
   {
     files: ["scripts/**", "*.config.js", "*.config.mjs", "eslint.config.js"],
+    languageOptions: {
+      globals: { console: "readonly", process: "readonly", URL: "readonly" },
+    },
     rules: {
       "no-console": "off",
       "import-x/no-default-export": "off",
       "import-x/no-extraneous-dependencies": "off",
+      // resolve() walks a var() chain — genuine recursion, not an accidental one.
+      "unicorn/no-useless-recursion": "off",
     },
   },
 

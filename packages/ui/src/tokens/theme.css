@@ -1,0 +1,112 @@
+/**
+ * Tailwind v4 theme bridge.
+ *
+ * Tailwind v4 is CSS-first: `@theme` declarations generate the utility classes.
+ * Every entry below points at a SEMANTIC token from tokens.css rather than a
+ * literal value, so `bg-surface` resolves through `--bg-surface` at runtime and
+ * follows `data-theme` automatically. One stylesheet, both themes, no rebuild.
+ *
+ * Consequence worth stating: there is no `bg-n-900` utility and there never
+ * should be. Primitives are deliberately absent from the utility surface — the
+ * only way to reach one from a component is to bypass the design system, which
+ * the lint rule in eslint.config.js rejects.
+ *
+ * Import order matters: tokens.css must come first (it defines the variables).
+ */
+
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Dark is the default; `[data-theme]` on <html> switches at runtime (§18). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+@theme inline {
+  /* ── Colour: semantic only ─────────────────────────────────────────────── */
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-surface-2: var(--bg-surface-2);
+  --color-inset: var(--bg-inset);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-focus: var(--border-focus);
+
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-inverse: var(--text-inverse);
+  --color-accent: var(--text-accent);
+
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-bg-hover: var(--accent-bg-hover);
+  --color-accent-fg: var(--accent-fg);
+
+  --color-ok: var(--status-ok);
+  --color-warn: var(--status-warn);
+  --color-err: var(--status-err);
+  --color-info: var(--status-info);
+  --color-running: var(--status-running);
+
+  --color-diff-add: var(--diff-add-bg);
+  --color-diff-del: var(--diff-del-bg);
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --text-2xs: var(--text-2xs);
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-base: var(--text-base);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+
+  --leading-tight: var(--leading-tight);
+  --leading-snug: var(--leading-snug);
+  --leading-normal: var(--leading-normal);
+  --leading-relaxed: var(--leading-relaxed);
+
+  --tracking-tight: var(--tracking-tight);
+  --tracking-normal: var(--tracking-normal);
+  --tracking-wide: var(--tracking-wide);
+
+  /* ── Spacing (4px grid) ────────────────────────────────────────────────── */
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+  --spacing-16: var(--space-16);
+  --spacing-20: var(--space-20);
+  --spacing-24: var(--space-24);
+
+  /* ── Radius ────────────────────────────────────────────────────────────── */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  /* ── Shadow ────────────────────────────────────────────────────────────── */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  /* ── Layout ────────────────────────────────────────────────────────────── */
+  --container-content: var(--container-content);
+  --container-prose: var(--container-prose);
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+}

@@ -9,6 +9,38 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M007 — Design tokens.** The [§18](03-design/18-design-system.md) token system is live: 116 tokens
+  across colour, typography, spacing, radius, layout, z-index, motion and shadow, in two layers
+  (primitives → semantic) so theming remaps semantics rather than editing components.
+  - `packages/ui/src/tokens/tokens.css` — primitives + semantic layers, dark and light.
+  - `packages/ui/src/tokens/theme.css` — Tailwind v4 `@theme` bridge. Utilities resolve to semantic
+    tokens (`bg-surface` → `var(--bg-surface)`); **primitives generate no utility at all**, so there
+    is no accidental path around the design system.
+  - `packages/ui/src/tokens/theme.ts` — `data-theme` switching, OS-preference resolution, and a
+    flash-free init script. Dependency-free and framework-agnostic.
+  - `scripts/check-contrast.mjs` — WCAG 2.2 AA verification wired into `pnpm verify`. 40 pairs, both
+    themes.
+  - Lint rule rejecting hardcoded colours (`#hex`, `rgb()`, `hsl()`) and direct primitive references
+    in `packages/ui` and `apps/web`.
+
+### Fixed
+
+- **Four genuine WCAG 1.4.11 contrast failures in §18's own specified token values**, found the first
+  time the contrast checker ran: `--border-default` was 2.60:1 (dark) and 2.56:1 (light) against a
+  3:1 requirement for control boundaries. §18's hand-written "4.6:1 / 4.7:1" claims for
+  `--text-tertiary` were also wrong (actual: 7.41 and 6.39). Tokens corrected, §18 amended with
+  machine-verified figures, and the correction recorded in place rather than quietly patched.
+- `packages/ui` had no DOM types (`lib` was ES2023-only), so browser APIs were untyped.
+- `no-param-reassign` was flagging the document mutation that is `setTheme`'s entire purpose; scoped
+  with `ignorePropertyModificationsFor`.
+
+### Changed
+
+- **Sequence deviation, owner-approved:** M007 → M008 → M009 pulled ahead of M003–M006 to reach a
+  runnable UI sooner. A reordering, not a scope change — [§25](05-delivery/25-roadmap.md) already
+  designates UI work as parallelizable. CI (M003) is deferred by three milestones; local hooks and
+  `pnpm verify` continue to gate every commit. Recorded in [BACKLOG.md](backlog/BACKLOG.md).
+
 - **M002 — Shared config and enforced boundaries.** The coding standards are now machine-enforced
   rather than reviewer-remembered.
   - `packages/config/tsconfig.base.json` hardened with the full [§21](04-engineering/21-coding-standards.md)
