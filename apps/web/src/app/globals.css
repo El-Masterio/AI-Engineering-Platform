@@ -1,6 +1,17 @@
-/* The whole design system: Tailwind bridge + tokens, from @atelier/ui (M007). */
+/* The whole design system: Tailwind bridge + tokens, from @atelier/ui. */
 @import "@atelier/ui/theme.css";
 
 /* Tailwind v4 scans sources it can see; the workspace UI package is external
    to this app's tree, so point at it explicitly or its utilities are purged. */
 @source "../../../../packages/ui/src";
+
+/* next/font hashes each family into a generated custom property at build time.
+   The token layer names the families literally so packages/ui stays free of any
+   Next.js dependency; this block is the one place the two meet. Each falls back
+   to the literal name, so Storybook — which has no next/font — still renders in
+   the right typeface. */
+:root {
+  --font-display: var(--font-display-loaded, "Manrope"), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-sans-loaded, "Inter"), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-loaded, "JetBrains Mono"), ui-monospace, "SF Mono", monospace;
+}

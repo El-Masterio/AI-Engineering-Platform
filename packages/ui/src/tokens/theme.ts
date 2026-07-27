@@ -1,40 +1,48 @@
 /**
- * Runtime theme switching.
+ * Theme application.
  *
  * The theme is an attribute on <html>, not a class and not a rebuild: every
- * semantic token is a CSS custom property, so flipping `data-theme` re-resolves
+ * semantic token is a CSS custom property, so setting `data-theme` re-resolves
  * the whole design system in one paint (§18).
  *
- * Deliberately dependency-free and framework-agnostic — packages/ui may be
- * consumed by the Next.js app (M009) and by Storybook, and neither should have
- * to agree on a state library to change a theme.
+ * ── ONE THEME, DELIBERATELY ─────────────────────────────────────────────────
+ * Design System v2.0 specifies exactly one palette — warm neutral, light — and
+ * names "too dark" among the qualities to avoid. Light is therefore the
+ * product, not a mode, and this module has no toggle, no persistence and no
+ * pre-paint script: with a single theme there is nothing to remember and no
+ * flash to prevent. All three were deleted rather than left inert.
+ *
+ * What survives is the mechanism: the `data-theme` attribute and the token
+ * indirection behind it. M083 can add a dark palette by writing a
+ * `[data-theme="dark"]` block in tokens.css and restoring a toggle — no
+ * component changes, which is the whole point of the two-layer architecture.
+ *
+ * Deliberately dependency-free and framework-agnostic: packages/ui is consumed
+ * by the Next.js app and by Storybook, and neither should have to agree on a
+ * state library.
  */
 
-export const THEMES = ["dark", "light"] as const;
+export const THEMES = ["light"] as const;
 export type Theme = (typeof THEMES)[number];
 
-/** Dark-first, per the §18 design direction. */
-export const DEFAULT_THEME: Theme = "dark";
+/** The only theme v2.0 specifies. */
+export const DEFAULT_THEME: Theme = "light";
 
 /**
- * Base page background per theme, as literal colour.
+ * Base page background per theme, as a literal colour.
  *
  * `<meta name="theme-color">` is consumed by the browser before any stylesheet
- * is parsed, so it cannot reference a CSS custom property. Exporting the values
- * here keeps ONE source of truth: these must stay equal to `--bg-base` in
+ * is parsed, so it cannot reference a CSS custom property. Exporting the value
+ * here keeps ONE source of truth: it must stay equal to `--bg-base` in
  * tokens.css, and a test asserts exactly that.
  */
 /* eslint-disable no-restricted-syntax -- justified: <meta name="theme-color"> is
-   read before any stylesheet, so these two values cannot be CSS variables. The
-   THEME_BASE_COLOR test asserts they stay equal to --bg-base in tokens.css. */
+   read before any stylesheet, so this value cannot be a CSS variable. The
+   THEME_BASE_COLOR test asserts it stays equal to --bg-base in tokens.css. */
 export const THEME_BASE_COLOR: Record<Theme, string> = {
-  dark: "#0d1116",
-  light: "#f7f8f9",
+  light: "#f7f5f1",
 };
 /* eslint-enable no-restricted-syntax */
-
-/** Key used for the persisted preference. */
-export const THEME_STORAGE_KEY = "atelier-theme";
 
 export function isTheme(value: unknown): value is Theme {
   return typeof value === "string" && (THEMES as readonly string[]).includes(value);
@@ -46,55 +54,7 @@ export function getTheme(document: Document): Theme {
   return isTheme(attribute) ? attribute : DEFAULT_THEME;
 }
 
-/**
- * Apply a theme and persist the choice.
- *
- * Storage is best-effort: private browsing and blocked storage must not break
- * theming, so a failure is swallowed rather than thrown.
- */
+/** Apply a theme to the document. */
 export function setTheme(document: Document, theme: Theme): void {
   document.documentElement.dataset["theme"] = theme;
-  try {
-    document.defaultView?.localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch {
-    // Storage unavailable — the attribute is applied regardless.
-  }
 }
-
-export function toggleTheme(document: Document): Theme {
-  const next: Theme = getTheme(document) === "dark" ? "light" : "dark";
-  setTheme(document, next);
-  return next;
-}
-
-/**
- * Resolve the theme to use on first paint: an explicit stored choice, else dark.
- *
- * The OS `prefers-color-scheme` is deliberately NOT consulted. §18 specifies a
- * dark-first product and §8 scopes the MVP to dark only; auto-switching to
- * light because the operating system says so would override that product
- * decision for most users. Light remains fully supported and one click away.
- *
- * Revisit at Phase 4, when light mode formally ships (M083).
- */
-export function resolveInitialTheme(window_: Window): Theme {
-  try {
-    const stored = window_.localStorage.getItem(THEME_STORAGE_KEY);
-    if (isTheme(stored)) return stored;
-  } catch {
-    // Storage unavailable — fall through to the default.
-  }
-  return DEFAULT_THEME;
-}
-
-/**
- * Blocking script for the document <head>, injected before first paint.
- *
- * Without this the page renders in the default theme and then corrects itself —
- * the "theme flash". It must run synchronously, so it ships as a string rather
- * than a module import.
- */
-export const THEME_INIT_SCRIPT = `(function(){try{
-var k=${JSON.stringify(THEME_STORAGE_KEY)},s=localStorage.getItem(k);
-document.documentElement.dataset.theme=(s==="dark"||s==="light")?s:${JSON.stringify(DEFAULT_THEME)};
-}catch(e){document.documentElement.dataset.theme=${JSON.stringify(DEFAULT_THEME)};}})();`;

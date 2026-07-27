@@ -2,7 +2,7 @@ import { type LucideIcon } from "lucide-react";
 import { cn } from "../lib/cn.js";
 
 /**
- * Icon — one family (Lucide), fixed sizes, 1.5px stroke (§18).
+ * Icon — one family (Lucide), fixed sizes, 1.75px stroke (§18 v2.0).
  *
  * Decorative icons are `aria-hidden`; a meaningful icon must carry a `label`,
  * which becomes its accessible name. There is deliberately no third option —
@@ -22,7 +22,7 @@ export function Icon({ icon: LucideComponent, size = 16, label, className }: Ico
     <LucideComponent
       width={size}
       height={size}
-      strokeWidth={1.5}
+      strokeWidth={1.75}
       className={cn("shrink-0", className)}
       aria-hidden={isDecorative ? "true" : undefined}
       role={isDecorative ? undefined : "img"}

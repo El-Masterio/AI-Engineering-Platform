@@ -75,7 +75,7 @@ export function StatusIndicator({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-[length:var(--text-xs)] font-medium",
+        "inline-flex items-center gap-2 text-[length:var(--text-caption)] font-medium",
         spec.className,
         className,
       )}
@@ -83,9 +83,9 @@ export function StatusIndicator({
       {...props}
     >
       <IconComponent
-        width={14}
-        height={14}
-        strokeWidth={1.5}
+        width={16}
+        height={16}
+        strokeWidth={1.75}
         aria-hidden="true"
         className={cn("shrink-0", spec.spin === true && "animate-spin motion-reduce:animate-none")}
       />

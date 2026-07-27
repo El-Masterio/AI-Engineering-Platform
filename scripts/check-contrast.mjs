@@ -2,21 +2,27 @@
 /**
  * WCAG 2.2 contrast verification for the design tokens.
  *
- * §18 claims both themes conform to AA. This turns that claim into a build
- * gate — NFR-A11Y-3 says contrast is a build check, not a designer's judgment.
+ * §18 v2.0 claims the palette conforms to AA. This turns that claim into a
+ * build gate — NFR-A11Y-3 says contrast is a build check, not a designer's
+ * judgment. It is the reason the v2.0 directive's palette shipped with derived
+ * shades rather than as written: this script measured 20 of 23 load-bearing
+ * pairs below threshold before any of it was implemented.
  *
  * Parses packages/ui/src/tokens/tokens.css, resolves each semantic token
- * through its var() chain per theme, and asserts the ratio for every pair that
- * carries meaning.
+ * through its var() chain, and asserts the ratio for every pair that carries
+ * meaning. Every surface a token can land on is checked, not just one — the
+ * sidebar (#ece8e2) is darker than the page and is where borderline values
+ * fail first.
  *
  * Thresholds (WCAG 2.2 AA):
  *   4.5:1  normal body text
  *   3.0:1  large text (>=18.66px bold / 24px regular) and UI component
  *          boundaries + graphical objects (1.4.11 Non-text Contrast)
  *
- * Pairs whose value uses color-mix() are skipped and reported — they cannot be
- * resolved statically. They are decorative fills (selection, diff backgrounds)
- * layered over a checked background, never the sole carrier of meaning.
+ * Deliberately NOT gated: --brand (--o-500 #f06d22) and the --chart-* series.
+ * The brand orange appears only in the logo mark and gradients, where nothing
+ * depends on distinguishing it from its background. Chart series are gated
+ * against each other by review, not against a surface.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -25,34 +31,71 @@ import path from "node:path";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TOKENS = path.join(here, "..", "packages", "ui", "src", "tokens", "tokens.css");
 
-/** Pairs that must meet a threshold. [foreground, background, minRatio, label] */
-const PAIRS = [
-  // Body text — 4.5:1
-  ["--text-primary", "--bg-base", 4.5, "body text on page"],
-  ["--text-primary", "--bg-surface", 4.5, "body text on card"],
-  ["--text-primary", "--bg-surface-2", 4.5, "body text on raised surface"],
-  ["--text-primary", "--bg-inset", 4.5, "code text on inset"],
-  ["--text-secondary", "--bg-base", 4.5, "secondary text on page"],
-  ["--text-secondary", "--bg-surface", 4.5, "secondary text on card"],
-  ["--text-tertiary", "--bg-base", 4.5, "tertiary text on page"],
-  ["--text-tertiary", "--bg-surface", 4.5, "tertiary text on card"],
-  ["--text-accent", "--bg-base", 4.5, "accent text on page"],
-  ["--text-accent", "--bg-surface", 4.5, "accent text on card"],
-  ["--accent-fg", "--accent-bg", 4.5, "primary button label"],
-
-  // UI boundaries and status indicators — 3.0:1 (WCAG 1.4.11)
-  ["--border-default", "--bg-surface", 3, "input border on card"],
-  ["--border-default", "--bg-base", 3, "input border on page"],
-  ["--border-focus", "--bg-base", 3, "focus ring on page"],
-  ["--border-focus", "--bg-surface", 3, "focus ring on card"],
-  ["--status-ok", "--bg-surface", 3, "success indicator"],
-  ["--status-warn", "--bg-surface", 3, "warning indicator"],
-  ["--status-err", "--bg-surface", 3, "error indicator"],
-  ["--status-info", "--bg-surface", 3, "info indicator"],
-  ["--status-running", "--bg-surface", 3, "agent-running indicator"],
+/** Every surface text or a border can land on. */
+const SURFACES = [
+  "--bg-base",
+  "--bg-surface",
+  "--bg-surface-2",
+  "--bg-elevated",
+  "--bg-sidebar",
+  "--bg-hover",
 ];
 
-const THEMES = ["dark", "light"];
+/** [foreground, background, minRatio, label] */
+const PAIRS = [
+  // ── Body text on every surface — 4.5:1 ──────────────────────────────────
+  ...["--text-primary", "--text-secondary", "--text-tertiary"].flatMap((fg) =>
+    SURFACES.map((bg) => [
+      fg,
+      bg,
+      4.5,
+      `${fg.replace("--text-", "")} on ${bg.replace("--bg-", "")}`,
+    ]),
+  ),
+  ["--text-primary", "--bg-inset", 4.5, "text in an input"],
+  ["--text-primary", "--bg-selected", 4.5, "text on selection"],
+  ["--text-accent", "--bg-base", 4.5, "accent text on page"],
+  ["--text-accent", "--bg-surface", 4.5, "accent text on card"],
+  ["--text-link", "--bg-surface", 4.5, "link on card"],
+  ["--text-link", "--bg-base", 4.5, "link on page"],
+  ["--slate", "--bg-surface", 4.5, "slate text on card"],
+
+  // ── Text on coloured fills — 4.5:1 ──────────────────────────────────────
+  ["--accent-fg", "--accent-bg", 4.5, "primary button label"],
+  ["--accent-fg", "--accent-bg-hover", 4.5, "primary button hover"],
+  ["--accent-fg", "--accent-bg-active", 4.5, "primary button pressed"],
+  ["--accent-soft-fg", "--accent-soft-bg", 4.5, "soft-orange chip"],
+  ["--secondary-soft-fg", "--secondary-soft-bg", 4.5, "active nav item"],
+  ["--text-inverse", "--status-err-fill", 4.5, "danger button label"],
+
+  // ── Status text on its tinted chip — 4.5:1 ──────────────────────────────
+  ["--status-ok", "--status-ok-bg", 4.5, "success chip text"],
+  ["--status-warn", "--status-warn-bg", 4.5, "warning chip text"],
+  ["--status-err", "--status-err-bg", 4.5, "error chip text"],
+  ["--status-info", "--status-info-bg", 4.5, "info chip text"],
+  ["--status-running", "--status-running-bg", 4.5, "running chip text"],
+  ["--status-ok", "--bg-surface", 4.5, "success text on card"],
+  ["--status-warn", "--bg-surface", 4.5, "warning text on card"],
+  ["--status-err", "--bg-surface", 4.5, "error text on card"],
+  ["--status-info", "--bg-surface", 4.5, "info text on card"],
+  ["--status-running", "--bg-surface", 4.5, "running text on card"],
+
+  // ── Control boundaries and indicators — 3.0:1 (WCAG 1.4.11) ─────────────
+  ...["--border-default", "--border-strong", "--border-focus", "--accent"].flatMap((fg) =>
+    ["--bg-base", "--bg-surface", "--bg-sidebar"].map((bg) => [
+      fg,
+      bg,
+      3,
+      `${fg.replace("--border-", "").replace("--", "")} on ${bg.replace("--bg-", "")}`,
+    ]),
+  ),
+  ["--secondary-strong", "--bg-sidebar", 3, "active nav marker"],
+  ["--status-ok-dot", "--bg-surface", 3, "success dot"],
+  ["--status-warn-dot", "--bg-surface", 3, "warning dot"],
+  ["--status-err-dot", "--bg-surface", 3, "error dot"],
+  ["--status-info-dot", "--bg-surface", 3, "info dot"],
+  ["--text-placeholder", "--bg-inset", 4.5, "input placeholder"],
+];
 
 // ── Parsing ────────────────────────────────────────────────────────────────
 
@@ -84,19 +127,14 @@ function declarations(text) {
   return out;
 }
 
-// `:root` carries primitives + the dark semantic layer; `[data-theme="light"]`
-// overrides. Order matters: later declarations win.
-const rootDeclarations = declarations(
+// `:root` carries the primitives; `:root, [data-theme="light"]` carries the
+// semantic layer. v2.0 specifies one palette, so there is one map to build.
+// Order matters: later declarations win.
+const tokens = declarations(
   blockFor((s) =>
-    s.split(",").some((p) => p.trim() === ":root" || p.trim() === '[data-theme="dark"]'),
+    s.split(",").some((p) => p.trim() === ":root" || p.trim() === '[data-theme="light"]'),
   ),
 );
-const lightDeclarations = declarations(blockFor((s) => s.includes('[data-theme="light"]')));
-
-const themeMaps = {
-  dark: rootDeclarations,
-  light: new Map([...rootDeclarations, ...lightDeclarations]),
-};
 
 // ── Colour maths ───────────────────────────────────────────────────────────
 
@@ -144,7 +182,7 @@ function contrast(fg, bg) {
 function checkPair([fgName, bgName, min, label], map) {
   const fgRaw = resolve(fgName, map);
   const bgRaw = resolve(bgName, map);
-  const name = label.padEnd(30);
+  const name = label.padEnd(34);
 
   if (fgRaw === undefined || bgRaw === undefined) {
     return { status: "fail", line: `  ✖ ${name} UNDEFINED TOKEN (${fgName} / ${bgName})` };
@@ -173,18 +211,15 @@ let failures = 0;
 let skipped = 0;
 let checked = 0;
 
-for (const theme of THEMES) {
-  const map = themeMaps[theme];
-  console.log(`\n  ${theme.toUpperCase()} THEME`);
-  console.log("  " + "─".repeat(74));
+console.log("\n  DESIGN SYSTEM v2.0 — WARM NEUTRAL");
+console.log("  " + "─".repeat(74));
 
-  for (const pair of PAIRS) {
-    const { status, line } = checkPair(pair, map);
-    if (status === "fail") failures++;
-    else if (status === "skip") skipped++;
-    else checked++;
-    console.log(line);
-  }
+for (const pair of PAIRS) {
+  const { status, line } = checkPair(pair, tokens);
+  if (status === "fail") failures++;
+  else if (status === "skip") skipped++;
+  else checked++;
+  console.log(line);
 }
 
 console.log("\n  " + "─".repeat(74));

@@ -7,7 +7,53 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ## [Unreleased]
 
+### Changed — BREAKING (visual)
+
+- **Design System v2.0 — the entire visual identity is replaced.** Owner directive; see
+  [ADR-008](decisions/ADR-008-design-system-v2.md) and the rewritten
+  [§18](03-design/18-design-system.md).
+  - **Warm neutral, light.** Page `#f7f5f1`, sidebar `#ece8e2`, white cards. **Orange is the primary
+    accent, blue the secondary.** v1.0's dark near-black and deep teal are gone.
+  - **Typography**: Manrope (display) + Inter (UI) + JetBrains Mono, self-hosted via `next/font`.
+    Scale moves from a dense 13px UI to 14px UI / 16px body, with a 13–64px range.
+  - **Geometry**: 48px controls, 10–28px radii, an 8px grid with 20px removed, shadows that almost
+    disappear.
+  - **Sidebar** active state is a blue left bar over a soft blue field. **Top navigation** is now
+    workspace switcher, search, notifications and account menu — the breadcrumb was removed as
+    clutter, per the directive.
+  - New `Card` and `StatCard` primitives; `PageHeader` in the app.
+  - **Not one component changed which token it reads.** The two-layer token architecture from M007
+    is what made a total re-skin a one-file change.
+
+- **Dark mode removed; light is the product.** The directive specifies one palette and names "too
+  dark" among the things to avoid. `toggleTheme`, `resolveInitialTheme`, `THEME_STORAGE_KEY`, the
+  pre-paint `THEME_INIT_SCRIPT`, the topbar toggle and the Storybook theme control were **deleted**
+  rather than left inert. The `data-theme` hook survives, so M083 (re-scoped from "light theme" to
+  "dark theme") adds a palette by writing one CSS block.
+
+### Fixed
+
+- **The specified palette failed WCAG 2.2 AA in 20 of 23 load-bearing pairs**, measured before
+  implementation. Every specified colour is kept and used where the requirement is 3:1 or already
+  met; minimally darkened counterparts — same hue and saturation — carry the roles involving text.
+  Most visibly: the **primary button fills `#c8510e` (4.53:1) rather than the brand `#f06d22`
+  (3.04:1)**. Reversing that is one token and costs AA on every primary action.
+  - The vivid `#f06d22` remains the brand orange in the logo mark, gradients and chart series 1.
+  - The logo mark's letter sits at 3.04:1 under WCAG 1.4.3's logotype exemption, marked
+    `data-logotype` in the DOM so the exemption is visible rather than assumed.
+  - Decorative borders keep the directive's soft `#dad6cf`/`#e5e2dc` — 1.4.11 governs control
+    boundaries, not decoration.
+- **`font-[var(--font-display)]` and `font-[var(--weight-bold)]` were silently overriding each
+  other.** Tailwind's `font-` prefix covers both family and weight, and arbitrary values are
+  ambiguous. Now canonical `font-display` / `font-bold`.
+
 ### Added
+
+- Contrast gate expanded from 40 pairs across two themes to **59 pairs** covering every surface a
+  token can land on. The sidebar is darker than the page and is where borderline values fail first;
+  it caught two that survived the first pass.
+- Three architectural claims that were prose are now tests: **no component references a primitive
+  token**, the directive's palette cannot drift, and `THEME_BASE_COLOR` cannot desync.
 
 - **M009 — AppShell and routing.** `apps/web` is a running Next.js 16 application.
   - App Router with a `(dashboard)` route group, `/projects`, `/projects/[projectId]`, `/agents`

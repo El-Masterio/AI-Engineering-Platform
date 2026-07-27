@@ -18,12 +18,13 @@ them inside sandboxed environments, and verification gates that mean the output 
 
 The blueprint (Phase 0) is complete, the monorepo skeleton is up (`M001`), the coding standards are
 enforced by tooling (`M002`), the design tokens are live and contrast-verified (`M007`), the UI
-primitives are built (`M008`), and the dashboard shell runs (`M009`). Next milestone:
-`M003 — CI pipeline`.
+primitives are built (`M008`), and the dashboard shell runs (`M009`). The visual identity was then
+replaced wholesale by **Design System v2.0** — warm neutral, light, orange-and-blue
+([ADR-008](docs/decisions/ADR-008-design-system-v2.md)). Next milestone: `M003 — CI pipeline`.
 
 **The app runs:** `pnpm dev` serves the dashboard at [localhost:3000](http://localhost:3000);
-`pnpm storybook` opens the component gallery at [localhost:6006](http://localhost:6006). Both have
-a live dark/light toggle. Progress tracker:
+`pnpm storybook` opens the component gallery at [localhost:6006](http://localhost:6006).
+Progress tracker:
 [docs/05-delivery/26-milestone-breakdown.md](docs/05-delivery/26-milestone-breakdown.md).
 
 ## Quick start

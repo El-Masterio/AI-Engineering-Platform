@@ -5,17 +5,22 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn.js";
 
 /**
- * Button — §18 primitives.
+ * Button — §18 v2.0.
  *
- * Variants and sizes come from the design tokens only; there is not a single
- * literal colour or size here, which is what lets both themes work from one
- * definition (and is enforced by lint).
+ * Geometry is the directive's: 48px tall, 24px of horizontal padding, a 14px
+ * radius, a 15px label. Variants and sizes come from tokens only; there is not
+ * a single literal colour or size here, which is what let the entire palette be
+ * replaced without touching this file's structure (and is enforced by lint).
+ *
+ * `primary` fills with --accent-bg rather than the brand orange. The brand
+ * #f06d22 sits at 3.04:1 under white — below the 4.5:1 a 15px label requires.
+ * See the header of tokens.css.
  */
 const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
-    "rounded-md font-medium select-none",
-    "transition-colors duration-[--dur-instant] ease-[--ease-out]",
+    "rounded-[var(--radius-md)] font-semibold select-none",
+    "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
     // Visible, non-colour-dependent focus (NFR-A11Y-4).
     "outline-none focus-visible:outline-2 focus-visible:outline-offset-2",
     "focus-visible:outline-[var(--border-focus)]",
@@ -25,19 +30,28 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary:
-          "bg-[var(--accent-bg)] text-[var(--accent-fg)] hover:bg-[var(--accent-bg-hover)] active:brightness-95",
-        secondary:
-          "bg-[var(--bg-surface-2)] text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] active:brightness-95",
-        ghost:
-          "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] active:brightness-95",
-        danger:
-          "bg-[var(--status-err)] text-[var(--text-inverse)] hover:brightness-110 active:brightness-95",
+        primary: [
+          "bg-[var(--accent-bg)] text-[var(--accent-fg)]",
+          "hover:bg-[var(--accent-bg-hover)] active:bg-[var(--accent-bg-active)]",
+        ].join(" "),
+        secondary: [
+          "bg-[var(--bg-surface)] text-[var(--text-primary)]",
+          "border border-[var(--border-default)]",
+          "hover:bg-[var(--bg-base)] active:bg-[var(--bg-hover)]",
+        ].join(" "),
+        ghost: [
+          "bg-transparent text-[var(--text-secondary)]",
+          "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
+        ].join(" "),
+        danger: [
+          "bg-[var(--status-err-fill)] text-[var(--text-inverse)]",
+          "hover:brightness-95 active:brightness-90",
+        ].join(" "),
       },
       size: {
-        sm: "h-7 px-2.5 text-[length:var(--text-xs)]",
-        md: "h-8 px-3 text-[length:var(--text-sm)]",
-        lg: "h-10 px-4 text-[length:var(--text-base)]",
+        sm: "h-[var(--control-h-sm)] px-4 text-[length:var(--text-small)]",
+        md: "h-[var(--control-h)] px-[var(--control-px)] text-[length:var(--text-button)]",
+        lg: "h-[var(--control-h-lg)] px-8 text-[length:var(--text-body)]",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },
@@ -74,7 +88,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     >
       {loading ? (
         <Loader2
-          className="size-3.5 animate-spin motion-reduce:animate-none"
+          className="size-4 animate-spin motion-reduce:animate-none"
           aria-hidden="true"
           data-testid="button-spinner"
         />

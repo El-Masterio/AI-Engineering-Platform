@@ -14,9 +14,9 @@ export type AvatarProps = {
 };
 
 const SIZES = {
-  sm: "size-5 text-[length:var(--text-2xs)]",
-  md: "size-7 text-[length:var(--text-xs)]",
-  lg: "size-9 text-[length:var(--text-sm)]",
+  sm: "size-7 text-[length:var(--text-caption)]",
+  md: "size-9 text-[length:var(--text-small)]",
+  lg: "size-12 text-[length:var(--text-body)]",
 } as const;
 
 function initials(name: string): string {
@@ -33,7 +33,7 @@ export function Avatar({ src, name, kind = "user", size = "md", className }: Ava
     <AvatarPrimitive.Root
       className={cn(
         "relative inline-flex shrink-0 overflow-hidden rounded-full",
-        "bg-[var(--bg-surface-2)] border border-[var(--border-subtle)]",
+        "bg-[var(--secondary-soft-bg)] border border-[var(--border-subtle)]",
         SIZES[size],
         className,
       )}
@@ -47,10 +47,10 @@ export function Avatar({ src, name, kind = "user", size = "md", className }: Ava
         // tick. Spread rather than pass undefined — exactOptionalPropertyTypes
         // treats an explicit undefined as a type error.
         {...(src === undefined ? {} : { delayMs: 300 })}
-        className="flex size-full items-center justify-center font-medium text-[var(--text-secondary)]"
+        className="flex size-full items-center justify-center font-semibold text-[var(--secondary-soft-fg)]"
       >
         {kind === "agent" ? (
-          <Bot width={14} height={14} strokeWidth={1.5} aria-label={name} role="img" />
+          <Bot width={18} height={18} strokeWidth={1.75} aria-label={name} role="img" />
         ) : (
           <span aria-label={name} role="img">
             {initials(name)}

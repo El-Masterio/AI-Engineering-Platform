@@ -24,8 +24,9 @@ export const SelectTrigger = forwardRef<
       ref={ref}
       className={cn(
         controlClasses,
-        "flex h-8 items-center justify-between gap-2 px-2.5 text-[length:var(--text-sm)]",
-        "data-[placeholder]:text-[var(--text-tertiary)]",
+        "flex h-[var(--control-h)] items-center justify-between gap-2 px-4",
+        "text-[length:var(--text-body)]",
+        "data-[placeholder]:text-[var(--text-placeholder)]",
         className,
       )}
       {...props}
@@ -33,11 +34,11 @@ export const SelectTrigger = forwardRef<
       {children}
       <SelectPrimitive.Icon asChild>
         <ChevronDown
-          width={14}
-          height={14}
-          strokeWidth={1.5}
+          width={18}
+          height={18}
+          strokeWidth={1.75}
           aria-hidden="true"
-          className="shrink-0 opacity-70"
+          className="shrink-0 text-[var(--text-tertiary)]"
         />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
@@ -54,14 +55,14 @@ export const SelectContent = forwardRef<
         ref={ref}
         position={position}
         className={cn(
-          "z-[var(--z-dropdown)] min-w-32 overflow-hidden rounded-md border",
-          "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] shadow-[var(--shadow-md)]",
+          "z-[var(--z-dropdown)] min-w-40 overflow-hidden rounded-[var(--radius-md)] border",
+          "border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-[var(--shadow-md)]",
           position === "popper" && "translate-y-1",
           className,
         )}
         {...props}
       >
-        <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
+        <SelectPrimitive.Viewport className="p-2">{children}</SelectPrimitive.Viewport>
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
   );
@@ -75,23 +76,23 @@ export const SelectItem = forwardRef<
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 rounded-sm py-1 pl-2 pr-7",
-        "text-[length:var(--text-sm)] text-[var(--text-primary)] outline-none",
-        "data-[highlighted]:bg-[var(--bg-hover)]",
+        "relative flex cursor-default select-none items-center gap-2 rounded-[var(--radius-sm)]",
+        "py-2 pl-3 pr-9 text-[length:var(--text-small)] text-[var(--text-primary)] outline-none",
+        "data-[highlighted]:bg-[var(--bg-selected)] data-[highlighted]:text-[var(--secondary-soft-fg)]",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}
       {...props}
     >
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-      <span className="absolute right-2 flex items-center">
+      <span className="absolute right-3 flex items-center">
         <SelectPrimitive.ItemIndicator>
           <Check
-            width={14}
-            height={14}
-            strokeWidth={2}
+            width={16}
+            height={16}
+            strokeWidth={2.5}
             aria-hidden="true"
-            className="text-[var(--text-accent)]"
+            className="text-[var(--secondary-strong)]"
           />
         </SelectPrimitive.ItemIndicator>
       </span>
@@ -106,7 +107,7 @@ export const SelectSeparator = forwardRef<
   return (
     <SelectPrimitive.Separator
       ref={ref}
-      className={cn("my-1 h-px bg-[var(--border-subtle)]", className)}
+      className={cn("my-2 h-px bg-[var(--border-subtle)]", className)}
       {...props}
     />
   );

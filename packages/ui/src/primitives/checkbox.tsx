@@ -16,8 +16,8 @@ export const Checkbox = forwardRef<ElementRef<typeof CheckboxPrimitive.Root>, Ch
       <CheckboxPrimitive.Root
         ref={ref}
         className={cn(
-          "peer size-4 shrink-0 rounded-sm border border-[var(--border-default)] bg-[var(--bg-inset)]",
-          "transition-colors duration-[--dur-instant]",
+          "peer size-5 shrink-0 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-inset)]",
+          "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
           "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "data-[state=checked]:border-transparent data-[state=checked]:bg-[var(--accent-bg)]",
@@ -28,9 +28,9 @@ export const Checkbox = forwardRef<ElementRef<typeof CheckboxPrimitive.Root>, Ch
       >
         <CheckboxPrimitive.Indicator className="flex items-center justify-center text-[var(--accent-fg)]">
           {props.checked === "indeterminate" ? (
-            <Minus width={12} height={12} strokeWidth={2} aria-hidden="true" />
+            <Minus width={14} height={14} strokeWidth={2.5} aria-hidden="true" />
           ) : (
-            <Check width={12} height={12} strokeWidth={2} aria-hidden="true" />
+            <Check width={14} height={14} strokeWidth={2.5} aria-hidden="true" />
           )}
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>

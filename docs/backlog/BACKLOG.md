@@ -440,7 +440,7 @@ parallelizable around the critical path. IDs are unchanged.
 
 | ID | Title | Cx | Type | Deps | Objective / key acceptance |
 |---|---|---|---|---|---|
-| M083 | Light theme | S | ✨ | M007 | Full light mode; WCAG AA verified in both themes; token remap only |
+| M083 | Dark theme | S | ✨ | M007 | Full dark palette; WCAG AA verified in both themes; token remap only. **Inverted by ADR-008** — v2.0 ships light, so this milestone now adds dark. The `data-theme` hook and the toggle scaffolding it needs were deliberately removed rather than left inert; restoring them is part of the scope. |
 | M084 | WCAG 2.2 AA conformance pass | M | ✅ | M083 | Full audit and remediation; manual screen-reader audit; axe clean |
 | M085 | Architecture module | M | ✨ | M075 | Living component graph, dependency view, ADR browser |
 | M086 | Architecture drift detection | M | ✅ | M085 | Documented graph compared to the real import graph; drift reported |

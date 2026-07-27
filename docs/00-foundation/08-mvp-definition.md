@@ -92,7 +92,9 @@ These are in the MVP not because they're exciting but because retrofitting them 
 - Plan approval screen.
 - Cost panel: estimate before, actual after.
 - Settings: organization, repository connection, API keys.
-- Dark mode only in MVP (light mode is Phase 4 — tokens support both from day one).
+- **Light mode only in MVP** (dark mode is Phase 4 — the token layer supports a second palette
+  without component changes). Inverted by Design System v2.0; see
+  [ADR-008](../decisions/ADR-008-design-system-v2.md).
 
 ---
 
@@ -113,7 +115,7 @@ Naming these explicitly is how we prevent scope creep.
 | Notifications | 2 | Polling the run view is acceptable for design partners |
 | GitLab / Bitbucket | 4 | GitHub covers the beachhead |
 | SSO / SCIM / data residency | 7 | Enterprise-gated; architected for, not built |
-| Light mode | 4 | Dark-first per the design direction |
+| Dark mode | 4 | v2.0 is light-first; the directive names "too dark" as a thing to avoid |
 | Public API / SDK / webhooks | 8 | Internal API stabilizes first |
 | Self-hosted execution | 7 | Managed sandbox is sufficient and far simpler |
 

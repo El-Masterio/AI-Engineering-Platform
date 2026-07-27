@@ -16,7 +16,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     <input
       ref={ref}
       type={type}
-      className={cn(controlClasses, "h-8 px-2.5 text-[length:var(--text-sm)]", className)}
+      className={cn(
+        controlClasses,
+        "h-[var(--control-h)] px-4 text-[length:var(--text-body)]",
+        className,
+      )}
       {...props}
     />
   );

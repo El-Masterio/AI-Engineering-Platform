@@ -9,9 +9,9 @@ export default function Loading() {
       data-testid="route-loading"
     >
       <Loader2
-        width={20}
-        height={20}
-        strokeWidth={1.5}
+        width={24}
+        height={24}
+        strokeWidth={1.75}
         aria-hidden="true"
         className="animate-spin text-[var(--text-tertiary)] motion-reduce:animate-none"
       />

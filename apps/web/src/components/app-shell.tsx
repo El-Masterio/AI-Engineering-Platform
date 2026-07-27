@@ -4,18 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
+  Bell,
   Boxes,
+  ChevronsUpDown,
   FolderKanban,
   PanelLeftClose,
   PanelLeftOpen,
+  Search,
   Settings,
-  Moon,
-  Sun,
 } from "lucide-react";
-import { cn, Tooltip, TooltipProvider, getTheme, toggleTheme, type Theme } from "@atelier/ui";
+import { cn, Avatar, Tooltip, TooltipProvider } from "@atelier/ui";
 
 /**
- * AppShell — collapsible sidebar + topbar (§18).
+ * AppShell — sidebar + top navigation (§18 v2.0).
+ *
+ * The directive is specific about both halves. The sidebar sits on the warm
+ * #ece8e2 surface with muted slate icons, and the active item is marked by a
+ * blue left border over a soft blue field — blue, not orange, because orange is
+ * reserved for actions and progress. The top navigation carries exactly four
+ * things (workspace, search, notifications, user) and nothing else; a
+ * breadcrumb was removed from it as clutter, with the page heading now the sole
+ * wayfinding.
  *
  * Collapse state persists across reloads: an engineer who collapses the sidebar
  * means it, and re-expanding on every navigation would be a papercut on a tool
@@ -45,11 +54,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Start expanded on the server, then reconcile after mount. Reading storage
   // during render would produce a hydration mismatch.
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
     setIsCollapsed(isStoredCollapsed());
-    setThemeState(getTheme(document));
   }, []);
 
   const toggleCollapsed = useCallback(() => {
@@ -64,10 +71,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const onToggleTheme = useCallback(() => {
-    setThemeState(toggleTheme(document));
-  }, []);
-
   return (
     <TooltipProvider>
       <div className="flex min-h-dvh bg-[var(--bg-base)] text-[var(--text-primary)]">
@@ -76,24 +79,44 @@ export function AppShell({ children }: { children: ReactNode }) {
           data-collapsed={isCollapsed}
           aria-label="Main"
           className={cn(
-            "flex shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-surface)]",
-            "transition-[width] duration-[--dur-normal] ease-[--ease-out] motion-reduce:transition-none",
+            "flex shrink-0 flex-col border-r border-[var(--border-muted)] bg-[var(--bg-sidebar)]",
+            "transition-[width] duration-[--dur-normal] ease-[--ease-in-out] motion-reduce:transition-none",
             isCollapsed ? "w-[var(--sidebar-w-collapsed)]" : "w-[var(--sidebar-w)]",
           )}
         >
-          <div className="flex h-[var(--topbar-h)] items-center gap-2 border-b border-[var(--border-subtle)] px-3">
+          <div
+            className={cn(
+              "flex h-[var(--topbar-h)] shrink-0 items-center gap-3",
+              isCollapsed ? "justify-center px-0" : "px-6",
+            )}
+          >
+            {/* The one place the vivid brand orange (#f06d22) carries text.
+                White on it measures 3.04:1, under the 4.5:1 body-text floor —
+                permitted because WCAG 1.4.3 exempts logotypes, and marked here
+                so the exemption is visible rather than assumed. Everywhere else
+                text sits on --accent-bg, which clears the bar. */}
             <span
               aria-hidden="true"
-              className="grid size-6 shrink-0 place-items-center rounded-md bg-[var(--accent-bg)] font-mono text-[length:var(--text-xs)] font-bold text-[var(--accent-fg)]"
+              data-logotype
+              className={cn(
+                "grid size-8 shrink-0 place-items-center rounded-[var(--radius-sm)]",
+                "bg-[var(--brand)] font-display text-[length:var(--text-small)]",
+                "font-extrabold text-[var(--accent-fg)]",
+              )}
             >
               A
             </span>
             {isCollapsed ? null : (
-              <span className="truncate text-[length:var(--text-sm)] font-semibold">Atelier</span>
+              <span className="truncate font-display text-[length:var(--text-h5)] font-extrabold tracking-[var(--tracking-tight)]">
+                Atelier
+              </span>
             )}
           </div>
 
-          <nav aria-label="Primary" className="flex flex-1 flex-col gap-0.5 p-2">
+          <nav
+            aria-label="Primary"
+            className={cn("flex flex-1 flex-col gap-1 py-4", isCollapsed ? "px-2" : "px-4")}
+          >
             {NAV.map(({ href, label, icon: ItemIcon }) => {
               const isActive = pathname === href || pathname.startsWith(`${href}/`);
               const link = (
@@ -102,16 +125,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                   href={href}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-md px-2 py-1.5",
-                    "text-[length:var(--text-sm)] transition-colors duration-[--dur-instant]",
+                    "relative flex items-center gap-3 rounded-[var(--radius-control)]",
+                    "px-3 py-3 text-[length:var(--text-small)]",
+                    "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
                     "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
+                    // Active: soft blue field, blue label, and a blue bar down
+                    // the leading edge. Three signals, only one of them colour.
                     isActive
-                      ? "bg-[var(--bg-selected)] text-[var(--text-primary)] font-medium"
+                      ? [
+                          "bg-[var(--secondary-soft-bg)] text-[var(--secondary-soft-fg)]",
+                          "font-semibold",
+                          "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px]",
+                          "before:rounded-full before:bg-[var(--secondary-strong)]",
+                        ].join(" ")
                       : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
                     isCollapsed && "justify-center px-0",
                   )}
                 >
-                  <ItemIcon width={16} height={16} strokeWidth={1.5} aria-hidden="true" />
+                  <ItemIcon width={20} height={20} strokeWidth={1.75} aria-hidden="true" />
                   {/* Collapsed keeps the accessible name — the link never
                       becomes an unlabelled icon. */}
                   <span className={cn(isCollapsed && "sr-only")}>{label}</span>
@@ -128,7 +159,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <div className="border-t border-[var(--border-subtle)] p-2">
+          <div className={cn("py-4", isCollapsed ? "px-2" : "px-4")}>
             <button
               type="button"
               onClick={toggleCollapsed}
@@ -137,17 +168,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               data-testid="sidebar-toggle"
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5",
-                "text-[length:var(--text-xs)] text-[var(--text-tertiary)]",
-                "transition-colors duration-[--dur-instant] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
+                "flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3 py-3",
+                "text-[length:var(--text-caption)] text-[var(--text-tertiary)]",
+                "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
+                "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
                 "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
                 isCollapsed && "justify-center px-0",
               )}
             >
               {isCollapsed ? (
-                <PanelLeftOpen width={16} height={16} strokeWidth={1.5} aria-hidden="true" />
+                <PanelLeftOpen width={20} height={20} strokeWidth={1.75} aria-hidden="true" />
               ) : (
-                <PanelLeftClose width={16} height={16} strokeWidth={1.5} aria-hidden="true" />
+                <PanelLeftClose width={20} height={20} strokeWidth={1.75} aria-hidden="true" />
               )}
               {isCollapsed ? null : <span>Collapse</span>}
             </button>
@@ -155,29 +187,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-[var(--topbar-h)] shrink-0 items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4">
-            <Breadcrumb pathname={pathname} />
-            <button
-              type="button"
-              onClick={onToggleTheme}
-              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-              data-testid="theme-toggle"
-              className={cn(
-                "grid size-7 place-items-center rounded-md text-[var(--text-tertiary)]",
-                "transition-colors duration-[--dur-instant] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
-                "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
-              )}
-            >
-              {theme === "dark" ? (
-                <Sun width={16} height={16} strokeWidth={1.5} aria-hidden="true" />
-              ) : (
-                <Moon width={16} height={16} strokeWidth={1.5} aria-hidden="true" />
-              )}
-            </button>
-          </header>
-
-          <main id="app-content" className="min-w-0 flex-1 overflow-auto p-6">
-            {children}
+          <TopBar />
+          <main id="app-content" className="min-w-0 flex-1 overflow-auto px-8 py-8">
+            <div className="mx-auto w-full max-w-[var(--container-max)]">{children}</div>
           </main>
         </div>
       </div>
@@ -185,35 +197,85 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function Breadcrumb({ pathname }: { pathname: string }) {
-  const segments = pathname.split("/").filter(Boolean);
+/** Shared chrome for the three icon-only controls on the right of the top bar. */
+const topBarButton = [
+  "grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)]",
+  "text-[var(--text-tertiary)] transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
+  "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
+  "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
+].join(" ");
+
+function TopBar() {
   return (
-    <nav aria-label="Breadcrumb" className="min-w-0">
-      <ol className="flex items-center gap-1.5 text-[length:var(--text-xs)]">
-        {segments.length === 0 ? (
-          <li className="text-[var(--text-secondary)]">Home</li>
-        ) : (
-          segments.map((segment, index) => (
-            <li key={segment} className="flex items-center gap-1.5">
-              {index > 0 ? (
-                <span aria-hidden="true" className="text-[var(--text-tertiary)]">
-                  /
-                </span>
-              ) : null}
-              <span
-                className={cn(
-                  "truncate",
-                  index === segments.length - 1
-                    ? "text-[var(--text-primary)]"
-                    : "text-[var(--text-tertiary)]",
-                )}
-              >
-                {segment}
-              </span>
-            </li>
-          ))
+    <header
+      data-testid="topbar"
+      className={cn(
+        "flex h-[var(--topbar-h)] shrink-0 items-center gap-4 px-8",
+        "border-b border-[var(--border-muted)]",
+      )}
+    >
+      <button
+        type="button"
+        data-testid="workspace-switcher"
+        className={cn(
+          "flex min-w-0 items-center gap-3 rounded-[var(--radius-control)] py-2 pl-2 pr-3",
+          "transition-colors duration-[--dur-fast] ease-[--ease-in-out] hover:bg-[var(--bg-hover)]",
+          "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
         )}
-      </ol>
-    </nav>
+      >
+        <Avatar name="Atelier Studio" size="sm" />
+        <span className="truncate text-[length:var(--text-small)] font-semibold">
+          Atelier Studio
+        </span>
+        <ChevronsUpDown
+          width={16}
+          height={16}
+          strokeWidth={1.75}
+          aria-hidden="true"
+          className="shrink-0 text-[var(--text-tertiary)]"
+        />
+        <span className="sr-only">Switch workspace</span>
+      </button>
+
+      <div className="flex flex-1 justify-center">
+        {/* A button rather than an input: this opens a command palette, and an
+            input that does not accept typing is a worse lie than a button. */}
+        <button
+          type="button"
+          data-testid="search"
+          className={cn(
+            "flex h-10 w-full max-w-[420px] items-center gap-3 rounded-[var(--radius-control)]",
+            "border border-[var(--border-default)] bg-[var(--bg-surface)] px-4",
+            "text-[length:var(--text-small)] text-[var(--text-placeholder)]",
+            "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
+            "hover:border-[var(--border-strong)]",
+            "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
+          )}
+        >
+          <Search width={18} height={18} strokeWidth={1.75} aria-hidden="true" />
+          <span className="flex-1 text-left">Search projects and agents</span>
+          <kbd
+            aria-hidden="true"
+            className="rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1.5 py-0.5 font-mono text-[length:var(--text-caption)]"
+          >
+            /
+          </kbd>
+        </button>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1">
+        <button type="button" aria-label="Notifications" className={topBarButton}>
+          <Bell width={20} height={20} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label="Account menu"
+          data-testid="user-menu"
+          className={cn(topBarButton, "text-[var(--text-primary)]")}
+        >
+          <Avatar name="Ada Lovelace" size="sm" />
+        </button>
+      </div>
+    </header>
   );
 }

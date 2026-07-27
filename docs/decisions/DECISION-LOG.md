@@ -16,6 +16,7 @@ Format and rules: [§20](../04-engineering/20-documentation-structure.md#archite
 | [005](ADR-005-skills-as-capability-format.md) | `SKILL.md` as the agent capability-pack format | Accepted | 2026-07-27 | Medium |
 | [006](ADR-006-modular-monolith.md) | Modular monolith with enforced boundaries, not microservices | Accepted | 2026-07-27 | Medium |
 | [007](ADR-007-verification-gates-structural.md) | Verification gates enforced structurally, not by prompt | Accepted | 2026-07-27 | **Very high — this is the product** |
+| [008](ADR-008-design-system-v2.md) | Design System v2.0: warm neutral, light-only, orange-and-blue | Accepted | 2026-07-27 | High — replaces the entire visual identity; supersedes §18 v1.0 and inverts §8's theme scope |
 
 ## Pending decisions
 
@@ -45,7 +46,10 @@ without buying anything.
 
 ## Superseded decisions
 
-None yet.
+| Superseded | By | What changed |
+|---|---|---|
+| §18 v1.0 visual language (dark-first, near-black `#0d1116`, deep-teal accent, 13px dense scale) | [ADR-008](ADR-008-design-system-v2.md) | Owner directive replaced the visual identity wholesale with a warm-neutral, light-only, orange-and-blue system. The *token architecture* from v1.0 was not superseded — it is what made the replacement a one-file change. |
+| §8 "dark mode only in MVP" | [ADR-008](ADR-008-design-system-v2.md) | Inverted: light only in MVP, dark deferred to M083. |
 
 ## Related
 

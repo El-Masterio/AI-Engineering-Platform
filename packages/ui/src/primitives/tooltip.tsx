@@ -19,9 +19,9 @@ export const TooltipContent = forwardRef<
         ref={ref}
         sideOffset={sideOffset}
         className={cn(
-          "z-[var(--z-tooltip)] max-w-64 rounded-md border px-2 py-1",
-          "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] shadow-[var(--shadow-md)]",
-          "text-[length:var(--text-xs)] text-[var(--text-primary)]",
+          "z-[var(--z-tooltip)] max-w-64 rounded-[var(--radius-sm)] border px-3 py-2",
+          "border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-[var(--shadow-md)]",
+          "text-[length:var(--text-caption)] text-[var(--text-primary)]",
           className,
         )}
         {...props}

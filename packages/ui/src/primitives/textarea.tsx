@@ -12,7 +12,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
     <textarea
       ref={ref}
       rows={rows}
-      className={cn(controlClasses, "resize-y px-2.5 py-2 text-[length:var(--text-sm)]", className)}
+      className={cn(controlClasses, "resize-y px-4 py-3 text-[length:var(--text-body)]", className)}
       {...props}
     />
   );

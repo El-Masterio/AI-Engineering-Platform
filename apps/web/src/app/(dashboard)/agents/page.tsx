@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Avatar, Badge } from "@atelier/ui";
+import { Avatar, Badge, Card } from "@atelier/ui";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = { title: "Agents" };
 
@@ -15,31 +16,29 @@ const AGENTS = [
 
 export default function AgentsPage() {
   return (
-    <div className="mx-auto flex max-w-[var(--container-content)] flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[length:var(--text-2xl)] font-semibold tracking-[var(--tracking-tight)]">
-          Agents
-        </h1>
-        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">
-          The six MVP roles. Each has a bounded tool allowlist.
-        </p>
-      </header>
-      <ul className="flex flex-col gap-2">
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="Agents"
+        description="The six MVP roles. Each runs with a bounded tool allowlist, and no agent reviews its own work."
+      />
+
+      <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {AGENTS.map((agent) => (
-          <li
-            key={agent.name}
-            className="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3"
-          >
-            <Avatar name={agent.name} kind="agent" />
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-[length:var(--text-sm)] font-medium">{agent.name}</span>
-              <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
-                {agent.remit}
-              </span>
-            </div>
-            <Badge tone={agent.writes ? "accent" : "neutral"}>
-              {agent.writes ? "writes code" : "read-only"}
-            </Badge>
+          <li key={agent.name} className="flex">
+            <Card className="flex flex-1 flex-col gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <Avatar name={agent.name} kind="agent" size="lg" />
+                <Badge tone={agent.writes ? "accent" : "neutral"}>
+                  {agent.writes ? "Writes code" : "Read-only"}
+                </Badge>
+              </div>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-[length:var(--text-h5)]">{agent.name}</h2>
+                <p className="text-[length:var(--text-small)] text-[var(--text-secondary)]">
+                  {agent.remit}
+                </p>
+              </div>
+            </Card>
           </li>
         ))}
       </ul>

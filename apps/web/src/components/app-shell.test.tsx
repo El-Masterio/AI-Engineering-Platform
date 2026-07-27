@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./app-shell.js";
 
 // next/navigation is a framework boundary; stub it so the shell can be tested
@@ -20,11 +20,7 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-afterEach(() => {
-  delete document.documentElement.dataset["theme"];
-});
-
-describe("AppShell", () => {
+describe("AppShell — sidebar", () => {
   it("renders navigation with an accessible name for each destination", () => {
     render(<AppShell>content</AppShell>);
     const nav = screen.getByRole("navigation", { name: "Primary" });
@@ -79,18 +75,6 @@ describe("AppShell", () => {
     }
   });
 
-  it("toggles the theme and updates its own label", async () => {
-    const user = userEvent.setup();
-    render(<AppShell>content</AppShell>);
-
-    const toggle = screen.getByTestId("theme-toggle");
-    expect(toggle).toHaveAccessibleName("Switch to light theme");
-
-    await user.click(toggle);
-    expect(document.documentElement.dataset["theme"]).toBe("light");
-    expect(screen.getByTestId("theme-toggle")).toHaveAccessibleName("Switch to dark theme");
-  });
-
   it("survives unavailable storage", async () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("storage disabled");
@@ -102,7 +86,30 @@ describe("AppShell", () => {
     expect(screen.getByTestId("sidebar")).toHaveAttribute("data-collapsed", "true");
     setItem.mockRestore();
   });
+});
 
+describe("AppShell — top navigation", () => {
+  /**
+   * §18 v2.0 lists exactly four things in the top bar. This asserts all four
+   * are present AND named — an icon-only control with no accessible name is the
+   * defect this layout invites.
+   */
+  it("carries the workspace switcher, search, notifications and account menu", () => {
+    render(<AppShell>content</AppShell>);
+    expect(screen.getByTestId("topbar")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-switcher")).toHaveAccessibleName(/switch workspace/i);
+    expect(screen.getByTestId("search")).toHaveAccessibleName(/search projects and agents/i);
+    expect(screen.getByRole("button", { name: "Notifications" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Account menu" })).toBeInTheDocument();
+  });
+
+  it("carries nothing else — the directive calls a breadcrumb clutter", () => {
+    render(<AppShell>content</AppShell>);
+    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).not.toBeInTheDocument();
+  });
+});
+
+describe("AppShell — content", () => {
   it("renders its children in the main landmark", () => {
     render(<AppShell>page body</AppShell>);
     expect(screen.getByRole("main")).toHaveTextContent("page body");

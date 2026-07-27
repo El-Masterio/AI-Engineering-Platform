@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button, Icon } from "@atelier/ui";
+import { Button, Card, Icon } from "@atelier/ui";
 import { TriangleAlert } from "lucide-react";
 
 /**
- * Root error boundary (M009 acceptance: "error boundary catches a thrown error").
+ * Root error boundary.
  *
  * Shows the digest rather than the raw message: §16 requires that a
  * user-visible error never leaks internals, and the digest is what support
@@ -24,25 +24,24 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <main
-      className="flex min-h-dvh flex-col items-center justify-center gap-4 p-8 text-center"
-      data-testid="error-boundary"
-    >
-      <Icon icon={TriangleAlert} size={24} label="Error" className="text-[var(--status-err)]" />
-      <div className="flex flex-col gap-1">
-        <h1 className="text-[length:var(--text-xl)] font-semibold text-[var(--text-primary)]">
-          Something went wrong
-        </h1>
-        <p className="max-w-prose text-[length:var(--text-sm)] text-[var(--text-secondary)]">
-          The page failed to render. The error has been recorded.
-        </p>
-        {error.digest === undefined ? null : (
-          <p className="mt-2 font-mono text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
-            Reference: {error.digest}
+    <main className="flex min-h-dvh items-center justify-center p-8" data-testid="error-boundary">
+      <Card padding="lg" className="flex max-w-[520px] flex-col items-center gap-6 text-center">
+        <span className="grid size-14 place-items-center rounded-[var(--radius-md)] bg-[var(--status-err-bg)]">
+          <Icon icon={TriangleAlert} size={24} label="Error" className="text-[var(--status-err)]" />
+        </span>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-[length:var(--text-h4)]">Something went wrong</h1>
+          <p className="text-[length:var(--text-body)] text-[var(--text-secondary)]">
+            The page failed to render. The error has been recorded.
           </p>
-        )}
-      </div>
-      <Button onClick={reset}>Try again</Button>
+          {error.digest === undefined ? null : (
+            <p className="mt-2 font-mono text-[length:var(--text-caption)] text-[var(--text-tertiary)]">
+              Reference: {error.digest}
+            </p>
+          )}
+        </div>
+        <Button onClick={reset}>Try again</Button>
+      </Card>
     </main>
   );
 }

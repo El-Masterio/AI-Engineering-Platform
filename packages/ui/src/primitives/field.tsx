@@ -51,17 +51,17 @@ export function Field({
       .join(" ") || undefined;
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div className={cn("flex flex-col gap-2", className)}>
       <LabelPrimitive.Root
         htmlFor={id}
         className={cn(
-          "text-[length:var(--text-xs)] font-medium text-[var(--text-secondary)]",
+          "text-[length:var(--text-small)] font-medium text-[var(--text-primary)]",
           labelHidden && "sr-only",
         )}
       >
         {label}
         {required ? (
-          <span className="ml-0.5 text-[var(--status-err)]" aria-hidden="true">
+          <span className="ml-1 text-[var(--status-err)]" aria-hidden="true">
             *
           </span>
         ) : undefined}
@@ -74,7 +74,10 @@ export function Field({
       })}
 
       {description === undefined ? null : (
-        <p id={descriptionId} className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
+        <p
+          id={descriptionId}
+          className="text-[length:var(--text-caption)] text-[var(--text-tertiary)]"
+        >
           {description}
         </p>
       )}
@@ -82,9 +85,9 @@ export function Field({
       {hasError ? (
         <p
           id={errorId}
-          className="flex items-center gap-1 text-[length:var(--text-xs)] text-[var(--status-err)]"
+          className="flex items-center gap-1.5 text-[length:var(--text-caption)] text-[var(--status-err)]"
         >
-          <CircleAlert width={12} height={12} strokeWidth={1.5} aria-hidden="true" />
+          <CircleAlert width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
           {error}
         </p>
       ) : undefined}
@@ -92,12 +95,21 @@ export function Field({
   );
 }
 
-/** Shared control chrome so Input, Textarea and Select look like one family. */
+/**
+ * Shared control chrome so Input, Textarea and Select look like one family.
+ *
+ * The border is --border-default, not the directive's #d3d9e2. An input's
+ * outline is the only thing identifying it as a control against a white card,
+ * which makes it subject to WCAG 1.4.11's 3:1 floor; #d3d9e2 measures 1.42:1.
+ * It stays 1px and quiet — just dark enough to exist.
+ */
 export const controlClasses = [
-  "w-full rounded-md border bg-[var(--bg-inset)] text-[var(--text-primary)]",
-  "border-[var(--border-default)]",
-  "placeholder:text-[var(--text-tertiary)]",
-  "transition-colors duration-[--dur-instant]",
+  "w-full rounded-[var(--radius-control)] border bg-[var(--bg-inset)]",
+  "text-[var(--text-primary)] border-[var(--border-default)]",
+  "placeholder:text-[var(--text-placeholder)]",
+  "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
+  "hover:border-[var(--border-strong)]",
+  "focus-visible:border-[var(--border-focus)]",
   "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
   "disabled:cursor-not-allowed disabled:opacity-50",
   "aria-[invalid=true]:border-[var(--status-err)]",
