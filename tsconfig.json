@@ -16,7 +16,9 @@
     // vanished from the graph and the domain-purity and dev-dependency rules
     // silently never fired. Tooling-only: package builds do not extend this file.
     "paths": {
-      "@atelier/*": ["./packages/*/src/index.ts"]
+      "@atelier/*": ["./packages/*/src/index.ts"],
+      // apps/web's own alias, mirrored here so dependency-cruiser can resolve it.
+      "@/*": ["./apps/web/src/*"]
     }
   },
   "include": [

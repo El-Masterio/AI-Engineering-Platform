@@ -74,7 +74,7 @@ module.exports = {
 
   options: {
     doNotFollow: { path: "node_modules" },
-    exclude: { path: String.raw`(^|/)(dist|coverage|\.turbo|\.next)/` },
+    exclude: { path: String.raw`(^|/)(dist|coverage|\.turbo|\.next)/|(^|/)next-env\.d\.ts$` },
     tsPreCompilationDeps: true,
 
     // Points at the workspace-spanning root tsconfig, NOT packages/config's base

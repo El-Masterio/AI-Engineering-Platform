@@ -16,6 +16,23 @@ export type Theme = (typeof THEMES)[number];
 /** Dark-first, per the §18 design direction. */
 export const DEFAULT_THEME: Theme = "dark";
 
+/**
+ * Base page background per theme, as literal colour.
+ *
+ * `<meta name="theme-color">` is consumed by the browser before any stylesheet
+ * is parsed, so it cannot reference a CSS custom property. Exporting the values
+ * here keeps ONE source of truth: these must stay equal to `--bg-base` in
+ * tokens.css, and a test asserts exactly that.
+ */
+/* eslint-disable no-restricted-syntax -- justified: <meta name="theme-color"> is
+   read before any stylesheet, so these two values cannot be CSS variables. The
+   THEME_BASE_COLOR test asserts they stay equal to --bg-base in tokens.css. */
+export const THEME_BASE_COLOR: Record<Theme, string> = {
+  dark: "#0d1116",
+  light: "#f7f8f9",
+};
+/* eslint-enable no-restricted-syntax */
+
 /** Key used for the persisted preference. */
 export const THEME_STORAGE_KEY = "atelier-theme";
 
@@ -51,17 +68,23 @@ export function toggleTheme(document: Document): Theme {
 }
 
 /**
- * Resolve the theme to use on first paint: stored preference, else the OS
- * preference, else dark.
+ * Resolve the theme to use on first paint: an explicit stored choice, else dark.
+ *
+ * The OS `prefers-color-scheme` is deliberately NOT consulted. §18 specifies a
+ * dark-first product and §8 scopes the MVP to dark only; auto-switching to
+ * light because the operating system says so would override that product
+ * decision for most users. Light remains fully supported and one click away.
+ *
+ * Revisit at Phase 4, when light mode formally ships (M083).
  */
 export function resolveInitialTheme(window_: Window): Theme {
   try {
     const stored = window_.localStorage.getItem(THEME_STORAGE_KEY);
     if (isTheme(stored)) return stored;
   } catch {
-    // Ignore and fall through to the OS preference.
+    // Storage unavailable — fall through to the default.
   }
-  return window_.matchMedia("(prefers-color-scheme: light)").matches ? "light" : DEFAULT_THEME;
+  return DEFAULT_THEME;
 }
 
 /**
@@ -73,6 +96,5 @@ export function resolveInitialTheme(window_: Window): Theme {
  */
 export const THEME_INIT_SCRIPT = `(function(){try{
 var k=${JSON.stringify(THEME_STORAGE_KEY)},s=localStorage.getItem(k);
-var t=(s==="dark"||s==="light")?s:(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");
-document.documentElement.dataset.theme=t;
+document.documentElement.dataset.theme=(s==="dark"||s==="light")?s:${JSON.stringify(DEFAULT_THEME)};
 }catch(e){document.documentElement.dataset.theme=${JSON.stringify(DEFAULT_THEME)};}})();`;

@@ -90,11 +90,13 @@ parallelizable around the critical path. IDs are unchanged.
 **Verified** 11/11 components exported and loading at runtime (14/14 including `Field`, `cn`, theme API) · **42 tests passing** across 4 files · 9 axe assertions covering every component · keyboard operation asserted for Button, Checkbox, Switch, Select and Tooltip · a structural-fingerprint test proves both themes render identically (no component branches on theme) · Storybook builds and serves at `localhost:6006` with a live theme toolbar. All seven gates exit 0.
 **Notes** Adds a `Field` wrapper (label/description/error wiring) so no control can ship without an associated label — §18 forbids placeholder-as-label. Radix supplies behaviour; all styling is ours from semantic tokens only. `packages/ui` now splits `tsconfig.json` (editor + lint, includes tests) from `tsconfig.build.json` (emit, excludes them).
 
-### M009 · AppShell and routing skeleton · S · ✨
+### M009 · AppShell and routing skeleton · S · ✨ — ✅ **Done** (2026-07-27)
 **Objective** Somewhere to put screens.
-**Dependencies** M008
+**Dependencies** M008 ✅
 **Deliverables** Next.js App Router setup, AppShell (collapsible sidebar + topbar), route groups, error and loading boundaries.
 **Acceptance** Navigation works · sidebar collapse persists · error boundary catches a thrown error · LCP within budget on an empty page.
+**Verified** (measured in a real browser via Playwright against the production build) Navigation: `/agents` updates URL, title, `aria-current`, breadcrumb and content · Collapse: 248px → 56px, persisted to storage, **survives a full page load** · Error boundary: a deliberately throwing route renders it, shows a digest and **does not leak the raw error message** (§16) · **LCP 32 ms against a 2500 ms budget** (FCP 32 ms, TTFB 6 ms, 47 KB transfer). Routes: `/`→302, `/projects`, `/agents`, `/settings`, `/projects/[id]` all 200; unknown route 404. 52 tests. All seven gates exit 0.
+**Notes** Fixed a spec violation found only by looking at the running app: `resolveInitialTheme` preferred the OS `prefers-color-scheme` over the dark default, so a light-mode OS overrode §18's dark-first product decision. Now dark unless explicitly stored; revisit at M083 when light mode formally ships. Also added `THEME_BASE_COLOR` — browser-chrome metadata cannot read a CSS variable, so the two literals are duplicated by necessity and a test asserts they stay equal to `--bg-base`.
 
 ### M010 · Local development environment · S · 🏗
 **Objective** One-command onboarding.

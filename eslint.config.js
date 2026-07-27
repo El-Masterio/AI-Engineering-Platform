@@ -28,6 +28,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/.turbo/**",
       "**/.next/**",
+      "**/next-env.d.ts",
       "**/coverage/**",
       "docs/**",
       "skills/**",
@@ -387,6 +388,11 @@ export default tseslint.config(
       "unicorn/no-array-reduce": "off",
       // We deliberately avoid default exports (§21).
       "unicorn/prefer-module": "error",
+      // Iterator helpers (.toArray()) are ES2025; packages compile against
+      // ES2023, so the rule suggests an API TypeScript cannot type here.
+      // Revisit when the shared lib target moves past ES2023.
+      "unicorn/prefer-iterator-to-array": "off",
+      "unicorn/prefer-iterator-to-array-at-end": "off",
       "unicorn/prefer-node-protocol": "error",
     },
   },
@@ -418,8 +424,10 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "off",
       "@typescript-eslint/no-unnecessary-condition": "off",
       "max-lines": "off",
-      "boundaries/element-types": "off",
-      "boundaries/external": "off",
+      // Rule names must match the v7 unified rule; the pre-rename names were
+      // silently no-ops here.
+      "boundaries/dependencies": "off",
+      "boundaries/no-unknown-dependencies": "off",
     },
   },
 
@@ -435,6 +443,30 @@ export default tseslint.config(
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
       "@typescript-eslint/no-empty-function": "off",
     },
+  },
+
+  // ── Next.js app: the framework's contract requires default exports ───────
+  // Pages, layouts, error and loading boundaries are matched by filename and
+  // MUST default-export. That is the framework's API, not a style choice.
+  {
+    files: [
+      "apps/web/src/app/**/page.tsx",
+      "apps/web/src/app/**/layout.tsx",
+      "apps/web/src/app/**/error.tsx",
+      "apps/web/src/app/**/loading.tsx",
+      "apps/web/src/app/**/not-found.tsx",
+      "apps/web/src/app/**/template.tsx",
+      "apps/web/*.config.{ts,mjs}",
+    ],
+    rules: { "import-x/no-default-export": "off" },
+  },
+
+  // Next.js owns the app-directory naming contract: `[param]`, `(group)`,
+  // `@slot`. unicorn/filename-case cannot know that, and renaming would break
+  // routing.
+  {
+    files: ["apps/web/src/app/**"],
+    rules: { "unicorn/filename-case": "off" },
   },
 
   // ── Scripts and tooling: console is the point ────────────────────────────

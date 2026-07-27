@@ -11,7 +11,15 @@ import { StatusIndicator, RUN_STATUSES } from "./status-indicator.js";
 import { Switch } from "./switch.js";
 import { Textarea } from "./textarea.js";
 import { Avatar } from "./avatar.js";
-import { THEMES, getTheme, setTheme, toggleTheme, resolveInitialTheme } from "../tokens/theme.js";
+import { readFile } from "node:fs/promises";
+import {
+  THEMES,
+  THEME_BASE_COLOR,
+  getTheme,
+  setTheme,
+  toggleTheme,
+  resolveInitialTheme,
+} from "../tokens/theme.js";
 
 /**
  * "Renders correctly in both themes" (M008 acceptance).
@@ -129,11 +137,30 @@ describe("theme switching", () => {
     localStorage.clear();
   });
 
-  it("falls back to the OS preference when nothing is stored", () => {
+  it("stays dark when nothing is stored, even if the OS prefers light", () => {
+    // §18 is dark-first and §8 scopes the MVP to dark only, so the OS
+    // preference must not override the product default. Revisit at M083.
     const fakeWindow = {
       localStorage,
-      matchMedia: (q: string) => ({ matches: q.includes("light") }),
+      matchMedia: () => ({ matches: true }),
     } as unknown as Window;
-    expect(resolveInitialTheme(fakeWindow)).toBe("light");
+    expect(resolveInitialTheme(fakeWindow)).toBe("dark");
+  });
+});
+
+describe("THEME_BASE_COLOR", () => {
+  it("matches --bg-base in tokens.css for every theme", async () => {
+    // Browser-chrome metadata cannot read a CSS variable, so these literals are
+    // duplicated by necessity. This test is what keeps the duplicate honest.
+    // Vitest runs from the repo root; import.meta.url is not a file: URL here.
+    const css = await readFile("packages/ui/src/tokens/tokens.css", "utf8");
+    const primitives = new Map(
+      [...css.matchAll(/(--n-\d+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]),
+    );
+    const darkVar = /:root,\s*\[data-theme="dark"\][^}]*--bg-base:\s*var\((--[\w-]+)\)/s.exec(css);
+    const lightVar = /\[data-theme="light"\][^}]*--bg-base:\s*var\((--[\w-]+)\)/s.exec(css);
+
+    expect(primitives.get(darkVar?.[1] ?? "")).toBe(THEME_BASE_COLOR.dark);
+    expect(primitives.get(lightVar?.[1] ?? "")).toBe(THEME_BASE_COLOR.light);
   });
 });

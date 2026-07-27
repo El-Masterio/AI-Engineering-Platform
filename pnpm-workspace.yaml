@@ -8,6 +8,9 @@ allowBuilds:
   # Vite/Storybook bundler. Ships prebuilt platform binaries; its install script
   # selects the right one. Without approval the dev server cannot start.
   esbuild: true
+  # Next.js image optimisation. Native libvips bindings; without the build step
+  # next/image falls back to a slower JS path.
+  sharp: true
   # Native binding for the TypeScript import resolver used by eslint-plugin-import-x.
   # Without its build step the resolver falls back to a slow JS path or fails outright.
   unrs-resolver: true

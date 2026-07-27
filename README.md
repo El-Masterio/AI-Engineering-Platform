@@ -14,14 +14,16 @@ them inside sandboxed environments, and verification gates that mean the output 
 
 ## Status
 
-**Phase 1 — Stage 1A in progress.** 4 of 132 milestones complete.
+**Phase 1 — Stage 1A in progress.** 5 of 132 milestones complete.
 
 The blueprint (Phase 0) is complete, the monorepo skeleton is up (`M001`), the coding standards are
-enforced by tooling (`M002`), the design tokens are live and contrast-verified (`M007`), and the UI
-primitives are built (`M008`). Next milestone: `M009 — AppShell and routing`.
+enforced by tooling (`M002`), the design tokens are live and contrast-verified (`M007`), the UI
+primitives are built (`M008`), and the dashboard shell runs (`M009`). Next milestone:
+`M003 — CI pipeline`.
 
-**There is a running UI now:** `pnpm storybook` opens the component gallery at
-[localhost:6006](http://localhost:6006), with a live dark/light toggle. Progress tracker:
+**The app runs:** `pnpm dev` serves the dashboard at [localhost:3000](http://localhost:3000);
+`pnpm storybook` opens the component gallery at [localhost:6006](http://localhost:6006). Both have
+a live dark/light toggle. Progress tracker:
 [docs/05-delivery/26-milestone-breakdown.md](docs/05-delivery/26-milestone-breakdown.md).
 
 ## Quick start
@@ -29,6 +31,7 @@ primitives are built (`M008`). Next milestone: `M009 — AppShell and routing`.
 ```bash
 npm install -g pnpm      # `corepack enable pnpm` needs admin on Windows
 pnpm install
+pnpm dev                 # dashboard        -> http://localhost:3000
 pnpm storybook           # component gallery -> http://localhost:6006
 pnpm verify              # every gate: format, lint, deps, contrast, types, tests, build
 ```

@@ -9,6 +9,35 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M009 — AppShell and routing.** `apps/web` is a running Next.js 16 application.
+  - App Router with a `(dashboard)` route group, `/projects`, `/projects/[projectId]`, `/agents`
+    and `/settings`.
+  - **AppShell**: collapsible sidebar (248px ↔ 56px) whose state persists across reloads, topbar
+    with breadcrumb and a theme toggle. Collapsed nav links keep their accessible names.
+  - `error.tsx`, `loading.tsx` and `not-found.tsx` boundaries. The error boundary shows a digest
+    reference and never the raw message (§16).
+  - Flash-free theming via `THEME_INIT_SCRIPT` in `<head>`.
+  - **`pnpm dev` now serves the dashboard at `localhost:3000`.**
+
+### Fixed
+
+- **Dark-first was not actually dark-first.** `resolveInitialTheme` consulted the OS
+  `prefers-color-scheme` ahead of the default, so a light-mode operating system silently overrode
+  §18's dark-first direction and §8's "dark mode only in MVP". Found by looking at the running app,
+  not by any test. Now dark unless the user has explicitly chosen; revisit at M083.
+- The `boundaries/element-types` and `boundaries/external` overrides in the test config had been
+  dead since M002 renamed the rule to `boundaries/dependencies` — the exemption silently did nothing.
+
+### Changed
+
+- `THEME_BASE_COLOR` exported from `@atelier/ui`. `<meta name="theme-color">` is read before any
+  stylesheet, so it cannot use a CSS variable; a test asserts the two literals stay equal to
+  `--bg-base` in `tokens.css`.
+- `unicorn/prefer-iterator-to-array` disabled — it suggests ES2025 iterator helpers that our ES2023
+  `lib` cannot type. Revisit when the shared target moves.
+- `unicorn/filename-case` disabled under `apps/web/src/app` — Next owns that naming contract
+  (`[param]`, `(group)`), and renaming would break routing.
+
 - **M008 — UI primitives.** The base component set from [§18](03-design/18-design-system.md):
   Button, Input, Textarea, Select, Checkbox, Switch, Badge, Icon, Avatar, Tooltip and
   StatusIndicator, plus a `Field` wrapper and the `cn` class-merge utility.
