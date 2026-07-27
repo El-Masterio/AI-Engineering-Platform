@@ -62,7 +62,12 @@ module.exports = {
       name: "not-to-dev-dep",
       severity: "error",
       comment: "Production code must not import a devDependency — it will be absent at runtime.",
-      from: { path: "^(apps|packages)/[^/]+/src", pathNot: String.raw`\.(test|spec)\.tsx?$` },
+      from: {
+        path: "^(apps|packages)/[^/]+/src",
+        // Type-only declarations, tests and stories are not shipped code, so a
+        // devDependency import from them is correct rather than a defect.
+        pathNot: String.raw`\.(test|spec)\.tsx?$|\.d\.ts$|\.stories\.tsx?$`,
+      },
       to: { dependencyTypes: ["npm-dev"] },
     },
   ],

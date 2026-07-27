@@ -378,6 +378,10 @@ export default tseslint.config(
       "unicorn/filename-case": ["error", { cases: { kebabCase: true, pascalCase: true } }],
       // Fights our domain vocabulary rule ("say `organization`, not `org`").
       "unicorn/prevent-abbreviations": "off",
+      // Same problem: it renames `Props` -> `Properties` and `props` ->
+      // `properties`. `Props` IS the React vocabulary; §21 says match the
+      // domain's terms, so this rule is actively wrong here.
+      "unicorn/name-replacements": "off",
       // null is meaningful against a SQL database.
       "unicorn/no-null": "off",
       "unicorn/no-array-reduce": "off",
@@ -394,15 +398,42 @@ export default tseslint.config(
     rules: { ...jsxA11y.flatConfigs.recommended.rules },
   },
 
-  // ── Tests: relax what does not apply ─────────────────────────────────────
+  // ── Tests and stories: relax what does not apply ─────────────────────────
   {
-    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "e2e/**", "evals/**"],
+    files: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.stories.tsx",
+      ".storybook/**",
+      "vitest.config.ts",
+      "vitest.setup.ts",
+      "e2e/**",
+      "evals/**",
+    ],
     rules: {
+      // Test and story tooling lives in the root devDependencies by design.
+      "import-x/no-extraneous-dependencies": "off",
+      "import-x/no-default-export": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
       "@typescript-eslint/no-unnecessary-condition": "off",
       "max-lines": "off",
       "boundaries/element-types": "off",
       "boundaries/external": "off",
+    },
+  },
+
+  // ── jsdom environment shims ──────────────────────────────────────────────
+  // A polyfill's whole job is assigning to globals and matching a native shape.
+  // These rules are correct for product code and wrong here.
+  {
+    files: ["vitest.setup.ts"],
+    rules: {
+      "unicorn/no-global-object-property-assignment": "off",
+      "unicorn/no-useless-undefined": "off",
+      "unicorn/consistent-class-member-order": "off",
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
+      "@typescript-eslint/no-empty-function": "off",
     },
   },
 

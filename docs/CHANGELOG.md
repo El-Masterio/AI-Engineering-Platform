@@ -9,6 +9,27 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M008 — UI primitives.** The base component set from [§18](03-design/18-design-system.md):
+  Button, Input, Textarea, Select, Checkbox, Switch, Badge, Icon, Avatar, Tooltip and
+  StatusIndicator, plus a `Field` wrapper and the `cn` class-merge utility.
+  - Radix primitives supply behaviour (focus management, ARIA, keyboard, typeahead); **all styling is
+    ours**, drawn from semantic tokens only, so the visual language stays original.
+  - `Field` centralises label/description/error wiring, so no control can ship without an associated
+    visible label — §18 forbids placeholder-as-label.
+  - `StatusIndicator` renders every run state as **icon + text + colour**, never colour alone
+    (NFR-A11Y-5).
+  - **Storybook** gallery at `pnpm storybook` (`localhost:6006`) with a live dark/light toolbar — a
+    running, interactive UI one milestone earlier than planned.
+  - **Vitest + Testing Library + axe-core** harness with a `toHaveNoA11yViolations` matcher. 42 tests.
+
+### Changed
+
+- `packages/ui` splits `tsconfig.json` (editor and lint, includes tests) from `tsconfig.build.json`
+  (emit, excludes tests and stories) — type-aware linting needs tests in a project, the build does not.
+- `unicorn/name-replacements` disabled: it renames `Props` → `Properties`, but `Props` *is* the React
+  vocabulary and §21 requires matching domain terms.
+- `not-to-dev-dep` (dependency-cruiser) now exempts `.d.ts` and `.stories.tsx` — neither is shipped code.
+
 - **M007 — Design tokens.** The [§18](03-design/18-design-system.md) token system is live: 116 tokens
   across colour, typography, spacing, radius, layout, z-index, motion and shadow, in two layers
   (primitives → semantic) so theming remaps semantics rather than editing components.

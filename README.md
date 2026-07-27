@@ -14,10 +14,14 @@ them inside sandboxed environments, and verification gates that mean the output 
 
 ## Status
 
-**Phase 1 — Stage 1A in progress.** 2 of 132 milestones complete.
+**Phase 1 — Stage 1A in progress.** 4 of 132 milestones complete.
 
-The blueprint (Phase 0) is complete, the monorepo skeleton is up (`M001`), and the coding
-standards are enforced by tooling (`M002`). Next milestone: `M003 — CI pipeline`. Progress tracker:
+The blueprint (Phase 0) is complete, the monorepo skeleton is up (`M001`), the coding standards are
+enforced by tooling (`M002`), the design tokens are live and contrast-verified (`M007`), and the UI
+primitives are built (`M008`). Next milestone: `M009 — AppShell and routing`.
+
+**There is a running UI now:** `pnpm storybook` opens the component gallery at
+[localhost:6006](http://localhost:6006), with a live dark/light toggle. Progress tracker:
 [docs/05-delivery/26-milestone-breakdown.md](docs/05-delivery/26-milestone-breakdown.md).
 
 ## Quick start
@@ -25,11 +29,12 @@ standards are enforced by tooling (`M002`). Next milestone: `M003 — CI pipelin
 ```bash
 npm install -g pnpm      # `corepack enable pnpm` needs admin on Windows
 pnpm install
-pnpm verify              # format + lint + depcruise + typecheck + build
+pnpm storybook           # component gallery -> http://localhost:6006
+pnpm verify              # every gate: format, lint, deps, contrast, types, tests, build
 ```
 
-Individual gates: `pnpm lint` · `pnpm depcruise` · `pnpm typecheck` · `pnpm build` ·
-`pnpm format`. A pre-commit hook formats and lints staged files (~4 s).
+Individual gates: `pnpm lint` · `pnpm depcruise` · `pnpm check:contrast` · `pnpm typecheck` ·
+`pnpm test` · `pnpm build` · `pnpm format`. A pre-commit hook formats and lints staged files (~4 s).
 
 Requires **Node 24 LTS** (see `.nvmrc`) and **pnpm 11+** (pinned via `packageManager`).
 

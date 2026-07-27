@@ -5,6 +5,9 @@ packages:
 # Native postinstall builds must be approved explicitly — pnpm blocks them by
 # default, which is the supply-chain posture §17 wants. Add entries knowingly.
 allowBuilds:
+  # Vite/Storybook bundler. Ships prebuilt platform binaries; its install script
+  # selects the right one. Without approval the dev server cannot start.
+  esbuild: true
   # Native binding for the TypeScript import resolver used by eslint-plugin-import-x.
   # Without its build step the resolver falls back to a slow JS path or fails outright.
   unrs-resolver: true

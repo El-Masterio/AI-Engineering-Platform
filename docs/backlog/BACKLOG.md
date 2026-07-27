@@ -82,11 +82,13 @@ parallelizable around the critical path. IDs are unchanged.
 **Verified** 116 unique tokens across 12 groups · `scripts/check-contrast.mjs` → **40 pairs, 0 failing** in both themes · hex literal, `rgb()` call and direct primitive reference all rejected by lint, semantic token accepted · Tailwind compile confirms `bg-surface` → `var(--bg-surface)` with **zero** primitive utilities generated · theme API exported and typed. All six gates exit 0.
 **Notes** The contrast checker found **4 genuine WCAG 1.4.11 failures in §18's own specified values** (`--border-default` at 2.60:1 dark / 2.56:1 light against a 3:1 requirement). Tokens corrected and §18 amended with the machine-verified figures.
 
-### M008 · UI primitives · M · ✨
+### M008 · UI primitives · M · ✨ — ✅ **Done** (2026-07-27)
 **Objective** The base component set.
-**Dependencies** M007
+**Dependencies** M007 ✅
 **Deliverables** Button, Input, Textarea, Select, Checkbox, Switch, Badge, Icon, Avatar, Tooltip, **StatusIndicator** — each with stories and tests.
 **Acceptance** Every component covers default/hover/focus/active/disabled/loading/error · keyboard operable · axe clean · renders correctly in both themes.
+**Verified** 11/11 components exported and loading at runtime (14/14 including `Field`, `cn`, theme API) · **42 tests passing** across 4 files · 9 axe assertions covering every component · keyboard operation asserted for Button, Checkbox, Switch, Select and Tooltip · a structural-fingerprint test proves both themes render identically (no component branches on theme) · Storybook builds and serves at `localhost:6006` with a live theme toolbar. All seven gates exit 0.
+**Notes** Adds a `Field` wrapper (label/description/error wiring) so no control can ship without an associated label — §18 forbids placeholder-as-label. Radix supplies behaviour; all styling is ours from semantic tokens only. `packages/ui` now splits `tsconfig.json` (editor + lint, includes tests) from `tsconfig.build.json` (emit, excludes them).
 
 ### M009 · AppShell and routing skeleton · S · ✨
 **Objective** Somewhere to put screens.
