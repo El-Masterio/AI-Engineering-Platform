@@ -14,35 +14,37 @@ them inside sandboxed environments, and verification gates that mean the output 
 
 ## Status
 
-**Phase 1 — Stage 1A in progress.** 1 of 132 milestones complete.
+**Phase 1 — Stage 1A in progress.** 2 of 132 milestones complete.
 
-The blueprint (Phase 0) is complete and the monorepo skeleton is up (`M001`). Next milestone:
-`M002 — Shared config and enforced boundaries`. Progress tracker:
+The blueprint (Phase 0) is complete, the monorepo skeleton is up (`M001`), and the coding
+standards are enforced by tooling (`M002`). Next milestone: `M003 — CI pipeline`. Progress tracker:
 [docs/05-delivery/26-milestone-breakdown.md](docs/05-delivery/26-milestone-breakdown.md).
 
 ## Quick start
 
 ```bash
-corepack enable pnpm     # or: npm install -g pnpm
+npm install -g pnpm      # `corepack enable pnpm` needs admin on Windows
 pnpm install
-pnpm build               # 12 packages, topologically ordered
-pnpm typecheck
+pnpm verify              # format + lint + depcruise + typecheck + build
 ```
+
+Individual gates: `pnpm lint` · `pnpm depcruise` · `pnpm typecheck` · `pnpm build` ·
+`pnpm format`. A pre-commit hook formats and lints staged files (~4 s).
 
 Requires **Node 24 LTS** (see `.nvmrc`) and **pnpm 11+** (pinned via `packageManager`).
 
 ## Start here
 
-| If you want to… | Read |
-|---|---|
-| Understand what we're building and why | [docs/00-foundation/01-product-vision.md](docs/00-foundation/01-product-vision.md) |
-| See the whole documentation set | [docs/README.md](docs/README.md) |
-| Understand the system shape | [docs/02-architecture/12-system-architecture.md](docs/02-architecture/12-system-architecture.md) |
-| Understand how agents work | [docs/02-architecture/13-agent-architecture.md](docs/02-architecture/13-agent-architecture.md) |
-| See the technology choices and their justification | [docs/02-architecture/14-technology-stack.md](docs/02-architecture/14-technology-stack.md) |
-| Know what ships in the MVP | [docs/00-foundation/08-mvp-definition.md](docs/00-foundation/08-mvp-definition.md) |
-| Pick up the next piece of work | [docs/backlog/BACKLOG.md](docs/backlog/BACKLOG.md) |
-| Understand the execution plan | [docs/05-delivery/30-master-development-plan.md](docs/05-delivery/30-master-development-plan.md) |
+| If you want to…                                    | Read                                                                                             |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Understand what we're building and why             | [docs/00-foundation/01-product-vision.md](docs/00-foundation/01-product-vision.md)               |
+| See the whole documentation set                    | [docs/README.md](docs/README.md)                                                                 |
+| Understand the system shape                        | [docs/02-architecture/12-system-architecture.md](docs/02-architecture/12-system-architecture.md) |
+| Understand how agents work                         | [docs/02-architecture/13-agent-architecture.md](docs/02-architecture/13-agent-architecture.md)   |
+| See the technology choices and their justification | [docs/02-architecture/14-technology-stack.md](docs/02-architecture/14-technology-stack.md)       |
+| Know what ships in the MVP                         | [docs/00-foundation/08-mvp-definition.md](docs/00-foundation/08-mvp-definition.md)               |
+| Pick up the next piece of work                     | [docs/backlog/BACKLOG.md](docs/backlog/BACKLOG.md)                                               |
+| Understand the execution plan                      | [docs/05-delivery/30-master-development-plan.md](docs/05-delivery/30-master-development-plan.md) |
 
 ## The three-sentence architecture
 

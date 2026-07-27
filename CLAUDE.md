@@ -61,20 +61,20 @@ non-additive way, or changes the security boundary. Routine judgment calls are y
 
 ## Project memory (never contradict without documenting why)
 
-| Concern | Source of truth |
-|---|---|
-| Architecture decisions | `docs/decisions/` (ADRs) + `docs/decisions/DECISION-LOG.md` |
-| System + agent architecture | `docs/02-architecture/` |
-| Folder structure | `docs/04-engineering/19-folder-structure.md` |
-| Coding standards, naming | `docs/04-engineering/21-coding-standards.md` |
-| API conventions | `docs/02-architecture/16-api-strategy.md` |
-| Database conventions | `docs/02-architecture/15-database-strategy.md` |
-| Design system | `docs/03-design/18-design-system.md` |
-| Agent responsibilities | `docs/02-architecture/13-agent-architecture.md` |
-| Completed milestones | `docs/CHANGELOG.md` |
-| Known issues / technical debt | `docs/05-delivery/28-technical-debt-strategy.md` |
-| Future plans | `docs/05-delivery/25-roadmap.md` |
-| Backlog | `docs/backlog/BACKLOG.md` |
+| Concern                       | Source of truth                                             |
+| ----------------------------- | ----------------------------------------------------------- |
+| Architecture decisions        | `docs/decisions/` (ADRs) + `docs/decisions/DECISION-LOG.md` |
+| System + agent architecture   | `docs/02-architecture/`                                     |
+| Folder structure              | `docs/04-engineering/19-folder-structure.md`                |
+| Coding standards, naming      | `docs/04-engineering/21-coding-standards.md`                |
+| API conventions               | `docs/02-architecture/16-api-strategy.md`                   |
+| Database conventions          | `docs/02-architecture/15-database-strategy.md`              |
+| Design system                 | `docs/03-design/18-design-system.md`                        |
+| Agent responsibilities        | `docs/02-architecture/13-agent-architecture.md`             |
+| Completed milestones          | `docs/CHANGELOG.md`                                         |
+| Known issues / technical debt | `docs/05-delivery/28-technical-debt-strategy.md`            |
+| Future plans                  | `docs/05-delivery/25-roadmap.md`                            |
+| Backlog                       | `docs/backlog/BACKLOG.md`                                   |
 
 ## Model policy
 

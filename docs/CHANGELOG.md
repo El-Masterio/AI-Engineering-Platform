@@ -9,6 +9,38 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M002 — Shared config and enforced boundaries.** The coding standards are now machine-enforced
+  rather than reviewer-remembered.
+  - `packages/config/tsconfig.base.json` hardened with the full [§21](04-engineering/21-coding-standards.md)
+    set: `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`,
+    `exactOptionalPropertyTypes`, `verbatimModuleSyntax`.
+  - `eslint.config.js` — type-aware typescript-eslint plus `eslint-plugin-boundaries` encoding
+    §19's layer table (folder elements *and* within-app file roles), unicorn, import-x, and jsx-a11y
+    (armed for M008).
+  - The `any` gate implemented literally as §21 states it: `no-explicit-any` is an error and the only
+    escape is a disable comment carrying `-- justified: <reason>`, enforced by
+    `eslint-comments/require-description`.
+  - `.dependency-cruiser.cjs` — `no-circular` as an **error** (NFR-MAINT-4) plus a domain-purity rule.
+  - Prettier, commitlint (§22's exact type list), husky `pre-commit` + `commit-msg`, lint-staged.
+  - Root `tsconfig.json` — a workspace-spanning, emit-free view for tooling only.
+  - New scripts: `lint`, `lint:fix`, `format`, `format:check`, `depcruise`, and `verify`.
+
+### Fixed
+
+- Three latent misconfigurations in the boundary tooling, each of which would have left a guardrail
+  silently inert. Found only because M002 was verified adversarially — a clean lint run proved nothing:
+  - `boundaries` resolves through the legacy `import/resolver` setting, not `import-x/resolver-next`;
+    without it every cross-package import was classified "unknown" and skipped.
+  - `checkAllOrigins` defaults to `false`, so external (npm) imports were never evaluated and the
+    domain-purity rule could not fire.
+  - Policy precedence is **last match wins**, not first — the broad "allow external" policy was
+    shadowing every narrow disallow beneath it.
+  - `dependency-cruiser` resolved workspace packages to `dist/`, which its own `exclude` dropped, so
+    cross-package dependencies were absent from the graph entirely. Fixed with source `paths` in the
+    root tsconfig.
+- `boundaries/no-unknown-dependencies` is now an error, so an unclassifiable import fails loudly
+  instead of silently bypassing the policy engine.
+
 - **M001 — Monorepo and tooling.** pnpm workspaces + Turborepo with the full [§19](04-engineering/19-folder-structure.md)
   package skeleton: 3 apps (`web`, `api`, `orchestrator`) and 10 packages (`config`, `contracts`,
   `domain`, `db`, `agent-runtime`, `policy`, `cost`, `capability-packs`, `observability`, `ui`).

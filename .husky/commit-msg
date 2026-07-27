@@ -1,0 +1,2 @@
+# Conventional Commits are machine-parsed for changelog generation (§24).
+pnpm commitlint --edit "$1"

@@ -1,0 +1,4 @@
+# Format + lint staged files only. Budget: under 10 seconds (M002 acceptance).
+# Typecheck and the heavier gates (gitleaks, knip, full lint, dependency-cruiser)
+# run in CI — see docs/04-engineering/24-cicd-strategy.md stage 1.
+pnpm lint-staged

@@ -1,24 +1,36 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "//": "M001 baseline. M002 hardens this with the full §21 compiler set (noUncheckedIndexedAccess, exactOptionalPropertyTypes, noImplicitOverride, noFallthroughCasesInSwitch, verbatimModuleSyntax). Do not add lint or format config here — that is M002's packages/config work.",
+  "//": "Shared TypeScript baseline for every workspace package. The compiler flags below are the non-negotiable set from docs/04-engineering/21-coding-standards.md — removing one requires an ADR.",
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
 
+    // ── §21 non-negotiable set ────────────────────────────────────────────
     "strict": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
 
+    // ── Additional correctness ────────────────────────────────────────────
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+
+    // ── Emit ──────────────────────────────────────────────────────────────
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "dist",
     "rootDir": "src",
-
     "noEmitOnError": true,
     "pretty": true
   },

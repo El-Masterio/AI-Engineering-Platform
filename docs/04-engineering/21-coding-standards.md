@@ -157,17 +157,29 @@ often the most valuable line in the file.
 Everything above that *can* be automated *is* automated. A standard that relies on reviewer memory is
 a standard that erodes.
 
-| Tool | Enforces |
-|---|---|
-| **TypeScript strict** | Type rules |
-| **ESLint** (typescript-eslint, import, unicorn, jsx-a11y) | Naming, prohibitions, floating promises, a11y |
-| **eslint-plugin-boundaries** | Layer and module import rules (§19) |
-| **Prettier** | Formatting — zero discussion, never in review |
-| **dependency-cruiser** | No circular dependencies |
-| **gitleaks** | Secret scanning, pre-commit and CI |
-| **knip** | Dead code and unused exports |
-| **size-limit** | Bundle budgets (NFR-PERF-8) |
-| **axe / Lighthouse CI** | Accessibility and performance budgets |
+| Tool | Enforces | Live since |
+|---|---|---|
+| **TypeScript strict** | Type rules (full set in `packages/config/tsconfig.base.json`) | M002 |
+| **ESLint** (typescript-eslint type-aware, import-x, unicorn, jsx-a11y) | Naming, prohibitions, floating promises, a11y | M002 |
+| **eslint-plugin-boundaries** | Layer and module import rules (§19), both folder elements and file roles | M002 |
+| **eslint-comments/require-description** | The `any` escape hatch must carry `-- justified: <reason>` | M002 |
+| **Prettier** | Formatting — zero discussion, never in review | M002 |
+| **dependency-cruiser** | No circular dependencies; domain purity | M002 |
+| **commitlint** | Conventional Commits (§22) | M002 |
+| **husky + lint-staged** | Pre-commit format/lint (~4 s) and commit-message lint | M002 |
+| **gitleaks** | Secret scanning, pre-commit and CI | M003 |
+| **knip** | Dead code and unused exports | M003 |
+| **size-limit** | Bundle budgets (NFR-PERF-8) | M003 |
+| **axe / Lighthouse CI** | Accessibility and performance budgets | M003 |
+
+**Known gap:** the file-size rule is `max-lines` at **400 (warn)**. ESLint cannot express two
+severities for one rule, so the **800-line hard fail** is a separate CI check landing in M003.
+
+**Guardrails must be verified adversarially.** A linter config that produces a clean run has proven
+nothing — it may simply be inert. Any change to `eslint.config.js` or `.dependency-cruiser.cjs`
+must be accompanied by a deliberate violation demonstrating the rule still rejects it. M002 found
+three separately-inert rules this way; the reasoning is recorded in comments inside both config
+files, and those comments are load-bearing — do not "tidy" them away.
 
 **Formatting is never a review comment.** If Prettier accepted it, it's correct.
 

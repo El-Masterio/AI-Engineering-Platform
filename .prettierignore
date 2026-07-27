@@ -1,0 +1,13 @@
+# Generated or vendored — never reformat.
+pnpm-lock.yaml
+dist/
+.turbo/
+.next/
+coverage/
+node_modules/
+docs/api/openapi.json
+
+# Documentation is hand-formatted for readability; Prettier's markdown handling
+# would reflow tables and diagrams. Reviewed by humans instead.
+docs/
+skills/
