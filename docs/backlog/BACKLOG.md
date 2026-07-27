@@ -1,0 +1,534 @@
+# Prioritized Development Backlog
+
+**132 milestones**, dependency-ordered. The `Order` column is the suggested implementation sequence and
+matches the ID sequence unless noted.
+
+Field definitions, complexity model, and status vocabulary: [§26](../05-delivery/26-milestone-breakdown.md).
+
+**Legend** — Type: 🏗 foundation · ✨ feature · 🤖 agent · 🔒 security · ✅ quality · ♻️ debt · 📄 docs
+Complexity: XS · S · M · L (XL is prohibited — split it first)
+
+> **Do not implement any milestone automatically.** Per [CLAUDE.md](../../CLAUDE.md), work starts only
+> on an explicit "Start Milestone X" or "Implement the next milestone."
+
+---
+
+# PHASE 1 — Foundation & Core Loop (MVP)
+
+## Stage 1A — Skeleton (M001–M012)
+
+### M001 · Initialize monorepo and tooling · S · 🏗
+**Objective** A working pnpm + Turborepo monorepo with the package skeleton from §19.
+**Dependencies** —
+**Deliverables** `pnpm-workspace.yaml`, `turbo.json`, empty `apps/{web,api,orchestrator}` and `packages/*`, root `package.json`, `.gitignore`, `.nvmrc`.
+**Acceptance** `pnpm install` succeeds · `pnpm build` succeeds across all packages · workspace protocol resolves internal deps · Node version pinned.
+
+### M002 · Shared config and enforced boundaries · S · 🏗
+**Objective** Standards enforced by tooling from the first commit.
+**Dependencies** M001
+**Deliverables** `packages/config` with shared tsconfig (strict + `noUncheckedIndexedAccess`), ESLint flat config with `eslint-plugin-boundaries`, Prettier, dependency-cruiser config, commitlint, husky hooks.
+**Acceptance** A deliberate layer violation fails lint · a deliberate circular dependency fails the build · `any` without justification fails lint · pre-commit hook runs in < 10 s.
+
+### M003 · CI pipeline — static analysis, test, build · M · 🏗✅
+**Objective** Every PR gated before review.
+**Dependencies** M002
+**Deliverables** GitHub Actions workflow implementing stages 1–4 of §24; Turborepo remote cache; pnpm store cache.
+**Acceptance** PR triggers the pipeline · a lint failure blocks merge · cached no-op run completes in < 3 min · branch protection requires green CI.
+
+### M004 · Postgres, Drizzle, and first migration with RLS · M · 🏗🔒
+**Objective** The database foundation with tenant isolation active from migration one.
+**Dependencies** M001
+**Deliverables** `packages/db` with Drizzle setup, migration runner, `organizations` + `users` + `memberships` tables, RLS policies with `FORCE ROW LEVEL SECURITY`, `TenantContext` type, tenant-scoped repository base.
+**Acceptance** Migration applies and rolls back · RLS blocks cross-tenant `SELECT` in a test · a repository call without `TenantContext` fails to compile · `FORCE` verified active.
+**Note** 🔒 This cannot be retrofitted. It is why M004 is fourth and not fortieth.
+
+### M005 · Configuration validation · S · 🏗
+**Objective** The process refuses to boot on invalid configuration.
+**Dependencies** M002
+**Deliverables** `packages/config` env schema (Zod), startup validation, complete `.env.example`.
+**Acceptance** A missing required var prevents startup with a clear message · a malformed URL is rejected · `.env.example` covers every variable.
+
+### M006 · Observability skeleton · M · 🏗✅
+**Objective** Traces and structured logs before there is anything hard to debug.
+**Dependencies** M002
+**Deliverables** `packages/observability`: OTel SDK setup, trace context propagation, structured JSON logger with **secret and PII redaction**, request-ID middleware, health/readiness endpoints.
+**Acceptance** A trace spans HTTP → service → DB · logs carry a correlation ID · a secret-shaped string is redacted in a test · `/healthz` and `/readyz` respond.
+
+### M007 · Design tokens · S · 🏗
+**Objective** The §18 token system, live.
+**Dependencies** M001
+**Deliverables** `packages/ui/tokens/tokens.css` (primitives + semantic, both themes), Tailwind config consuming CSS variables, `data-theme` switching.
+**Acceptance** All §18 tokens defined · both themes pass automated WCAG AA contrast checks · a hardcoded hex in a component fails lint.
+
+### M008 · UI primitives · M · ✨
+**Objective** The base component set.
+**Dependencies** M007
+**Deliverables** Button, Input, Textarea, Select, Checkbox, Switch, Badge, Icon, Avatar, Tooltip, **StatusIndicator** — each with stories and tests.
+**Acceptance** Every component covers default/hover/focus/active/disabled/loading/error · keyboard operable · axe clean · renders correctly in both themes.
+
+### M009 · AppShell and routing skeleton · S · ✨
+**Objective** Somewhere to put screens.
+**Dependencies** M008
+**Deliverables** Next.js App Router setup, AppShell (collapsible sidebar + topbar), route groups, error and loading boundaries.
+**Acceptance** Navigation works · sidebar collapse persists · error boundary catches a thrown error · LCP within budget on an empty page.
+
+### M010 · Local development environment · S · 🏗
+**Objective** One-command onboarding.
+**Dependencies** M004
+**Deliverables** `docker-compose.yml` (Postgres + Redis), `pnpm db:up/migrate/seed/dev` scripts, synthetic seed data.
+**Acceptance** A clean clone reaches a running app in three commands · seeds are synthetic only · documented in the developer guide.
+
+### M011 · Deploy pipeline to staging · M · 🏗
+**Objective** Stages 8–11 of §24.
+**Dependencies** M003, M005
+**Deliverables** Container builds (multi-arch, digest-pinned, signed, SBOM), staging environment via OpenTofu, automatic deploy on merge, smoke tests, graceful shutdown.
+**Acceptance** Merge to `main` deploys to staging automatically · smoke test gates promotion · rollback by digest works · zero-downtime verified.
+
+### M012 · Developer guide · XS · 📄
+**Objective** A new contributor productive in under an hour.
+**Dependencies** M010, M011
+**Deliverables** `docs/guides/developer-guide.md`.
+**Acceptance** Someone unfamiliar follows it to a running app and a first PR without asking questions.
+
+**═══ GATE 1A ═══** A trivial endpoint deploys to staging through the full pipeline, traced end to end, with a green cross-tenant test.
+
+---
+
+## Stage 1B — Identity & tenancy (M013–M022)
+
+### M013 · Domain package: organizations and users · S · 🏗
+**Objective** Pure domain entities with invariants, zero dependencies.
+**Dependencies** M001
+**Deliverables** `packages/domain/organizations`, `users`, `memberships`; `ports/clock.port.ts`; errors.
+**Acceptance** Zero external imports (verified by dependency-cruiser) · invariants unit-tested · 90% coverage.
+
+### M014 · Authentication · M · 🔒✨
+**Objective** Email/password and OAuth sign-in.
+**Dependencies** M004, M013
+**Deliverables** Better Auth integration, Argon2id hashing, session cookies (httpOnly/Secure/SameSite), GitHub + Google OAuth, email verification, password reset, session revocation.
+**Acceptance** FR-AUTH-1..5, 9 satisfied · login rate-limited · failure messages generic · sessions revocable server-side · 95% coverage.
+
+### M015 · Organization and membership management · M · ✨
+**Objective** Tenancy in the product, not just the schema.
+**Dependencies** M014
+**Deliverables** Personal org on signup, org CRUD, membership records, tenant resolution middleware setting the RLS session variable.
+**Acceptance** FR-ORG-1..3 · every request resolves exactly one org context · a user cannot address an org they don't belong to.
+
+### M016 · API conventions and error envelope · S · 🏗
+**Objective** §16 implemented once, centrally.
+**Dependencies** M006, M015
+**Deliverables** Fastify plugins: error handler producing the §16 envelope, JSON Schema validation, cursor pagination helper, idempotency middleware, ETag/If-Match support, OpenAPI generation.
+**Acceptance** Every error shape matches the envelope · `request_id` present on all errors · OpenAPI generates and validates · pagination helper rejects `limit > 100`.
+
+### M017 · Policy engine · M · 🔒🏗
+**Objective** One place that answers "may this actor do this?"
+**Dependencies** M015
+**Deliverables** `packages/policy`: `assert(principal, action, resource)`, role definitions, deny-by-default, decision logging.
+**Acceptance** Exhaustive authorization matrix tests · deny by default verified · every denial audited · 95% coverage · a lint rule flags inline role checks in handlers.
+
+### M018 · Immutable audit log · M · 🔒🏗
+**Objective** Every state change recorded, permanently.
+**Dependencies** M016, M017
+**Deliverables** `audit_log` table (range-partitioned), same-transaction write helper, `UPDATE`/`DELETE` revoked from the app role, query API for admins.
+**Acceptance** FR-AUDIT-1..4 · an `UPDATE` attempt from the app role fails at the database · a rolled-back action leaves no audit row · partition creation automated.
+
+### M019 · API keys · S · 🔒✨
+**Objective** Programmatic access with scopes.
+**Dependencies** M017
+**Deliverables** Key generation with a visible prefix, hashed storage, scope model, `Authorization: Bearer` auth, revocation.
+**Acceptance** Key shown once only · scopes enforced by the policy engine · revocation immediate · usage audited.
+
+### M020 · Rate limiting · S · 🔒
+**Objective** §16's limits enforced.
+**Dependencies** M016
+**Deliverables** Redis sliding-window limiter, per-key/per-org/per-IP tiers, `RateLimit-*` headers.
+**Acceptance** Limits enforced per §16 · headers present · `429` includes `Retry-After` · limits are per-tenant, not global.
+
+### M021 · Cross-tenant test suite (generated) · M · 🔒✅
+**Objective** The most important test suite in the codebase.
+**Dependencies** M018
+**Deliverables** A generator enumerating every table with `organization_id` × every operation, asserting denial as the wrong tenant; CI integration as a release blocker.
+**Acceptance** Every tenant-scoped table covered automatically · adding a table without a policy fails the suite · runs on every commit · 95% coverage on the isolation path.
+
+### M022 · Auth and organization UI · M · ✨
+**Objective** Sign-up through org context in the product.
+**Dependencies** M009, M015
+**Deliverables** Sign-up, sign-in, OAuth, verification, password reset, org switcher, member list, settings screens.
+**Acceptance** Full journey works · keyboard complete · axe clean · errors surface the §16 message, never internals.
+
+**═══ GATE 1B ═══** Authorization matrix fully tested · cross-tenant suite green on every table · every state change audited.
+
+---
+
+## Stage 1C — Agent substrate (M023–M036) · highest risk
+
+### M023 · AgentRuntime port and fake adapter · L · 🏗
+**Objective** The abstraction the entire product depends on.
+**Dependencies** M013
+**Deliverables** `packages/agent-runtime`: the 5-method port, `AgentSpec`/`RunContext`/`RunEvent` types, in-memory fake adapter, **shared conformance suite** every adapter must pass.
+**Acceptance** Fake adapter passes the conformance suite · the port has no provider-specific types · ADR written including reversal cost and revisit triggers.
+**Note** Requires design review before implementation. This is the seam that makes ADR-002 reversible.
+
+### M024 · Agent specification schema · M · 🤖🏗
+**Objective** Agents as versioned data.
+**Dependencies** M023, M004
+**Deliverables** `agent_definitions` table, Zod schema for the §13 spec, version pinning, loader, seed of the 6 MVP roles as YAML.
+**Acceptance** A new role is added by authoring a file with no code change · versions immutable once referenced by a run · invalid spec rejected at load.
+
+### M025 · Capability pack loader and scanner · M · 🤖🔒
+**Objective** Expertise as versioned documents, safely.
+**Dependencies** M024
+**Deliverables** `packages/capability-packs`: `SKILL.md` parser with frontmatter validation, version resolution, progressive disclosure, **prompt-injection scanner** for untrusted packs, platform corpus seeded from `skills/`.
+**Acceptance** Packs load and resolve versions · a pack cannot grant a tool outside the agent's allowlist · known injection patterns are rejected · scanner has its own test corpus.
+
+### M026 · Managed runtime adapter and sandbox provisioning · L · 🏗🔒
+**Objective** Real agent execution in an isolated sandbox.
+**Dependencies** M023, M024
+**Deliverables** Managed adapter implementing the port; environment configuration with **deny-by-default egress and an allowlist**; per-run session provisioning; repository mounting; graceful failure handling.
+**Acceptance** Adapter passes the same conformance suite as the fake · sandbox has no host network · egress allowlist verified by test · cloud metadata endpoints blocked · provisioning p95 < 20 s.
+**Note** 🔒 **The ADR-002 bet is validated or falsified here.** A negative finding triggers immediate re-planning per §25, not a workaround.
+
+### M027 · Credential vault integration · M · 🔒
+**Objective** Secrets never enter an agent's context or sandbox.
+**Dependencies** M026
+**Deliverables** Vault provisioning per organization, credential CRUD (write-only in the API), egress-time injection, host allowlisting per credential.
+**Acceptance** No secret appears in any prompt, sandbox env, filesystem, or log — asserted by test · credentials never returned by the API · substitution verified only for allowlisted hosts.
+
+### M028 · Run event streaming with replay · M · ✨🏗
+**Objective** Live agent output that survives a dropped connection.
+**Dependencies** M026, M016
+**Deliverables** `run_events` table (partitioned, sequenced), event ingestion, SSE endpoint with `Last-Event-ID` replay, heartbeats, terminal event, backpressure, paginated history endpoint.
+**Acceptance** Reconnect replays without loss or duplication · heartbeat prevents proxy timeout · stream always ends with a terminal event · slow consumer dropped, not buffered unboundedly.
+
+### M029 · Realtime gateway and client stream consumer · M · ✨
+**Objective** Agent output visible in the browser.
+**Dependencies** M028, M009
+**Deliverables** SSE fan-out, client hook with reconnect and dedupe, `LogStream` and `Timeline` components (virtualized).
+**Acceptance** Output renders live · reconnect is invisible to the user · 10,000 events render without jank · `aria-live` announcements coalesced to ≤ 1 per 2 s.
+
+### M030 · Tool allowlist enforcement · M · 🔒🏗
+**Objective** Capability confinement — the real security boundary.
+**Dependencies** M026, M017
+**Deliverables** Tool authorization at the runtime boundary via the policy engine, per-role allowlists, constrained `bash` (executable allowlist, shell operators rejected), denial logging.
+**Acceptance** A tool outside the allowlist is denied and audited · `bash` rejects a non-allowlisted executable · shell operators rejected · a read-only agent cannot write · 95% coverage.
+
+### M031 · Path containment enforcement · S · 🔒
+**Objective** No file operation escapes the project root.
+**Dependencies** M030
+**Deliverables** Canonical path resolution + containment assertion on every file tool.
+**Acceptance** `..` traversal blocked · symlink escape blocked · URL-encoded traversal blocked · absolute path outside root blocked — each with a test.
+
+### M032 · Agent run lifecycle and persistence · M · 🏗
+**Objective** Runs that survive a restart.
+**Dependencies** M026, M028
+**Deliverables** `agent_runs` table with pinned agent version and model ID, lifecycle state machine, resumption after control-plane restart, crash detection, interrupt support.
+**Acceptance** FR-AGENT-4, 7, 8, 9 · a run survives an orchestrator restart · a crashed run is detected and resumable, never silently lost · interrupt stops at a safe boundary.
+
+### M033 · Cost ledger and budget enforcement · L · 🏗
+**Objective** Every token accounted; no unbounded spend.
+**Dependencies** M032
+**Deliverables** `cost_entries` (append-only, partitioned), per-call accounting including cache-read tokens, rollups, per-run budget ceiling that **pauses** the run, no-progress circuit breaker, credit conversion (integer arithmetic).
+**Acceptance** FR-COST-1..3, 7 · exceeding the ceiling pauses and requests approval, never silently overspends · circuit breaker halts a no-progress loop · ledger and rollup reconcile · 95% coverage · no floating-point money.
+
+### M034 · Model tiering resolution · S · 🤖
+**Objective** Tiers as named abstractions, never hardcoded IDs.
+**Dependencies** M024
+**Deliverables** Tier → model mapping table, effort resolution, refusal-fallback configuration on reasoning-tier calls, `stop_reason` handling before content access.
+**Acceptance** No model ID appears outside the mapping table (lint-enforced) · a refusal is handled gracefully with fallback · ADR-004 implemented as specified.
+
+### M035 · Prompt assembly with cache stability · M · 🤖
+**Objective** Protect the cache hit rate, which is a primary margin lever.
+**Dependencies** M025, M034
+**Deliverables** Prompt builder guaranteeing a stable cached prefix; deterministic tool serialization; dynamic context appended as messages, never interpolated into the system prompt; context editing and compaction for long runs.
+**Acceptance** A test asserts byte-identical prefixes across runs with differing dynamic context · cache-read tokens observed > 0 on a second run · a volatile value in a system prompt fails a test.
+
+### M036 · Replay harness for agent evaluation · M · ✅
+**Objective** Deterministic agent testing in CI, at zero marginal cost.
+**Dependencies** M032
+**Deliverables** Record mode capturing real interactions; replay adapter; fixture management; CI integration.
+**Acceptance** Recorded run replays deterministically · replay requires no network and no spend · fixtures are reviewable in a diff.
+
+**═══ GATE 1C ═══** One agent completes a task in a sandbox with: correct cost accounting · enforced allowlist · a budget ceiling that pauses · a stream surviving reconnection · adversarial "no secret in context" assertions passing.
+
+---
+
+## Stage 1D — Orchestration & verification (M037–M047)
+
+### M037 · Director planning agent · L · 🤖✨
+**Objective** Goal → architecture note + dependency-ordered milestone plan.
+**Dependencies** M035, M036
+**Deliverables** Director agent definition and capability packs; structured output contract for plans; credit estimation; repository-summary input.
+**Acceptance** FR-PLAN-1, 2 · plan validates against the schema · dependencies acyclic (verified) · every milestone has binary acceptance criteria and a credit estimate · planning eval suite scores ≥ 80%.
+
+### M038 · Plan persistence and dependency graph · M · 🏗
+**Objective** The plan as durable, queryable state.
+**Dependencies** M037, M004
+**Deliverables** `milestones`, `milestone_deps`, `tasks`, `task_deps`; topological sort; cycle detection on insert.
+**Acceptance** A cyclic plan is rejected at the service layer with a clear error · property-based tests on the graph · `M042`-style split insertion works without renumbering.
+
+### M039 · Plan approval gate · M · ✨🔒
+**Objective** The human approves before anything is built.
+**Dependencies** M038, M017
+**Deliverables** Approval endpoint, policy-engine gate keyed to autonomy level, plan editing before approval, approval audit.
+**Acceptance** FR-PLAN-3, 4 · execution is impossible before approval · edits re-validate the graph · approval recorded with actor, timestamp, and exact approved payload.
+
+### M040 · Task graph dispatch and orchestrator state machines · L · 🏗
+**Objective** The orchestrator: the component that makes this an organization.
+**Dependencies** M039, M032
+**Deliverables** BullMQ workers, explicit milestone and task state machines as files, dependency-aware ready-task selection, parallel dispatch with per-project/org concurrency caps, file-level advisory locks, exponential backoff, quarantine for poisoned tasks.
+**Acceptance** FR-PLAN-5..7 · independent tasks run in parallel · a blocked dependency prevents execution · two agents never edit the same file · a repeatedly failing task is quarantined, not retried forever · state survives a restart.
+
+### M041 · Implementer agents (Backend, Frontend, Architect) · M · 🤖
+**Objective** Agents that produce code.
+**Dependencies** M040, M030
+**Deliverables** Three agent definitions with allowlists and permissions; capability packs seeded from `skills/`; scope-discipline and conciseness instructions; **no self-verification instructions** (verification is a structural gate).
+**Acceptance** Each agent's allowlist is minimal and enforced · Architect cannot write code · Backend cannot migrate schema · implementation eval suite ≥ 75% on hidden tests.
+
+### M042 · Project memory store · M · 🏗🤖
+**Objective** Knowledge that survives runs — the compounding advantage.
+**Dependencies** M026, M004
+**Deliverables** Memory store provisioning, mounting into the sandbox, `memory_entries` + `memory_versions` (append-only), read at run start / write at run end, **credential scanning on write**.
+**Acceptance** FR-MEM-1..4, 7 · memory persists across runs · every mutation versioned with actor · a credential-shaped write is blocked and alerted · redaction clears content while preserving audit.
+
+### M043 · Independent review gate · L · 🤖🔒
+**Objective** The product's central claim, structurally enforced.
+**Dependencies** M041, M042
+**Deliverables** Code Reviewer agent (read-only allowlist, separate session, no authorship context); structured findings with severity and confidence; **orchestrator + policy engine + database constraint** all preventing self-review; report-everything-then-filter design.
+**Acceptance** FR-AGENT-5 · a self-review attempt is rejected at all three layers · findings validate against the schema · **review eval suite finds ≥ 80% of seeded defects with ≤ 20% false positives** · reviewer has no write capability.
+**Note** The seeded-defect metric is the single most important number in the product. Regression here is a product emergency.
+
+### M044 · Review feedback loop · M · 🏗
+**Objective** Failed review returns work to the implementer, bounded.
+**Dependencies** M043, M040
+**Deliverables** Loop-back transitions, retry ceiling, budget consumption per attempt, escalation to human on exhaustion.
+**Acceptance** FR-PLAN-9 · failed review re-dispatches with findings as input · retries bounded · budget consumed per attempt so failure is naturally bounded · exhaustion escalates rather than looping.
+
+### M045 · QA agent and test gate · L · 🤖✅
+**Objective** Tests that actually run, honestly reported.
+**Dependencies** M041, M040
+**Deliverables** QA Engineer agent (tests only, never production code); test execution in the sandbox; machine-parsed results; honest-reporting instruction; gate blocking completion on failure.
+**Acceptance** FR-PLAN-8 · a milestone with failing tests **cannot** be marked complete and there is no override · results are parsed from real output, not self-reported · test-quality eval mutation score ≥ 60%.
+
+### M046 · GitHub integration · M · ✨🔒
+**Objective** Real repositories, safely.
+**Dependencies** M026, M027
+**Deliverables** GitHub App, per-repo scoped installation, clone/branch/commit/push via the credential proxy, deterministic branch naming, **default-branch write prohibition**.
+**Acceptance** FR-REPO-1..3, 5 · the repository token never enters the sandbox (asserted) · a default-branch write attempt is denied and audited · branch names deterministic.
+
+### M047 · Pull request creation with completion report · M · ✨
+**Objective** The deliverable the user actually receives.
+**Dependencies** M046, M045
+**Deliverables** PR creation; structured completion report (changes, review findings, real test output, credits consumed, decisions recorded); memory write-back; milestone finalization.
+**Acceptance** FR-REPO-4 · PR body contains **actual pasted test output**, not a claim · credits shown match the ledger · review findings included · memory updated with decisions.
+
+**═══ GATE 1D ═══** The full twelve-step journey from §12 completes end to end on a real repository.
+
+---
+
+## Stage 1E — Product surface & hardening (M048–M052)
+
+### M048 · Data display components · M · ✨
+**Objective** The components the run view needs.
+**Dependencies** M008
+**Deliverables** DataTable (virtualized), DefinitionList, CodeBlock (Shiki, tokens-themed), **DiffViewer** (color + gutter markers), CostMeter, MilestoneBoard, ApprovalGate, EmptyState, Skeleton.
+**Acceptance** DiffViewer readable without color · DataTable virtualizes above 100 rows · ApprovalGate visually distinct from an ordinary button · all axe-clean in both themes.
+
+### M049 · Core screens · M · ✨
+**Objective** The MVP product surface.
+**Dependencies** M048, M029
+**Deliverables** Project list, project overview, **plan approval**, milestone board, run detail (persistent timeline + detail pane), review detail, memory browser, cost panel, settings.
+**Acceptance** All §18 key screens present · run view shows current activity and history without a context switch · every list has an empty state · keyboard complete.
+
+### M050 · Cost dashboard and estimate accuracy instrumentation · M · ✨✅
+**Objective** Replace §7's modeled economics with measured ones.
+**Dependencies** M033, M049
+**Deliverables** Per-project/milestone/agent/tier breakdown, estimate-vs-actual tracking, cache hit rate metrics, COGS-per-milestone reporting.
+**Acceptance** Dashboard reconciles with the ledger · estimate accuracy measurable against the ±30% target · cache hit rate visible · COGS per accepted milestone computed.
+**Note** This milestone is what makes the P1 gate measurable rather than opinion.
+
+### M051 · Adversarial and accessibility hardening · M · 🔒✅
+**Objective** Verify the security claims before real users arrive.
+**Dependencies** M047
+**Deliverables** Full adversarial suite (§23 Mode C), WCAG 2.2 AA audit and remediation, load test to 200 concurrent runs, penetration-test remediation.
+**Acceptance** Every adversarial case passes · axe clean across all screens · manual screen-reader audit passed · 200 concurrent runs within NFR targets · pen-test findings remediated.
+
+### M052 · Design-partner onboarding · S · 📄✨
+**Objective** 20 partners running real projects.
+**Dependencies** M051, M050
+**Deliverables** User guide, onboarding flow, feedback capture, success-metric instrumentation.
+**Acceptance** 20 partners onboarded · metrics from the §8 criteria collected automatically · feedback loop operating.
+
+**═══ GATE P1 → P2 ═══** All §8 MVP success criteria met, measured across 20 partners and 200 milestones.
+
+---
+
+# PHASE 2 — Collaboration & Control (M053–M067)
+
+| ID | Title | Cx | Type | Deps | Objective / key acceptance |
+|---|---|---|---|---|---|
+| M053 | Teams domain and schema | S | 🏗 | M015 | Teams within orgs; users in multiple teams; RLS extended |
+| M054 | Invitations | S | ✨ | M053 | Email invite with role; single-use token; expiry; audit |
+| M055 | Notifications domain + outbox relay | M | 🏗 | M018 | Reliable side effects via outbox; exactly-once publish verified under crash |
+| M056 | In-app notifications | S | ✨ | M055 | Run complete, approval needed, budget threshold; read state |
+| M057 | Email notifications | S | ✨ | M055 | Resend integration; per-user preferences; unsubscribe |
+| M058 | Slack webhook notifications | S | ✨ | M055 | Org-configured webhook; thin payload; failure auto-disable |
+| M059 | Notification preferences | XS | ✨ | M056 | Per-user, per-event-type, per-channel |
+| M060 | RBAC and multi-user organizations | L | 🔒✨ | M017, M053 | Owner/Admin/Member/Viewer enforced at API **and** data layer; full authorization matrix tested; cross-tenant suite extended |
+| M061 | Project-level access control | M | 🔒 | M060 | Team assignment grants project access; verified by matrix test |
+| M062 | Concurrency and task locking | M | 🏗 | M040 | File-level advisory locks; two users' runs never collide; verified under load |
+| M063 | Chat interface | M | ✨ | M029 | Second interaction surface; ask questions about the project; grounded in memory |
+| M064 | Mid-run steering and interrupt | M | ✨ | M063, M032 | Redirect a running agent via the privileged operator channel; interrupt stops at a safe boundary |
+| M065 | Plan re-planning | M | ✨ | M038 | Re-plan mid-project; prior decisions preserved; ADR trail intact |
+| M066 | Milestone reorder and skip | S | ✨ | M038 | Reorder respecting dependencies; skip with a recorded reason |
+| M067 | Settings module (full) | S | ✨ | M060 | Org, team, user, project settings; all changes audited |
+
+**═══ GATE P2 → P3 ═══** 3 concurrent users, 1 project, 5 milestones, zero platform-caused conflicts · RBAC matrix fully tested.
+
+---
+
+# PHASE 3 — Engineering Depth (M068–M082)
+
+| ID | Title | Cx | Type | Deps | Objective / key acceptance |
+|---|---|---|---|---|---|
+| M068 | Documents module + ingestion | M | ✨ | M004 | PDF/Markdown/text upload, parse, store; status tracking |
+| M069 | Chunking and embedding pipeline | M | 🏗 | M068 | pgvector storage; HNSW index; **always pre-filtered by `organization_id`** |
+| M070 | Organization capability packs | L | 🤖🔒 | M025, M060 | Customers author standards; every org agent inherits them; **untrusted-pack scanning mandatory**; ≥ 90% convention adherence measured |
+| M071 | Capability pack authoring UI | M | ✨ | M070 | Author, version, preview, see which agents inherit |
+| M072 | Database Engineer agent | M | 🤖 | M041 | Schema design and migrations; **destructive migration requires human approval** |
+| M073 | Documentation Writer agent | S | 🤖 | M041 | Takes docs from the Director; docs updated in the same milestone |
+| M074 | Research Agent | S | 🤖 | M041 | Technology evaluation with sourced comparison matrices and ADR drafts |
+| M075 | Knowledge base and retrieval | L | ✨ | M069 | Semantic search over code, docs, memory; **citations verifiably correct** |
+| M076 | Memory management UI | S | ✨ | M042 | View, edit, delete memory; version history; redaction |
+| M077 | Semantic code search | M | ✨ | M075 | Repository-aware retrieval feeding agent context |
+| M078 | Performance Engineer agent | M | 🤖 | M041 | Profiling, query analysis, bundle budgets; read-only until authorized |
+| M079 | Security Engineer agent + conditional gate | L | 🤖🔒 | M043 | Auto-triggers on auth/data/input/crypto/dependency diffs; **can block a milestone**; blocks a real seeded vulnerability |
+| M080 | Refactoring Agent | M | 🤖 | M041 | Behavior-preserving structural improvement; no public API change without an ADR |
+| M081 | Agent evaluation corpus v1 | M | ✅ | M036 | The §23 suites; baseline established; nightly live runs |
+| M082 | Eval regression gating | S | ✅ | M081 | Release blocks on statistically significant regression, not a single sample |
+
+**═══ GATE P3 → P4 ═══** An org capability pack demonstrably changes output (≥ 90% adherence) · security gate blocks a real seeded vulnerability · citations verified.
+
+---
+
+# PHASE 4 — Product Polish & Breadth (M083–M094)
+
+| ID | Title | Cx | Type | Deps | Objective / key acceptance |
+|---|---|---|---|---|---|
+| M083 | Light theme | S | ✨ | M007 | Full light mode; WCAG AA verified in both themes; token remap only |
+| M084 | WCAG 2.2 AA conformance pass | M | ✅ | M083 | Full audit and remediation; manual screen-reader audit; axe clean |
+| M085 | Architecture module | M | ✨ | M075 | Living component graph, dependency view, ADR browser |
+| M086 | Architecture drift detection | M | ✅ | M085 | Documented graph compared to the real import graph; drift reported |
+| M087 | UI + UX Designer agents | M | 🤖 | M041 | Token/component specs, flows, accessibility review |
+| M088 | Existing-repository import and analysis | L | ✨ | M077 | Non-greenfield support; structure summary; works on 10 real customer codebases |
+| M089 | GitLab support | M | ✨ | M046 | Behind the existing repository-host port |
+| M090 | Bitbucket support | S | ✨ | M089 | Same port |
+| M091 | Project templates | S | ✨ | M049 | Create from template; seeded conventions |
+| M092 | Guided onboarding | M | ✨ | M091 | Self-serve first run; sample project; median < 1 h unassisted |
+| M093 | Responsive and tablet layouts | S | ✨ | M084 | Tablet authoring; phone read-only monitoring |
+| M094 | Visual regression testing | XS | ✅ | M083 | Component library snapshots in CI |
+
+**═══ GATE P4 → P5 ═══** Self-serve signup → first milestone, median < 1 h, unassisted · WCAG AA verified · import works on 10 real codebases.
+
+---
+
+# PHASE 5 — Delivery & Operations (M095–M107)
+
+| ID | Title | Cx | Type | Deps | Objective / key acceptance |
+|---|---|---|---|---|---|
+| M095 | Environment management | M | 🏗🔒 | M027 | dev/staging/production per project with **separate credentials**; no credential crossover |
+| M096 | Deployment subsystem | L | ✨🔒 | M095 | Container deploy to a managed host; **production always human-approved, non-configurable** |
+| M097 | Frontend deployment targets | S | ✨ | M096 | Vercel/Netlify for frontends |
+| M098 | DevOps Engineer agent | M | 🤖 | M096 | CI/CD pipeline authoring; **cannot deploy to production** |
+| M099 | Infrastructure Engineer agent | M | 🤖 | M096 | IaC authoring; **apply requires human approval** |
+| M100 | IaC generation with plan-review gate | L | ✨🔒 | M099 | OpenTofu generation; `plan` reviewed before `apply`; drift detection |
+| M101 | Rollback subsystem | M | ✨🔒 | M096 | One-click, always available, never requires a rebuild; exercised successfully |
+| M102 | Deployment approval gates | S | 🔒 | M096 | Policy-engine enforced; every approval audited with the exact payload |
+| M103 | Monitoring integration | M | ✨ | M096 | Golden-signal dashboards for deployed customer apps |
+| M104 | SLOs and burn-rate alerting | L | ✨ | M103 | SLO definition, error budgets, burn-rate alerts; **100% runbook coverage** |
+| M105 | Incident triage agent workflow | M | 🤖 | M104 | Agent triages an alert, proposes a fix, opens a PR; **never auto-remediates production** |
+| M106 | Runbook authoring | S | 📄 | M104 | A runbook per alert; an alert without one fails CI |
+| M107 | Operations guide | S | 📄 | M106 | Deploy, monitor, incident response |
+
+**═══ GATE P5 → P6 ═══** 20 human-approved production deploys · 1 incident triaged end-to-end · **zero unapproved production changes** · rollback exercised.
+
+---
+
+# PHASE 6 — Commercial (M108–M118)
+
+| ID | Title | Cx | Type | Deps | Objective / key acceptance |
+|---|---|---|---|---|---|
+| M108 | Stripe integration | M | ✨ | M060 | Customers, subscriptions, webhooks with HMAC verification |
+| M109 | Subscription tiers and seat management | M | ✨ | M108 | The §7 tiers; seat add/remove; proration |
+| M110 | Billing, credits, and metering | L | ✨ | M109, M033 | Credit purchase, consumption from the ledger, rollover rules; **integer arithmetic, reconciles exactly** |
+| M111 | Budget alerts and enforcement | S | ✨ | M110 | Org/project ceilings; threshold alerts; enforcement pauses, never overspends |
+| M112 | Spend forecasting | M | ✨ | M110 | Forecast from historical run data; estimate accuracy reported |
+| M113 | Usage analytics | M | ✨ | M050 | Milestone success rates, review findings, agent performance, cost trends |
+| M114 | Admin console | M | 🔒✨ | M060 | Org management, **impersonation with mandatory audit**, feature flags, quota overrides |
+| M115 | Support Agent | M | 🤖 | M075 | In-product help grounded in our own docs; escalation to humans |
+| M116 | Free and education tiers | S | ✨ | M109 | Gated limits; abuse prevention |
+| M117 | Bring-your-own-key (enterprise option) | M | ✨🔒 | M034 | Customer-provided provider credentials via the vault; COGS shifts to customer |
+| M118 | Public changelog and status page | XS | 📄 | — | Customer-visible change communication |
+
+**═══ GATE P6 → P7 ═══** 50 self-serve paying customers · measured blended gross margin ≥ 60% · estimate accuracy within ±30%.
+
+---
+
+# PHASE 7 — Enterprise Readiness (M119–M128)
+
+| ID | Title | Cx | Type | Deps | Objective / key acceptance |
+|---|---|---|---|---|---|
+| M119 | Audit log export | M | 🔒✨ | M018 | SIEM-compatible export; configurable retention |
+| M120 | Hash-chained audit records | S | 🔒 | M119 | Tamper evidence; each row includes the prior hash; verification tool |
+| M121 | SSO — SAML 2.0 and OIDC | L | 🔒✨ | M014 | Domain-based auto-join; WorkOS for enterprise SSO alongside Better Auth |
+| M122 | SCIM provisioning | M | 🔒✨ | M121 | User provisioning and **deprovisioning**; deprovision revokes access immediately |
+| M123 | Custom roles and granular RBAC | M | 🔒✨ | M060 | Org-defined roles; policy engine unchanged in shape |
+| M124 | GDPR operations | M | 🔒✨ | M042 | DSR endpoints, right-to-erasure including backup rotation, retention automation |
+| M125 | Data residency (EU/US regions) | L | 🏗🔒 | M124 | Regional data plane; residency selectable per org; verified no cross-region leakage |
+| M126 | DPA and sub-processor register | XS | 📄🔒 | M124 | Published, current, change notification |
+| M127 | Self-hosted execution adapter | L | 🏗🔒 | M023, M026 | Agent tool execution in customer infrastructure; **must pass the same AgentRuntime conformance suite as the managed adapter** — this is what proves ADR-002's exit ramp is real |
+| M128 | SOC 2 Type II readiness | M | 🔒📄 | M120 | Control documentation, evidence collection, gap remediation |
+
+**═══ GATE P7 → P8 ═══** One enterprise security review passed and contract signed · **M127 passes the shared conformance suite**.
+
+---
+
+# PHASE 8 — Ecosystem & Platform (M129–M132)
+
+| ID | Title | Cx | Type | Deps | Objective / key acceptance |
+|---|---|---|---|---|---|
+| M129 | Public API and TypeScript SDK | L | ✨ | M016 | Versioned REST per §16; generated SDK; 12-month `/v1` support commitment documented |
+| M130 | Outbound webhooks | M | ✨🔒 | M055, M129 | Thin payloads, HMAC signatures, at-least-once with documented dedupe, SSRF protection, auto-disable |
+| M131 | Custom agent authoring | L | 🤖✨ | M024, M070 | Customers define role, prompt, tool allowlist, tier, budget; **allowlist ceiling enforced** |
+| M132 | Marketplace | L | ✨🔒 | M131 | Capability packs and templates; 70/30 split; mandatory security scanning; sandboxed evaluation before listing; publisher verification |
+
+**═══ GATE P8 → P9 ═══** 25 third-party packs · 10% of runs invoke a customer-authored agent.
+
+---
+
+# PHASE 9 — Increasing Autonomy (continuous)
+
+Not milestone-numbered — each level is a gated policy change, earned per organization on measured
+history and **automatically revocable on regression**. See
+[§9](../00-foundation/09-feature-roadmap.md#phase-9--increasing-autonomy-continuous) and
+[§29](../05-delivery/29-future-expansion.md).
+
+| Level | Unlocked when |
+|---|---|
+| L1 — auto-merge on review + tests passing | Merge-without-rework ≥ 85% over 100 milestones |
+| L2 — plan auto-approves | Plan-edit rate < 10% over 100 plans |
+| L3 — agents propose their own milestones | L2 stable for a quarter |
+| L4 — continuous operation, exception-only escalation | L3 stable; incident rate below threshold |
+
+Continuous work: self-improvement loops (human-reviewed, eval-verified — never auto-applied),
+cross-project learning within an organization, automatic model migration with re-evaluation.
+
+---
+
+## Backlog hygiene
+
+1. No work without a milestone — including bug fixes.
+2. Splitting inserts `M0NNa`/`M0NNb`; never renumber.
+3. Discovered work becomes a new milestone, not scope creep.
+4. A milestone exceeding its complexity estimate is stopped, split, re-estimated.
+5. **Security milestones (🔒) are never deferred for schedule.** Feature milestones move instead.
+6. Every completed milestone updates the tracker in [§26](../05-delivery/26-milestone-breakdown.md) and `CHANGELOG.md` in its own commit.

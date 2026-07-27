@@ -1,0 +1,62 @@
+# ── Deliberate hold: personal / commercially-sensitive capability packs ──────
+# `skills/` holds 34 packs. Some are personal or business-confidential
+# (know-me, albert-dm, instantly-campaign, upwork, upwork-proposal, youtube-*).
+# Held back from git until the owner decides what to publish — see the note in
+# docs/decisions/ASSUMPTIONS.md discussion and ADR-005.
+#
+# The engineering packs (api-design, backend-engineering, code-review-standards,
+# security, scalability, observability, docker, ci-cd-devops, frontend-*,
+# software-architecture, playwright, skill-security-audit, …) are the ADR-005
+# seed corpus and are safe to publish. To include only those, replace this
+# blanket ignore with per-directory entries.
+skills/
+
+# ── Node / pnpm ──────────────────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+dist/
+build/
+.turbo/
+coverage/
+.nyc_output/
+
+# ── Next.js ──────────────────────────────────────────────────────────────────
+.next/
+out/
+next-env.d.ts
+
+# ── Environment & secrets ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+
+# ── Test & tooling output ────────────────────────────────────────────────────
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+evals/**/output/
+*.log
+
+# ── Infrastructure state ─────────────────────────────────────────────────────
+.terraform/
+*.tfstate
+*.tfstate.*
+.tofu/
+*.tfvars
+!*.tfvars.example
+
+# ── Editors & OS ─────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.recommended.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
