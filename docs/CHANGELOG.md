@@ -7,7 +7,31 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ## [Unreleased]
 
-Nothing yet. Implementation begins at `M001`.
+### Added
+
+- **M001 — Monorepo and tooling.** pnpm workspaces + Turborepo with the full [§19](04-engineering/19-folder-structure.md)
+  package skeleton: 3 apps (`web`, `api`, `orchestrator`) and 10 packages (`config`, `contracts`,
+  `domain`, `db`, `agent-runtime`, `policy`, `cost`, `capability-packs`, `observability`, `ui`).
+  Root `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `.npmrc`, `.nvmrc`.
+  `packages/config` provides a baseline `tsconfig.base.json` that every package extends.
+
+### Changed
+
+- **Node pinned to 24 LTS**, not the 22 named in the blueprint — `ASSUMPTION-008` resolved at M001.
+  pnpm `11.17.0`, Turborepo `2.10.7`, TypeScript `5.9.3` pinned alongside it.
+  [§14](02-architecture/14-technology-stack.md) updated; ADR-001 intentionally left unedited because
+  ADRs are immutable and the Node line was incidental to its decision.
+  See [ASSUMPTIONS.md §008](decisions/ASSUMPTIONS.md).
+
+### Notes
+
+- `apps/api` and `apps/orchestrator` depend on `@atelier/domain` via `workspace:*` — present
+  specifically so the "workspace protocol resolves internal deps" criterion is verified by a real
+  build and a runtime execution rather than asserted.
+- Framework scaffolding is deliberately absent: Next.js arrives at M009, Fastify at M016. M001 is the
+  skeleton only.
+- TypeScript 7.x is available but deferred — majors are a deliberate milestone per
+  [§22](04-engineering/22-development-standards.md).
 
 ---
 

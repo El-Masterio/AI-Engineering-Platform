@@ -106,7 +106,7 @@ Updated in the same commit as each milestone's work.
 | Phase | Done | Total | Progress |
 |---|---:|---:|---|
 | P0 Blueprint | 1 | 1 | ██████████ 100% |
-| P1 Foundation | 0 | 52 | ░░░░░░░░░░ 0% |
+| P1 Foundation | 1 | 52 | ░░░░░░░░░░ 2% |
 | P2 Collaboration | 0 | 15 | ░░░░░░░░░░ 0% |
 | P3 Depth | 0 | 15 | ░░░░░░░░░░ 0% |
 | P4 Polish | 0 | 12 | ░░░░░░░░░░ 0% |
@@ -114,9 +114,15 @@ Updated in the same commit as each milestone's work.
 | P6 Commercial | 0 | 11 | ░░░░░░░░░░ 0% |
 | P7 Enterprise | 0 | 10 | ░░░░░░░░░░ 0% |
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
-| **Total** | **0** | **132** | ░░░░░░░░░░ **0%** |
+| **Total** | **1** | **132** | ░░░░░░░░░░ **1%** |
 
-**Currently in progress:** none. **Next up:** `M001 — Initialize monorepo and tooling`.
+**Currently in progress:** none. **Next up:** `M002 — Shared config and enforced boundaries`.
+
+### Completed
+
+| ID | Title | Completed | Notes |
+|---|---|---|---|
+| M001 | Initialize monorepo and tooling | 2026-07-27 | 14 workspace projects; 12/12 build; resolved ASSUMPTION-008 (Node 22 → 24 LTS) |
 
 ## Milestone hygiene rules
 

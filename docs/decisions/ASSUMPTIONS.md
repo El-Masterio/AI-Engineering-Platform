@@ -14,9 +14,25 @@ guesses as facts, each is recorded here with its impact if wrong and its resolut
 | **005** | Phase durations (§9) | Medium. Affects planning and any external commitments | Recalibrate after Stage 1A ships and real velocity is known | Open |
 | **006** | MVP scale of ≤ 50 orgs / ≤ 200 concurrent runs (§11) | Low. Over-engineering risk if too low, capacity risk if too high | Design-partner recruitment reveals the real number | Open |
 | **007** | One-level agent delegation is both our design and a runtime constraint (§13) | Low. If the runtime allows deeper delegation we simply don't use it | Confirmed at M026 | Open |
-| **008** | Technology version numbers current at authoring (§14) | Low. Pins need refreshing | Re-check at M001 | Open |
+| **008** | Technology version numbers current at authoring (§14) | Low. Pins need refreshing | Re-check at M001 | **Invalidated (corrected)** |
 | **009** | Team size of 2–4 engineers plus agent assistance (§25) | **High.** Every duration estimate scales with it | Owner confirms team composition | Open |
 | **010** | Model pricing current at authoring (ADR-004) | Medium. Directly affects COGS modeling | Re-verify at M034; monitor continuously | Open |
+
+## Resolutions
+
+### 008 — Technology version pins · Invalidated and corrected at M001 (2026-07-27)
+
+| Stated in blueprint | Actual / adopted | Handling |
+|---|---|---|
+| Node **22** LTS | Node **24** LTS (`24.13.1` installed; 24 is now Active LTS) | Pinned to 24 in `.nvmrc`, `engines`, and `packageManager`. §14 updated. |
+| pnpm (version unstated) | **11.17.0** | Pinned via `packageManager` for corepack reproducibility |
+| Turborepo (version unstated) | **2.10.7** | `^2.6.1` in root devDependencies |
+| TypeScript (version unstated) | **5.9.3** | `^5.9.3`. TypeScript **7.0.2** is available but is a major — deferred to a deliberate milestone per §22 |
+
+**ADR-001 was deliberately not edited.** ADRs are immutable once accepted ([§20](../04-engineering/20-documentation-structure.md#architecture-decision-records)), and a Node LTS
+line is incidental detail rather than the decision — which was "TypeScript everywhere, pnpm +
+Turborepo monorepo" and stands unchanged. §14 (a living document) carries the corrected pins, and this
+row is the authoritative record of the change.
 
 ## Assumptions that most need owner input
 

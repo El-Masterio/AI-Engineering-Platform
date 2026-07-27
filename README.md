@@ -14,10 +14,22 @@ them inside sandboxed environments, and verification gates that mean the output 
 
 ## Status
 
-**Phase 0 — Blueprint complete. No implementation yet.**
+**Phase 1 — Stage 1A in progress.** 1 of 132 milestones complete.
 
-This repository currently contains architecture and planning documentation plus a library of
-reusable agent capability packs. Implementation begins at milestone `M001`.
+The blueprint (Phase 0) is complete and the monorepo skeleton is up (`M001`). Next milestone:
+`M002 — Shared config and enforced boundaries`. Progress tracker:
+[docs/05-delivery/26-milestone-breakdown.md](docs/05-delivery/26-milestone-breakdown.md).
+
+## Quick start
+
+```bash
+corepack enable pnpm     # or: npm install -g pnpm
+pnpm install
+pnpm build               # 12 packages, topologically ordered
+pnpm typecheck
+```
+
+Requires **Node 24 LTS** (see `.nvmrc`) and **pnpm 11+** (pinned via `packageManager`).
 
 ## Start here
 
@@ -46,12 +58,29 @@ See [ADR-002](docs/decisions/ADR-002-managed-agents-runtime.md) for why, and wha
 ## Repository layout
 
 ```
-docs/            Architecture, product, and delivery documentation (the source of truth)
-skills/          34 reusable agent capability packs in SKILL.md format
+apps/
+  web/            Next.js dashboard              (framework scaffolding: M009)
+  api/            Fastify HTTP service           (framework scaffolding: M016)
+  orchestrator/   Durable job workers            (M040)
+packages/
+  config/         Shared build configuration
+  contracts/      Zod schemas + generated API types
+  domain/         Pure business logic — zero external dependencies by design
+  db/             Drizzle schema, migrations, tenant-scoped repositories
+  agent-runtime/  AgentRuntime port + adapters   (ADR-002)
+  policy/         Authorization + gate decisions
+  cost/           Token accounting, budgets, credits
+  capability-packs/ SKILL.md corpus, loader, injection scanner  (ADR-005)
+  observability/  OpenTelemetry, logging, metrics
+  ui/             Design system components
+docs/             Architecture, product, and delivery documentation (source of truth)
+skills/           34 reusable agent capability packs (not yet published — see .gitignore)
 ```
 
-Application code lands under `apps/` and `packages/` from milestone `M001` onward, per
+Structure and the enforced layering rules:
 [docs/04-engineering/19-folder-structure.md](docs/04-engineering/19-folder-structure.md).
+Packages are skeletons until their owning milestone; each `src/index.ts` names the milestone that
+fills it in.
 
 ## Working on this project
 

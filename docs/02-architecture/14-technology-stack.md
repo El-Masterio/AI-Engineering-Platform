@@ -4,14 +4,16 @@ Per the governing specification, **no technology is locked without evaluation**.
 covers advantages, disadvantages, alternatives, scalability, community, maintenance, licensing, cost,
 and future-proofing, then makes one recommendation.
 
-`ASSUMPTION-008`: version numbers reflect what was current at authoring and should be re-checked at
-M001. The *choices* are decided; the *pins* are not.
+~~`ASSUMPTION-008`: version numbers reflect what was current at authoring and should be re-checked at
+M001.~~ **Resolved at M001 (2026-07-27)** — pins corrected below; see
+[ASSUMPTIONS.md §008](../decisions/ASSUMPTIONS.md#008--technology-version-pins--invalidated-and-corrected-at-m001-2026-07-27).
+The *choices* were and remain decided.
 
 ## Summary
 
 | Layer | Recommendation | Confidence |
 |---|---|---|
-| Language | TypeScript (strict), Node 22 LTS | High |
+| Language | TypeScript (strict), **Node 24 LTS** | High |
 | Monorepo | pnpm workspaces + Turborepo | High |
 | Frontend | Next.js (App Router) + React + Tailwind + Radix primitives | High |
 | Backend | Fastify | Medium-high |
@@ -32,7 +34,12 @@ M001. The *choices* are decided; the *pins* are not.
 
 ## 1. Primary language
 
-**Recommendation: TypeScript (strict mode), Node 22 LTS.**
+**Recommendation: TypeScript (strict mode), Node 24 LTS.**
+
+> **Pinned at M001:** Node `24` (`.nvmrc`, `engines`), pnpm `11.17.0` (`packageManager`),
+> Turborepo `2.10.7`, TypeScript `5.9.3`. TypeScript 7.x is available but is a major version —
+> deferred to a deliberate milestone per §22. ADR-001 was intentionally left unedited (ADRs are
+> immutable); this table is the living record.
 
 | | |
 |---|---|

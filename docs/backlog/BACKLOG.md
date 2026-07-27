@@ -17,11 +17,13 @@ Complexity: XS · S · M · L (XL is prohibited — split it first)
 
 ## Stage 1A — Skeleton (M001–M012)
 
-### M001 · Initialize monorepo and tooling · S · 🏗
+### M001 · Initialize monorepo and tooling · S · 🏗 — ✅ **Done** (2026-07-27)
 **Objective** A working pnpm + Turborepo monorepo with the package skeleton from §19.
 **Dependencies** —
 **Deliverables** `pnpm-workspace.yaml`, `turbo.json`, empty `apps/{web,api,orchestrator}` and `packages/*`, root `package.json`, `.gitignore`, `.nvmrc`.
 **Acceptance** `pnpm install` succeeds · `pnpm build` succeeds across all packages · workspace protocol resolves internal deps · Node version pinned.
+**Verified** `pnpm install` → 14 workspace projects, 2.3 s · `pnpm build` → 12/12 successful · `pnpm typecheck` → 13/13 successful · second build → `FULL TURBO`, 27 ms · `@atelier/api` symlinks and executes against `@atelier/domain` at runtime · Node pinned to 24 in `.nvmrc` + `engines`, pnpm `11.17.0` via `packageManager`.
+**Notes** Resolved `ASSUMPTION-008` — Node 22 → **24** LTS. `packages/config` carries a minimal baseline `tsconfig.base.json`; the full §21 strict set, ESLint boundaries, Prettier, dependency-cruiser, and husky are M002's deliverables and were deliberately not started.
 
 ### M002 · Shared config and enforced boundaries · S · 🏗
 **Objective** Standards enforced by tooling from the first commit.

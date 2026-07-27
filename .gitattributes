@@ -1,0 +1,21 @@
+# Normalize line endings so diffs stay clean across Windows/macOS/Linux checkouts.
+* text=auto eol=lf
+
+# Lockfiles and generated artefacts: LF, and collapse noise in diffs/reviews.
+pnpm-lock.yaml linguist-generated=true -diff
+docs/api/openapi.json linguist-generated=true
+
+# Binary — never normalize, never diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.mp4 binary
