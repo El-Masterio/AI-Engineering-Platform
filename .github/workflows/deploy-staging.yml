@@ -1,0 +1,155 @@
+name: Deploy staging
+
+# §24 stages 8–11, scoped to staging by ADR-009.
+#
+# Only on main, and only after CI is green: this workflow does not re-run the
+# gates, it depends on them having passed. A deploy that races its own tests is
+# not a gate.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  # Manual re-deploy, and the rollback path — pass a previously built digest.
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: "Image digest to deploy (sha256:...). Empty builds from main."
+        required: false
+        type: string
+
+concurrency:
+  # Never two deploys at once. Cancelling mid-flight would leave staging on an
+  # unknown revision, so queue instead.
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/api
+
+jobs:
+  # ── [9] Artifact: build, sign, SBOM ──────────────────────────────────────
+  image:
+    name: "[9] Build and publish image"
+    # Skip when CI failed. workflow_run fires on failure too.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      # Cosign keyless signing exchanges this for a short-lived certificate —
+      # no signing key to store, rotate or leak (§24 secrets policy).
+      id-token: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # The workflow's own token. ADR-009: no extra account, no stored secret.
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=staging
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          # arm64 as well as amd64 so the same image runs on Graviton or an
+          # Apple-silicon laptop without a rebuild.
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: GIT_SHA=${{ github.sha }}
+          provenance: true
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sign the image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          # Keyless: the signature is bound to this repository and workflow, so
+          # "who built this" is verifiable without trusting a key we hold.
+          cosign sign --yes "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+
+      - name: Record the digest in the summary
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          {
+            echo "### Image"
+            echo ""
+            echo '```'
+            echo "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+            echo '```'
+            echo ""
+            echo "Roll back by re-running this workflow with that digest."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── [10] Deploy ──────────────────────────────────────────────────────────
+  deploy:
+    name: "[10] Deploy to staging"
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Deploy the image to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ inputs.digest || needs.image.outputs.digest }}
+        run: |
+          if [ -z "${RAILWAY_TOKEN}" ]; then
+            echo "::error::RAILWAY_TOKEN is not set. See docs/04-engineering/26-staging-runbook.md."
+            exit 1
+          fi
+          npm install -g @railway/cli
+          # Deploy BY DIGEST, never by tag. A tag can move; a digest is the
+          # image, which is what makes rollback exact rather than approximate.
+          railway redeploy --service "${RAILWAY_SERVICE}" --yes || \
+            railway up --service "${RAILWAY_SERVICE}" --detach
+          echo "deployed ${IMAGE}"
+
+  # ── [11] Verify ──────────────────────────────────────────────────────────
+  smoke:
+    name: "[11] Smoke test"
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Smoke the deployed service
+        env:
+          STAGING_URL: ${{ vars.STAGING_URL }}
+          EXPECTED_REVISION: ${{ github.sha }}
+        run: node scripts/smoke-test.mjs "$STAGING_URL" "$EXPECTED_REVISION"

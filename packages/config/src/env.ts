@@ -108,6 +108,12 @@ const envObject = z.object({
    * should cost.
    */
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
+
+  /** Port to listen on. Railway injects this; 3001 locally. */
+  PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
+
+  /** Git SHA of the running build, surfaced on / so a deploy is identifiable. */
+  GIT_SHA: z.string().optional(),
 });
 
 /** Every credential that can reach a model. */

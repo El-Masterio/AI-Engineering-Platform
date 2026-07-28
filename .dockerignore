@@ -1,0 +1,17 @@
+# Everything the build does not need. Smaller context is a faster build, and
+# secrets that are never copied in cannot leak out of a layer.
+**/node_modules
+**/dist
+**/.turbo
+**/.next
+**/coverage
+storybook-static
+.git
+.github
+.env
+.env.*
+!.env.example
+docs
+skills
+*.log
+.playwright-mcp

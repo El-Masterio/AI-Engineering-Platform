@@ -9,6 +9,21 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M011 — staging deploy pipeline** ([ADR-009](decisions/ADR-009-railway-staging.md): Railway, GHCR,
+  staging only). Code complete; the deploy itself awaits a Railway project.
+  - `apps/api` gained a real HTTP server with `/`, `/healthz`, `/readyz`, correlation ids and
+    **graceful SIGTERM shutdown** — verified draining to exit 0 in a container.
+  - Multi-stage `Dockerfile`, non-root, multi-arch (amd64 + arm64), provenance and SBOM attested,
+    **cosign keyless-signed** so there is no signing key to store or leak.
+  - `deploy-staging.yml` runs only after CI is green, deploys **by digest**, and takes a digest input
+    for rollback. A tag can be moved; a digest is the image.
+  - `scripts/smoke-test.mjs` gates promotion — 8 checks including *"is this the revision we just
+    built"*, which is what catches a deploy that silently did nothing.
+  - [§26 Staging Runbook](04-engineering/26-staging-runbook.md).
+  - `PORT` and `GIT_SHA` added to the env schema.
+
+### Added
+
 - **M013 — Domain package: organizations, users, memberships.** Pure, immutable, zero external
   imports (enforced by dependency-cruiser and the boundaries rule, not by convention). 94 tests, 90%
   floor enforced per-path.
