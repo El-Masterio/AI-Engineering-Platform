@@ -29,10 +29,34 @@ Recorded so they aren't forgotten, with the trigger that forces the call.
 | BullMQ vs. Temporal for orchestration | Deployment workflows needing multi-day, multi-approval state | 5 |
 | pgvector vs. dedicated vector store | Vector search p95 > 200 ms, or embedding load affecting primary DB latency | 4+ |
 | Managed containers vs. Kubernetes | Measured scale or cost crossover | 6 |
+| **Model provider — Anthropic vs. a free-quota provider (OpenRouter, Groq)** | **Raised by the owner 2026-07-28; deferred by them to a later session.** See the note below — this is not a swap of one API key for another. | Before M024 |
 | Multi-provider model support | Provider risk materializing, or a competitor model clearly winning a task class | — |
 | Canary deployments | Traffic sufficient for a statistically meaningful signal | 6 |
 
 ## Decisions deliberately deferred
+
+### Note — what a provider change actually costs
+
+The owner has said they would rather use a provider with a free quota. Recording the shape of that
+decision now, while it is cheap, so the later conversation starts from facts:
+
+- **ADR-002 (Managed Agents) does not survive it.** The sandboxed per-session container, the
+  credential vault with egress-time secret substitution, versioned memory stores and cron
+  deployments are Anthropic-platform features, not model features. ADR-002 calls itself the
+  highest-leverage and highest-risk decision in the project and budgets M127 as its exit ramp.
+  Changing provider means taking that ramp and building that infrastructure — §17 Control 3's
+  "no secret ever reaches the agent" is solved *by construction* today and would become ours to
+  solve.
+- **ADR-004 (model tiering) is re-costed, not discarded.** The four tiers are a shape; the model
+  IDs and prices behind them would all change.
+- **What it does not cost:** M005's schema. `ANTHROPIC_API_KEY` is one line in
+  `packages/config/src/env.ts` and one in `.env.example`, both covered by the completeness test.
+  Nothing else in the codebase reads it yet.
+
+A middle path worth weighing when we do decide: keep Anthropic for the reasoning tier where the
+platform features earn their cost, and route the utility tier (classification, summarisation,
+extraction) to a cheap or free provider behind the existing `AgentRuntime` port. That is what the
+port was for.
 
 Not pending — actively chosen *not* to decide yet, because deciding early would cost optionality
 without buying anything.
