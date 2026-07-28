@@ -8,6 +8,12 @@ importers:
 
   .:
     devDependencies:
+      '@atelier/config':
+        specifier: workspace:*
+        version: link:packages/config
+      '@atelier/db':
+        specifier: workspace:*
+        version: link:packages/db
       '@commitlint/cli':
         specifier: ^21.2.1
         version: 21.2.1(@types/node@26.1.1)(conventional-commits-parser@7.1.0)(typescript@5.9.3)

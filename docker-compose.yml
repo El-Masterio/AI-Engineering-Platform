@@ -10,6 +10,11 @@
 #
 # Data lives in named volumes, so `pnpm db:down` keeps it and `pnpm db:reset`
 # deliberately does not.
+#
+# No `container_name` on purpose. Compose derives names from the project (the
+# directory), so two checkouts — a worktree, a clean clone, a colleague's copy —
+# can run side by side. A fixed name makes the second one fail with a conflict,
+# which is how the clean-clone check for this milestone first failed.
 
 services:
   postgres:
@@ -17,7 +22,6 @@ services:
     # A local database on a different major than CI is a class of bug that only
     # ever shows up in CI.
     image: postgres:17-alpine
-    container_name: atelier-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -46,7 +50,6 @@ services:
     # it; nothing reads it yet, which is why there is no REDIS_URL in the env
     # schema. It goes in when something needs it.
     image: redis:8-alpine
-    container_name: atelier-redis
     restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports:

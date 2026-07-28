@@ -14,16 +14,16 @@ them inside sandboxed environments, and verification gates that mean the output 
 
 ## Status
 
-**Phase 1 — Stage 1A in progress.** 5 of 132 milestones complete.
+**Phase 1 — Stage 1A complete.** 10 of 132 milestones complete.
 
-The blueprint (Phase 0) is complete, the monorepo skeleton is up (`M001`), the coding standards are
-enforced by tooling (`M002`), the design tokens are live and contrast-verified (`M007`), the UI
-primitives are built (`M008`), and the dashboard shell runs (`M009`). The visual identity was then
-replaced wholesale by **Design System v2.0** — warm neutral, light, orange-and-blue
-([ADR-008](docs/decisions/ADR-008-design-system-v2.md)). Next milestone: `M003 — CI pipeline`.
+Stage 1A is done: monorepo and enforced coding standards (`M001`, `M002`), a CI pipeline gating
+every push (`M003`), Postgres with row-level security active from the first migration (`M004`),
+configuration that refuses to boot when invalid (`M005`), observability with redacted structured
+logs (`M006`), the design system and dashboard shell (`M007`–`M009`), and a one-command local
+environment (`M010`). The visual identity was replaced wholesale mid-stream by **Design System
+v2.0** — warm neutral, light, orange-and-blue
+([ADR-008](docs/decisions/ADR-008-design-system-v2.md)).
 
-**The app runs:** `pnpm dev` serves the dashboard at [localhost:3000](http://localhost:3000);
-`pnpm storybook` opens the component gallery at [localhost:6006](http://localhost:6006).
 Progress tracker:
 [docs/05-delivery/26-milestone-breakdown.md](docs/05-delivery/26-milestone-breakdown.md).
 

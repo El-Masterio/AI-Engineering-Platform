@@ -21,15 +21,14 @@ pnpm setup      # docker compose up --wait, migrate, seed
 pnpm dev        # dashboard -> http://localhost:3000
 ```
 
-`pnpm setup` is `db:up && db:migrate && db:seed`. It is idempotent: run it again after pulling
+`pnpm setup` is `ensure-env && db:up && db:migrate && db:seed`. It is idempotent: run it again after pulling
 and it applies whatever is new.
 
-You do **not** need a `.env` to start. Every variable that has a sensible local default has one, and
-`.env.example` documents the rest. Copy it if you want to change something:
+`pnpm setup` creates `.env` from `.env.example` on first run and never overwrites an existing one.
 
-```bash
-cp .env.example .env
-```
+It does that rather than the schema defaulting `DATABASE_URL`, and the distinction matters: a
+required variable that silently falls back to localhost is how a production process ends up happily
+connected to nothing. The schema stays strict; the local path provisions the file.
 
 Node 24 reads env files natively, so there is no dotenv dependency:
 
