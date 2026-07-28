@@ -43,18 +43,90 @@ const ACKNOWLEDGED = new Map([
     "lightningcss",
     "MPL-2.0 — file-level copyleft. Build-time CSS tool, unmodified, not redistributed.",
   ],
-  ["lightningcss-win32-x64-msvc", "MPL-2.0 — platform binary of the above."],
   [
     "caniuse-lite",
     "CC-BY-4.0 — a browser-support dataset, not code. Attribution satisfied by shipping the package notice.",
   ],
-  [
-    "@img/sharp-win32-x64",
-    "Apache-2.0 AND LGPL-3.0-or-later — libvips binding pulled in by Next.js image optimization. " +
+]);
+
+/**
+ * Optional platform binaries of an already-acknowledged package.
+ *
+ * These exist because `pnpm licenses list` reports only what is installed for
+ * the CURRENT platform. Acknowledging `@img/sharp-win32-x64` by name passed on a
+ * Windows laptop and failed in Linux CI on `@img/sharp-libvips-linux-x64` — the
+ * gate was silently platform-dependent, which makes a green run on one OS say
+ * nothing about the other. Listing every triple would leave the same hole open
+ * for the next architecture (this repo already builds arm64 images).
+ *
+ * The licence reasoning is identical for every platform variant of the same
+ * upstream package, so it is written once. The patterns are anchored and shaped
+ * like `<name>-<os>-<arch>[-abi]` precisely so they cannot swallow an unrelated
+ * package that merely shares a prefix — `sharp-charts` or `lightningcss-loader`
+ * still fail and still get their own review.
+ */
+const ACKNOWLEDGED_PLATFORM_BINARIES = [
+  {
+    pattern: /^@img\/sharp-(?:libvips-)?(?:linux|linuxmusl|darwin|win32|freebsd)-[a-z0-9]+$/,
+    why:
+      "Apache-2.0 AND LGPL-3.0-or-later — libvips binding pulled in by Next.js image optimization. " +
       "LGPL obligations attach to distribution; we operate the software as a service and do not " +
       "distribute the binary. Dynamically linked and unmodified. Revisit if we ever ship an installable artifact.",
-  ],
-]);
+  },
+  {
+    pattern: /^lightningcss-(?:linux|darwin|win32|freebsd)-[a-z0-9]+(?:-(?:gnu|musl|msvc))?$/,
+    why: "MPL-2.0 — platform binary of lightningcss, acknowledged above.",
+  },
+];
+
+function acknowledgementFor(name) {
+  if (ACKNOWLEDGED.has(name)) return ACKNOWLEDGED.get(name);
+  return ACKNOWLEDGED_PLATFORM_BINARIES.find((entry) => entry.pattern.test(name))?.why;
+}
+
+/**
+ * The patterns above are the only fuzzy matching in a gate that is otherwise
+ * exact, so their reach is asserted rather than assumed — including the names
+ * that must NOT match. A pattern that quietly widened would waive review for
+ * packages nobody looked at, and would do it invisibly.
+ *
+ * This runs on every invocation. It costs nothing and it fails loudly.
+ */
+function selfTest() {
+  const mustMatch = [
+    "@img/sharp-libvips-linux-x64", // ← the two that failed in Linux CI
+    "lightningcss-linux-x64-gnu",
+    "@img/sharp-win32-x64",
+    "lightningcss-win32-x64-msvc",
+    "@img/sharp-linux-arm64", // ← arm64: we build multi-arch images
+    "@img/sharp-libvips-linuxmusl-arm64",
+    "lightningcss-linux-arm64-musl",
+  ];
+  const mustNotMatch = [
+    "@img/sharp-charts",
+    "lightningcss-loader",
+    "lightningcss-plugin-linux-x64",
+    "some-linux-x64",
+  ];
+
+  const wrong = [
+    ...mustMatch
+      .filter((n) => acknowledgementFor(n) === undefined)
+      .map((n) => `${n} (not matched)`),
+    ...mustNotMatch
+      .filter((n) => acknowledgementFor(n) !== undefined)
+      .map((n) => `${n} (matched, must not)`),
+  ];
+
+  if (wrong.length > 0) {
+    console.error("\n  ACKNOWLEDGED_PLATFORM_BINARIES is wrong:\n");
+    for (const w of wrong) console.error(`    ✖ ${w}`);
+    console.error("");
+    process.exit(1);
+  }
+}
+
+selfTest();
 
 /** Never acceptable, listed so the failure message can say why. */
 const FORBIDDEN = [/\bAGPL/i, /\bSSPL/i, /\bBUSL/i, /\bCommons Clause/i, /(?<!L)\bGPL-[23]/i];
@@ -98,9 +170,8 @@ function classify(licence, pkg) {
     return { verdict: "fail", label, licence, why: "forbidden licence for a commercial product" };
   }
   if (isPermissive(licence)) return { verdict: "ok" };
-  if (ACKNOWLEDGED.has(pkg.name)) {
-    return { verdict: "acknowledged", label, licence, why: ACKNOWLEDGED.get(pkg.name) };
-  }
+  const why = acknowledgementFor(pkg.name);
+  if (why !== undefined) return { verdict: "acknowledged", label, licence, why };
   return {
     verdict: "fail",
     label,

@@ -22,6 +22,27 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
   - [§26 Staging Runbook](04-engineering/26-staging-runbook.md).
   - `PORT` and `GIT_SHA` added to the env schema.
 
+### Fixed
+
+- **The licence gate was silently platform-dependent.** `pnpm licenses list` reports only what is
+  installed for the current platform, so acknowledging `@img/sharp-win32-x64` by name passed on
+  Windows and failed in Linux CI on `@img/sharp-libvips-linux-x64`. Platform binaries of an
+  already-reviewed package are now matched by anchored pattern, with a self-test asserting both what
+  the patterns must match **and what they must not** — the fuzzy matching is the only place in the
+  gate where a quiet widening could waive review invisibly.
+- **Integration tests assumed a built `dist/`.** `trace-probe.mjs` imports the compiled output on
+  purpose (its whole point is running through Node's real resolution rather than Vite's), but nothing
+  guaranteed the build had happened — it passed locally against a stale `dist/` and failed on a clean
+  checkout. `test:integration` now builds first.
+- **"Deploy by digest" was claimed but not implemented.** The deploy step computed the digest and
+  then ran a bare `railway redeploy`, which redeploys whatever the service already points at. The
+  workflow now repoints `:staging` at the chosen digest with `docker buildx imagetools create`
+  before redeploying, and skips the build entirely on a rollback — rebuilding from `main` would have
+  produced a different image than the one being rolled back to.
+- **Deploy failed hard when Railway was not configured yet**, which made the setup unperformable:
+  Railway needs an image in GHCR before it can be pointed at one, and issues no domain until it has
+  deployed. Jobs [10] and [11] now warn and skip instead, so the first run publishes the image.
+
 ### Added
 
 - **M013 — Domain package: organizations, users, memberships.** Pure, immutable, zero external
