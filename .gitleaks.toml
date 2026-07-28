@@ -21,6 +21,22 @@ paths = [
   '''pnpm-lock\.yaml''',      # integrity hashes look like high-entropy secrets
   '''\.playwright-mcp/''',    # transient browser-automation artifacts
   '''storybook-static/''',    # build output
+
+  # The redaction suite's fixtures. These files exist to prove that a
+  # secret-shaped string never reaches a log (NFR-OBS-2), which requires holding
+  # convincingly secret-shaped strings — so the scanner flags them, correctly and
+  # uselessly. Every value is synthetic: sequential hex, or AWS's own published
+  # example key AKIAIOSFODNN7EXAMPLE.
+  #
+  # This is latent rather than active: gitleaks-action scans the commits in a
+  # push, and these were introduced in M006 and are already on main. The trap it
+  # removes is for whoever next edits one of these files and gets six "leaks" on
+  # work that has nothing to do with them.
+  #
+  # Scoped to these two files by exact path, NOT to test files generally — a real
+  # credential pasted into any other test still fails the build.
+  '''packages/observability/src/redaction\.test\.ts''',
+  '''packages/observability/src/logger\.test\.ts''',
 ]
 # Documented, non-secret placeholders. Anchored to the exact literal so a real
 # key that happens to sit nearby is still caught.
