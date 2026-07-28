@@ -1,8 +1,8 @@
 name: CI
 
-# §24 stages 1, 2 and 4. Stage 3 (integration: Testcontainers Postgres + Redis,
-# cross-tenant suite, migration up/down) lands with M004 — there is no database
-# yet, and a job that passes because it has nothing to run is not a gate.
+# §24 stages 1, 2, 3 and 4. Stage 3 arrived with M004, when there was finally a
+# database for it to assert against — a job that passes because it has nothing
+# to run is not a gate, so it was left out until it had teeth.
 #
 # Runs on every branch push, not only on pull requests, so a milestone branch is
 # verified before a PR exists. Same-repo PRs therefore get two runs; the
@@ -118,6 +118,23 @@ jobs:
           path: coverage/
           retention-days: 7
           if-no-files-found: ignore
+
+  # ── [3] Integration ──────────────────────────────────────────────────────
+  integration:
+    name: "[3] Integration"
+    runs-on: ubuntu-latest
+    # Longer than the others: each test file starts its own Postgres container.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      # Docker is present on ubuntu-latest, so Testcontainers needs no service
+      # block — it manages container lifecycle itself. Using `services:` would
+      # pin one shared database for the whole job and lose the per-file
+      # isolation the suite relies on.
+      - name: Cross-tenant isolation, migrations, and schema drift
+        run: pnpm test:integration
 
   # ── [4] Build ────────────────────────────────────────────────────────────
   build:

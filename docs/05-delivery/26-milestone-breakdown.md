@@ -106,7 +106,7 @@ Updated in the same commit as each milestone's work.
 | Phase | Done | Total | Progress |
 |---|---:|---:|---|
 | P0 Blueprint | 1 | 1 | ██████████ 100% |
-| P1 Foundation | 6 | 52 | █░░░░░░░░░ 12% |
+| P1 Foundation | 7 | 52 | █░░░░░░░░░ 13% |
 | P2 Collaboration | 0 | 15 | ░░░░░░░░░░ 0% |
 | P3 Depth | 0 | 15 | ░░░░░░░░░░ 0% |
 | P4 Polish | 0 | 12 | ░░░░░░░░░░ 0% |
@@ -114,9 +114,9 @@ Updated in the same commit as each milestone's work.
 | P6 Commercial | 0 | 11 | ░░░░░░░░░░ 0% |
 | P7 Enterprise | 0 | 10 | ░░░░░░░░░░ 0% |
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
-| **Total** | **6** | **132** | ░░░░░░░░░░ **5%** |
+| **Total** | **7** | **132** | ░░░░░░░░░░ **5%** |
 
-**Currently in progress:** none. **Next up:** `M004 — Postgres, Drizzle, and first migration with RLS`, which also unblocks CI stage 3 (integration). (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
+**Currently in progress:** none. **Next up:** `M005 — Configuration validation`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
 
 ### Completed
 
@@ -128,6 +128,7 @@ Updated in the same commit as each milestone's work.
 | M008 | UI primitives | 2026-07-27 | 11 components; 42 tests; 9 axe assertions; Storybook live at :6006 |
 | M009 | AppShell and routing | 2026-07-27 | Next.js app live at :3000; LCP 32 ms; caught a dark-first spec violation |
 | M003 | CI pipeline | 2026-07-28 | 3 parallel jobs, 11 gates; cached re-run 27 s vs 3 min budget; found Storybook unstyled since M008 |
+| M004 | Postgres, Drizzle, RLS | 2026-07-28 | 22 integration tests on real PG17; FORCE RLS verified; found domain purity blind to `node:` imports |
 
 ## Milestone hygiene rules
 

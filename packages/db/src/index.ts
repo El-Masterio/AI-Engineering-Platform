@@ -1,6 +1,54 @@
 /**
- * Drizzle schema, migrations, and tenant-scoped repositories
+ * Drizzle schema, migrations, and tenant-scoped repositories.
  *
- * See §15. Placeholder — M001 establishes the skeleton only.
+ * Nothing here exposes an unscoped query handle. The only route to the database
+ * is `withTenant()`, which returns a `ScopedTransaction` — the type every
+ * repository requires (§15 layer 2).
  */
-export const PACKAGE_NAME = "@atelier/db" as const;
+
+export { createClient, type ClientOptions } from "./client.js";
+
+export {
+  loadMigrations,
+  appliedMigrations,
+  migrateUp,
+  migrateDown,
+  type Migration,
+  type MigrationRecord,
+} from "./migrate.js";
+
+export {
+  createDatabase,
+  createTenantContext,
+  isOrganizationId,
+  toOrganizationId,
+  withTenant,
+  type Database,
+  type OrganizationId,
+  type ScopedTransaction,
+  type TenantContext,
+} from "./tenant-context.js";
+
+export {
+  TenantRepository,
+  OrganizationRepository,
+  MembershipRepository,
+  UserRepository,
+  newId,
+} from "./repository.js";
+
+export {
+  organizations,
+  users,
+  memberships,
+  MEMBERSHIP_ROLES,
+  ORGANIZATION_PLANS,
+  type Organization,
+  type NewOrganization,
+  type User,
+  type NewUser,
+  type Membership,
+  type NewMembership,
+  type MembershipRole,
+  type OrganizationPlan,
+} from "./schema/tenancy.js";

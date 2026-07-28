@@ -43,14 +43,14 @@
 
 ### Implementation status
 
-`.github/workflows/ci.yml` implements stages **1, 2 and 4** as of M003. The rest are scaffolded by
+`.github/workflows/ci.yml` implements stages **1, 2, 3 and 4** (stage 3 arrived with M004). The rest are scaffolded by
 this document, not by code, and land with the milestones that give them something to run.
 
 | Stage | Status | Lands at |
 |---|---|---|
 | 1 Static analysis | ✅ live | M003 |
 | 2 Unit + coverage | ✅ live | M003 |
-| 3 Integration | ⏳ nothing to run — no database exists | M004 |
+| 3 Integration | ✅ live — cross-tenant suite, migration up/down, schema drift, on real PG17 via Testcontainers | M004 |
 | 4 Build | ✅ live | M003 |
 | 5 Replay agent evals | ⏳ no orchestrator | M037+ |
 | 6 Quality budgets | ⏳ partial — an axe suite and the WCAG contrast gate run inside stages 1–2; bundle size and Lighthouse need a deployed target | M083+ |
