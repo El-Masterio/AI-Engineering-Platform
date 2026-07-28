@@ -29,7 +29,7 @@ Recorded so they aren't forgotten, with the trigger that forces the call.
 | BullMQ vs. Temporal for orchestration | Deployment workflows needing multi-day, multi-approval state | 5 |
 | pgvector vs. dedicated vector store | Vector search p95 > 200 ms, or embedding load affecting primary DB latency | 4+ |
 | Managed containers vs. Kubernetes | Measured scale or cost crossover | 6 |
-| **Model provider — Anthropic vs. a free-quota provider (OpenRouter, Groq)** | **Raised by the owner 2026-07-28; deferred by them to a later session.** See the note below — this is not a swap of one API key for another. | Before M024 |
+| **Model provider — Anthropic vs. OpenRouter + Groq** | **Direction chosen by the owner 2026-07-28: OpenRouter primary, Groq on failover.** The env schema now accepts all three and requires at least one in production. The ADR is still owed — see the note below, because this is not a swap of one API key for another. | Before M024 |
 | Multi-provider model support | Provider risk materializing, or a competitor model clearly winning a task class | — |
 | Canary deployments | Traffic sufficient for a statistically meaningful signal | 6 |
 
@@ -57,6 +57,13 @@ A middle path worth weighing when we do decide: keep Anthropic for the reasoning
 platform features earn their cost, and route the utility tier (classification, summarisation,
 extraction) to a cheap or free provider behind the existing `AgentRuntime` port. That is what the
 port was for.
+
+**Status 2026-07-28.** The owner has chosen OpenRouter as primary with Groq as failover.
+`OPENROUTER_API_KEY` and `GROQ_API_KEY` are in the env schema; production requires at least one
+provider key rather than a named one, so the schema does not pre-empt the ADR. Nothing calls a model
+yet, so no other code changes. The ADR falls due when `packages/agent-runtime` gets its first real
+adapter (M024 onward) — that is the point at which ADR-002 either holds or is replaced, and it
+cannot be answered by a config file.
 
 Not pending — actively chosen *not* to decide yet, because deciding early would cost optionality
 without buying anything.

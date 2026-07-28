@@ -26,5 +26,7 @@ paths = [
 # key that happens to sit nearby is still caught.
 regexes = [
   '''sk-ant-EXAMPLE''',
+  '''sk-or-EXAMPLE''',
+  '''gsk_EXAMPLE''',
   '''postgres://postgres:postgres@localhost''',
 ]
