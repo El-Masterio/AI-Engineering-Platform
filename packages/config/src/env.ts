@@ -71,6 +71,15 @@ const envObject = z.object({
     .optional(),
 
   LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
+
+  /**
+   * OTLP collector endpoint. Absent means tracing runs with no exporter — spans
+   * are still created and then dropped, which is the right default locally and
+   * in tests. Failing to boot without a collector would make the collector a
+   * hard dependency of every process, which is the opposite of what telemetry
+   * should cost.
+   */
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
 });
 
 export const envSchema = envObject.superRefine((env, ctx) => {

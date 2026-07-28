@@ -514,12 +514,28 @@ export default tseslint.config(
 
   // ── Scripts and tooling: console is the point ────────────────────────────
   {
-    files: ["scripts/**", "*.config.js", "*.config.mjs", "eslint.config.js"],
+    files: [
+      "scripts/**",
+      "packages/*/src/testing/*.mjs",
+      "*.config.js",
+      "*.config.mjs",
+      "eslint.config.js",
+    ],
     languageOptions: {
-      globals: { console: "readonly", process: "readonly", URL: "readonly" },
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        URL: "readonly",
+        fetch: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
     },
     rules: {
       "no-console": "off",
+      // A script's job is to run and exit with a status. That is the CLI case
+      // the rule carves out; it just cannot tell these files are CLIs.
+      "unicorn/no-process-exit": "off",
       "import-x/no-default-export": "off",
       "import-x/no-extraneous-dependencies": "off",
       // resolve() walks a var() chain — genuine recursion, not an accidental one.

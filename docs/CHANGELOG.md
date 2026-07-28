@@ -9,6 +9,37 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M006 — Observability skeleton.** `packages/observability`: OpenTelemetry setup, explicit span
+  helpers, a structured JSON logger with redaction, correlation context, and health probes. Both
+  apps now bootstrap tracing and logging before anything else.
+  - **Redaction is two-layer and not optional.** By key (`password`, `apiKey`, `sessionToken`) and
+    by value shape (`sk-ant-…`, GitHub tokens, AWS keys, JWTs, private-key blocks, credentialed
+    URLs). It runs in a pino formatter hook *and* on the message string, because the leak that
+    actually happens is `logger.error(\`failed to reach ${databaseUrl}\`)`, not a field somebody
+    named `password`. A connection string keeps its host and loses its credentials.
+  - **Correlation ids ride in `AsyncLocalStorage`**, so they survive `await` and cannot be forgotten
+    by a caller. Caller-supplied `x-request-id` values are sanitised — an unvalidated one is log
+    injection.
+  - `/healthz` checks nothing and `/readyz` checks dependencies, deliberately. Liveness failing
+    would have the orchestrator restart every replica and turn a database blip into an outage.
+    Readiness failing removes one replica and leaves it running.
+
+### Fixed / learned
+
+- **OpenTelemetry auto-instrumentation produced zero spans, silently.** Two independent causes, both
+  found by running it rather than reading about it:
+  - `@opentelemetry/instrumentation-pg` instruments the `pg` package; `packages/db` uses `postgres`
+    (postgres.js), which has no OTel auto-instrumentation. The dependency was removed.
+  - Under pure ESM, `import-in-the-middle` does not reliably patch `node:` core modules, so no HTTP
+    span appeared either.
+  Explicit helpers (`withSpan`, `withServerSpan`, `withDatabaseSpan`) carry the trace instead and
+  work under any module system. Shipping the auto-instrumented version would have delivered a
+  telemetry package that traced nothing while reporting success.
+- ESLint's script override now supplies `fetch`/`setTimeout` globals and allows `process.exit`,
+  which is what a CLI script is for.
+
+### Added
+
 - **M005 — Configuration validation.** The process refuses to boot on invalid configuration.
   - `packages/config` gains a runtime surface: a Zod schema for `NODE_ENV`, `DATABASE_URL`,
     `ANTHROPIC_API_KEY` and `LOG_LEVEL`, plus `loadEnv()` (throws) and `loadEnvOrExit()` (writes

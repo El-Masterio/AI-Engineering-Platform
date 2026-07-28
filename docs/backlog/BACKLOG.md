@@ -106,9 +106,16 @@ No dotenv dependency: Node 24 reads `--env-file` natively, so `packages/config` 
 
 ### M006 · Observability skeleton · M · 🏗✅
 **Objective** Traces and structured logs before there is anything hard to debug.
-**Dependencies** M002
+**Dependencies** M002 ✅
 **Deliverables** `packages/observability`: OTel SDK setup, trace context propagation, structured JSON logger with **secret and PII redaction**, request-ID middleware, health/readiness endpoints.
 **Acceptance** A trace spans HTTP → service → DB · logs carry a correlation ID · a secret-shaped string is redacted in a test · `/healthz` and `/readyz` respond.
+**Verified** 87 unit tests and 8 integration tests. One trace across all three hops, asserted on a real Postgres and a real HTTP server. Correlation ids survive `await` and stay separate under concurrency. 8 classes of secret redacted, plus a live check in a real process. `/healthz` 200 with no dependency checks; `/readyz` 200 naming its checks, then **503 once the database is stopped while `/healthz` still returns 200** — the distinction that stops a database blip becoming a fleet restart.
+**Notes — auto-instrumentation does not carry the trace, and finding that out was the milestone.** Two independent reasons, both of which fail **silently**: the SDK starts, reports nothing, and exports zero spans.
+- `@opentelemetry/instrumentation-pg` instruments the `pg` package. `packages/db` uses `postgres` (postgres.js), a different library with no OTel auto-instrumentation. That dependency was never going to produce a span and has been removed.
+- Under pure ESM, `import-in-the-middle` does not reliably patch `node:` core modules, so the HTTP server span did not appear either.
+Explicit helpers (`withSpan`, `withServerSpan`, `withDatabaseSpan`) carry the trace instead. They work under any module system and are what a Fastify plugin will call at M016. `HttpInstrumentation` stays registered but is **not** what the trace depends on.
+The trace assertion runs in a **child process** launched the way a service is launched, because vitest resolves modules through Vite and OTel's loader hook never sees them — an in-process test there would have been testing vitest's module graph.
+Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know about, and by value shape (`sk-ant-…`, JWTs, credentialed URLs) for the leak that actually happens — an interpolated message, not a field somebody named `password`. A connection string keeps its host and loses its credentials, because the host is what you need in order to debug.
 
 ### M007 · Design tokens · S · 🏗 — ✅ **Done** (2026-07-27)
 **Objective** The §18 token system, live.

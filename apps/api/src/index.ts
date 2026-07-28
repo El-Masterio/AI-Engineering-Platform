@@ -1,4 +1,5 @@
 import { loadEnvOrExit, type Env } from "@atelier/config";
+import { createLogger, startTracing, type Logger, type Tracing } from "@atelier/observability";
 import { PACKAGE_NAME as DOMAIN } from "@atelier/domain";
 
 /**
@@ -24,6 +25,24 @@ export function describe(): string {
  * The server itself is still a placeholder; what is real here is that the
  * environment gate exists and is the first thing on the path.
  */
-export function bootstrap(): Env {
-  return loadEnvOrExit();
+export type Bootstrapped = { env: Env; logger: Logger; tracing: Tracing };
+
+export function bootstrap(): Bootstrapped {
+  const env = loadEnvOrExit();
+
+  // Tracing before anything else it might instrument. OpenTelemetry patches
+  // module exports, so a module imported earlier is never instrumented — and it
+  // fails silently, which is why the ordering is called out here rather than
+  // left to whoever edits this next (§M006).
+  const tracing = startTracing({
+    serviceName: PACKAGE_NAME,
+    ...(env.OTEL_EXPORTER_OTLP_ENDPOINT !== undefined && {
+      endpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    }),
+  });
+
+  const logger = createLogger({ service: PACKAGE_NAME, level: env.LOG_LEVEL });
+  logger.info({ nodeEnv: env.NODE_ENV }, "bootstrapped");
+
+  return { env, logger, tracing };
 }

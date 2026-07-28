@@ -1,0 +1,5 @@
+{
+  "//": "Emit config: same settings as tsconfig.json, minus tests. The integration test imports @testcontainers/postgresql, a devDependency that will not exist at runtime.",
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
