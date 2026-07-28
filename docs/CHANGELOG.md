@@ -26,6 +26,10 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
   weak-copyleft or attribution in build/test tooling.
 - `scripts/check-storybook-css.mjs` — asserts the Storybook bundle contains compiled utilities.
 - `.nvmrc`, `.gitleaks.toml`, and a root `postcss.config.mjs`.
+- Vitest resolves `@atelier/*` to **source** rather than to built `dist`. Tests now exercise the
+  code we wrote, do not depend on build ordering, and coverage instruments the right files —
+  which took measured coverage from **85.5% to 98.55%** without a single new test. `dialog.tsx`
+  had always been covered; the copy being measured was not the copy being run.
 
 ### Fixed
 
@@ -42,6 +46,15 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
   what makes the declaration true. `tailwindcss` moved to `packages/ui`, the package whose
   `theme.css` imports it, and was dropped from `apps/web` and the root.
 - Root `@testing-library/user-event` removed — both consumers declare their own.
+- **The pipeline's own first run failed, and the failure was real.** On a clean checkout there is no
+  `dist/`, so `@atelier/ui` resolved to nothing: ESLint's type-aware rules fired `no-unsafe-*` on
+  correct code and two test files failed to import (43 of 64 tests collected). Every command had
+  passed locally because a stale `dist/` was sitting on disk. Fixed by aliasing vitest to source and
+  building the packages before the lint step — and reproduced locally first by deleting `dist/` and
+  the turbo cache, which is now the only honest way to verify this pipeline.
+- All GitHub Action pins moved to their Node 24 runtimes (`checkout@v7`, `setup-node@v7`,
+  `upload-artifact@v7`, `cache@v6`, `pnpm/action-setup@v6`, `gitleaks-action@v3`). The v4/v2
+  generation runs on Node 20, which GitHub removes from hosted runners in September 2026.
 
 ### Changed — BREAKING (visual)
 

@@ -9,14 +9,14 @@ runs:
     # `run_install: false` because setup-node's pnpm cache needs the store path,
     # which only exists once pnpm itself is installed. Install comes after.
     - name: Install pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@v6
       with:
         run_install: false
 
     # No `node-version` here on purpose: .nvmrc is the single source of truth,
     # and package.json's `engines` field fails the install if they ever diverge.
     - name: Install Node
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version-file: .nvmrc
         cache: pnpm
