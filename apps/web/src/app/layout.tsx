@@ -51,7 +51,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       data-theme={DEFAULT_THEME}
       className={`${manrope.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body>{children}</body>
+      {/* Browser extensions (ad blockers, password managers, Bitdefender's
+          TrafficLight) inject attributes into <body> before React hydrates,
+          which React reports as a hydration mismatch it "won't patch up".
+          suppressHydrationWarning is one level deep — it silences attribute
+          diffs on <body> itself and nothing inside it, so a real mismatch in
+          the app still fails loudly. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

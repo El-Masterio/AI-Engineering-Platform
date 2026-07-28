@@ -33,6 +33,27 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Fixed
 
+- **Four defects found by the owner running `turbo run dev`.** All of them were invisible to the
+  production-build verification done at the time, which is the lesson: `next start` and `next dev`
+  are different products, and route-level errors surface in dev.
+  - **`/projects` threw on render.** `<Link href={{ pathname: "/projects/[projectId]", query }}>`
+    is rejected outright by the App Router — it throws rather than warns, so the page went to the
+    error boundary and clicking a project card was impossible. Now a template literal.
+  - **Hydration mismatch on `<body>`.** Browser extensions (the report came from Bitdefender
+    TrafficLight) inject attributes before React hydrates. `suppressHydrationWarning` was on
+    `<html>` before v2.0 and was dropped in the rewrite; it is now on `<body>`, where the mutation
+    actually happens, and is one level deep so a real mismatch still fails loudly.
+  - **The search field did nothing.** It was a button styled as an input, which is only honest if
+    it opens something. It is now a real command palette — `/` or Ctrl/Cmd+K, filter-as-you-type,
+    arrow keys, Enter, Escape, `aria-activedescendant` — built on a new `Dialog` primitive.
+  - **No focus ring anywhere, and the whole cascade was upside down.** `tokens.css` declared its
+    base rules *unlayered*, and unlayered CSS outranks every `@layer`, so the global
+    `:focus-visible` silently beat any component that tried to style its own focus. Moving it into
+    `@layer base` fixed the precedence and immediately exposed the second half: every component
+    paired `outline-none` with `focus-visible:outline-2`, and Tailwind's `outline-2` sets
+    outline-*width*, never outline-*style* — so with the global crutch gone, nothing rendered.
+    `tokens.css` now owns the ring; the redundant per-component declarations are deleted.
+
 - **The specified palette failed WCAG 2.2 AA in 20 of 23 load-bearing pairs**, measured before
   implementation. Every specified colour is kept and used where the requirement is 3:1 or already
   met; minimally darkened counterparts — same hue and saturation — carry the roles involving text.
@@ -54,6 +75,10 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
   it caught two that survived the first pass.
 - Three architectural claims that were prose are now tests: **no component references a primitive
   token**, the directive's palette cannot drift, and `THEME_BASE_COLOR` cannot desync.
+- Two more after the dev-mode bug report: **no component may pair `outline-none` with a
+  `focus-visible` outline**, and the base focus rule must stay inside a cascade layer components can
+  override. Both fail when reintroduced.
+- `Dialog` primitive (Radix), and `CommandPalette` in the app with 10 tests. 64 tests total.
 
 - **M009 — AppShell and routing.** `apps/web` is a running Next.js 16 application.
   - App Router with a `(dashboard)` route group, `/projects`, `/projects/[projectId]`, `/agents`

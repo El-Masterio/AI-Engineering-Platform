@@ -61,8 +61,11 @@ export default function ProjectsPage() {
             <li key={project.id} className="flex">
               <Card interactive className="flex-1 p-0">
                 <Link
-                  href={{ pathname: "/projects/[projectId]", query: { projectId: project.id } }}
-                  className="flex h-full flex-col gap-4 rounded-[var(--radius-lg)] p-6 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]"
+                  // A template literal, not `{ pathname: "/projects/[projectId]", query }`.
+                  // The App Router rejects a dynamic href object at render time —
+                  // it throws rather than warns, so it took the whole page down.
+                  href={`/projects/${project.id}`}
+                  className="flex h-full flex-col gap-4 rounded-[var(--radius-lg)] p-6"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <span className="truncate font-display text-[length:var(--text-h5)] font-bold tracking-[var(--tracking-tight)]">

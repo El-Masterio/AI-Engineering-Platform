@@ -21,9 +21,11 @@ const buttonVariants = cva(
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
     "rounded-[var(--radius-md)] font-semibold select-none",
     "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
-    // Visible, non-colour-dependent focus (NFR-A11Y-4).
-    "outline-none focus-visible:outline-2 focus-visible:outline-offset-2",
-    "focus-visible:outline-[var(--border-focus)]",
+    // No focus styling here on purpose. tokens.css owns the focus ring for the
+    // whole app in `@layer base`; a component that re-declares it only has to
+    // be kept in sync, and one that pairs `outline-none` with `outline-2` ends
+    // up with no ring at all, because Tailwind's `outline-2` sets width and not
+    // style (NFR-A11Y-4).
     // Disabled must be perceivable without relying on colour alone.
     "disabled:pointer-events-none disabled:opacity-50",
   ].join(" "),

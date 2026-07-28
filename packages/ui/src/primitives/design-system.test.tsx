@@ -31,6 +31,14 @@ import { THEMES, DEFAULT_THEME, THEME_BASE_COLOR, getTheme, setTheme } from "../
 const TOKENS_PATH = "packages/ui/src/tokens/tokens.css";
 const PRIMITIVES_DIR = "packages/ui/src/primitives";
 
+/** Class-string literals in one file that pair `outline-none` with a focus ring. */
+function focusRingConflicts(file: string, source: string): string[] {
+  return [...source.matchAll(/"([^"\n]*)"/g)]
+    .map((m) => m[1] ?? "")
+    .filter((lit) => lit.includes("outline-none") && lit.includes("focus-visible:outline"))
+    .map((lit) => `${file}: ${lit.slice(0, 60)}`);
+}
+
 function AllPrimitives() {
   return (
     <>
@@ -107,6 +115,44 @@ describe("two-layer token architecture", () => {
       if (primitivePattern.test(source)) offenders.push(file);
     }
     expect(offenders).toEqual([]);
+  });
+
+  /**
+   * `outline-none` next to `focus-visible:outline-2` produces NO focus ring.
+   * Tailwind's `outline-2` sets outline-WIDTH; nothing sets outline-STYLE, so the
+   * `none` from `outline-none` stands and the ring is invisible — a WCAG 2.4.7
+   * failure that looks correct in the source and only shows up by tabbing
+   * through the running app.
+   *
+   * This shipped once. It was masked because tokens.css declared `:focus-visible`
+   * unlayered, and unlayered CSS outranks every cascade layer, so the global ring
+   * silently supplied the missing style. Moving that rule into `@layer base` —
+   * correct, because components must be able to override it — removed the crutch
+   * and exposed every component at once.
+   *
+   * tokens.css now owns the ring. Components should not re-declare it.
+   */
+  it("no component pairs outline-none with a focus-visible outline", async () => {
+    const entries = await readdir(PRIMITIVES_DIR);
+    const files = entries.filter(
+      (f) => f.endsWith(".tsx") && !f.includes(".test.") && !f.includes(".stories."),
+    );
+
+    const offenders: string[] = [];
+    for (const file of files) {
+      const source = await readFile(path.join(PRIMITIVES_DIR, file), "utf8");
+      offenders.push(...focusRingConflicts(file, source));
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the focus ring in a cascade layer components can override", async () => {
+    const css = await readFile(TOKENS_PATH, "utf8");
+    // The base block must be layered, or it outranks every Tailwind utility.
+    expect(css).toMatch(/@layer base\s*\{/);
+    const baseBlock = css.slice(css.indexOf("@layer base"));
+    expect(baseBlock).toContain(":focus-visible");
+    expect(baseBlock).toMatch(/outline:\s*2px solid var\(--border-focus\)/);
   });
 
   it("keeps the directive palette intact", async () => {

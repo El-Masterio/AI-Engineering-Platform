@@ -10,10 +10,12 @@ import {
   FolderKanban,
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
   Settings,
 } from "lucide-react";
 import { cn, Avatar, Tooltip, TooltipProvider } from "@atelier/ui";
+// Extensionless: apps/web resolves with `moduleResolution: bundler`, unlike
+// packages/ui, which is NodeNext and needs the `.js` suffix.
+import { CommandPalette } from "./command-palette";
 
 /**
  * AppShell — sidebar + top navigation (§18 v2.0).
@@ -128,7 +130,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                     "relative flex items-center gap-3 rounded-[var(--radius-control)]",
                     "px-3 py-3 text-[length:var(--text-small)]",
                     "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
-                    "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
                     // Active: soft blue field, blue label, and a blue bar down
                     // the leading edge. Three signals, only one of them colour.
                     isActive
@@ -172,7 +173,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 "text-[length:var(--text-caption)] text-[var(--text-tertiary)]",
                 "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
                 "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
-                "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
                 isCollapsed && "justify-center px-0",
               )}
             >
@@ -202,7 +202,6 @@ const topBarButton = [
   "grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)]",
   "text-[var(--text-tertiary)] transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
   "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
-  "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
 ].join(" ");
 
 function TopBar() {
@@ -220,7 +219,6 @@ function TopBar() {
         className={cn(
           "flex min-w-0 items-center gap-3 rounded-[var(--radius-control)] py-2 pl-2 pr-3",
           "transition-colors duration-[--dur-fast] ease-[--ease-in-out] hover:bg-[var(--bg-hover)]",
-          "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
         )}
       >
         <Avatar name="Atelier Studio" size="sm" />
@@ -238,29 +236,7 @@ function TopBar() {
       </button>
 
       <div className="flex flex-1 justify-center">
-        {/* A button rather than an input: this opens a command palette, and an
-            input that does not accept typing is a worse lie than a button. */}
-        <button
-          type="button"
-          data-testid="search"
-          className={cn(
-            "flex h-10 w-full max-w-[420px] items-center gap-3 rounded-[var(--radius-control)]",
-            "border border-[var(--border-default)] bg-[var(--bg-surface)] px-4",
-            "text-[length:var(--text-small)] text-[var(--text-placeholder)]",
-            "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
-            "hover:border-[var(--border-strong)]",
-            "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
-          )}
-        >
-          <Search width={18} height={18} strokeWidth={1.75} aria-hidden="true" />
-          <span className="flex-1 text-left">Search projects and agents</span>
-          <kbd
-            aria-hidden="true"
-            className="rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1.5 py-0.5 font-mono text-[length:var(--text-caption)]"
-          >
-            /
-          </kbd>
-        </button>
+        <CommandPalette />
       </div>
 
       <div className="flex shrink-0 items-center gap-1">

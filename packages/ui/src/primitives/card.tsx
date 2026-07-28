@@ -31,8 +31,6 @@ const cardVariants = cva(
         true: [
           "block transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
           "hover:border-[var(--border-muted)] hover:bg-[var(--bg-elevated)]",
-          "outline-none focus-visible:outline-2 focus-visible:outline-offset-2",
-          "focus-visible:outline-[var(--border-focus)]",
         ].join(" "),
         false: "",
       },

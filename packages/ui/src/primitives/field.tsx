@@ -110,7 +110,6 @@ export const controlClasses = [
   "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
   "hover:border-[var(--border-strong)]",
   "focus-visible:border-[var(--border-focus)]",
-  "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
   "disabled:cursor-not-allowed disabled:opacity-50",
   "aria-[invalid=true]:border-[var(--status-err)]",
 ].join(" ");

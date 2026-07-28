@@ -16,7 +16,6 @@ export const Switch = forwardRef<ElementRef<typeof SwitchPrimitive.Root>, Switch
         className={cn(
           "peer inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent",
           "transition-colors duration-[--dur-fast] ease-[--ease-out]",
-          "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "data-[state=unchecked]:bg-[var(--bg-surface-2)] data-[state=unchecked]:border-[var(--border-default)]",
           "data-[state=checked]:bg-[var(--accent-bg)]",

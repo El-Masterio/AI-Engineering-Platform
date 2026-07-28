@@ -6,7 +6,14 @@ import { AppShell } from "./app-shell.js";
 // next/navigation is a framework boundary; stub it so the shell can be tested
 // in isolation. Real routing is verified against the running app.
 const pathname = vi.hoisted(() => ({ current: "/projects" }));
-vi.mock("next/navigation", () => ({ usePathname: () => pathname.current }));
+const push = vi.hoisted(() => vi.fn());
+// `useRouter` is here because the shell renders the command palette, which
+// navigates. Stubbing only `usePathname` made all 11 tests in this file fail the
+// moment the palette landed — a module mock is only as complete as its consumers.
+vi.mock("next/navigation", () => ({
+  usePathname: () => pathname.current,
+  useRouter: () => ({ push }),
+}));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...rest}>

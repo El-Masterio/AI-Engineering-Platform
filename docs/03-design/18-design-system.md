@@ -269,7 +269,8 @@ language).
 |---|---|
 | **Toast** | Transient success/info. Never for errors requiring action. |
 | **Alert** | Inline, persistent. The correct home for actionable errors. |
-| **Dialog** | Confirmations. Destructive actions require typing the resource name. |
+| **Dialog** | Radix-backed: focus trap, focus restoration, Escape, `aria-modal`, inert background. Plain scrim, never a blur — §18 rules out glassmorphism. Confirmations; destructive actions require typing the resource name. |
+| **CommandPalette** | The top-bar search. `/` or Ctrl/Cmd+K. Filter-as-you-type, arrow keys, Enter, Escape, `aria-activedescendant`. The trigger looks like a field, which obliges it to open something. |
 | **ApprovalGate** | Deliberately prominent. Shows exactly what is being approved, its cost, and its blast radius. **Never** styled as an ordinary button — approving a production deploy must not feel like dismissing a toast. |
 | **ProgressIndicator** | Determinate where a real fraction exists; indeterminate otherwise. Never fake a percentage. Fill uses `--accent`. |
 
@@ -332,7 +333,12 @@ than assumed.
    empty), keyboard operation, an a11y test, and a Storybook entry.
 5. **New token requires an ADR** — the token set is a contract with every future component.
 6. **Only the sanctioned spacing steps.** A PR introducing an off-grid value gets pushed back.
-7. **Visual regression tests** on the component library (Phase 4).
+7. **`tokens.css` owns the focus ring.** Components must not re-declare it, and must never pair
+   `outline-none` with `focus-visible:outline-*` — Tailwind's `outline-2` sets width, not style, so
+   that combination renders nothing. Asserted by a test.
+8. **Base rules stay inside `@layer base`.** Unlayered CSS outranks every cascade layer, so an
+   unlayered base rule silently overrides every utility a component uses. Asserted by a test.
+9. **Visual regression tests** on the component library (Phase 4).
 
 ## Related
 

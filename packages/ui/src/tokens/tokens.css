@@ -217,6 +217,10 @@
   --bg-inset: var(--w-0); /* inputs, code blocks */
   --bg-hover: var(--w-350);
   --bg-selected: var(--b-100); /* soft blue — selection is blue, not orange */
+  /* Modal scrim: --s-900 at 24%. Written literally because a var() cannot be
+     given an alpha channel without color-mix, and this is the only alpha in
+     the system. */
+  --bg-overlay: rgb(30 36 48 / 0.24);
 
   /* ── Borders ───────────────────────────────────────────────────────────── */
   /* subtle/muted are DECORATIVE — dividers and card outlines. WCAG 1.4.11 does
@@ -289,55 +293,69 @@
 }
 
 /* ══ Base element defaults ════════════════════════════════════════════════ */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+/* `@layer base` is load-bearing, not tidiness. Unlayered CSS wins over ANY
+   cascade layer, so while these rules sat unlayered they silently outranked
+   every Tailwind utility — `outline-none` on a component could not override the
+   `:focus-visible` rule below. That went unnoticed because most components
+   re-declare the same focus ring the global one provides; it surfaced the first
+   time a component wanted a different one. Utilities beat base, so components
+   are back in charge.
+
+   Tailwind's preflight is also `@layer base`; tokens.css is imported after it,
+   so these rules still win within the layer. */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    /* rem-based type scale respects the browser font-size preference (NFR-A11Y). */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+    line-height: var(--leading-normal);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-snug);
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+
+  /* Visible, non-colour-dependent focus (NFR-A11Y-4). The floor for anything
+     that does not style its own focus; components may override it. */
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
 }
 
-html {
-  /* rem-based type scale respects the browser font-size preference (NFR-A11Y). */
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  margin: 0;
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  line-height: var(--leading-normal);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  letter-spacing: var(--tracking-tight);
-  line-height: var(--leading-snug);
-}
-
-code,
-kbd,
-pre,
-samp {
-  font-family: var(--font-mono);
-}
-
-/* Visible, non-colour-dependent focus (NFR-A11Y-4). */
-:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
-}
-
-/* Motion supports usability, never decoration (NFR-A11Y-6). */
+/* Motion supports usability, never decoration (NFR-A11Y-6). Deliberately
+   unlayered: this is an accessibility override that must beat everything. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

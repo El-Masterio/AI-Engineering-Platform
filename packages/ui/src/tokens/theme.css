@@ -26,6 +26,7 @@
   --color-inset: var(--bg-inset);
   --color-hover: var(--bg-hover);
   --color-selected: var(--bg-selected);
+  --color-overlay: var(--bg-overlay);
 
   --color-border-subtle: var(--border-subtle);
   --color-border-muted: var(--border-muted);

@@ -18,7 +18,6 @@ export const Checkbox = forwardRef<ElementRef<typeof CheckboxPrimitive.Root>, Ch
         className={cn(
           "peer size-5 shrink-0 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-inset)]",
           "transition-colors duration-[--dur-fast] ease-[--ease-in-out]",
-          "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--border-focus)]",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "data-[state=checked]:border-transparent data-[state=checked]:bg-[var(--accent-bg)]",
           "data-[state=indeterminate]:border-transparent data-[state=indeterminate]:bg-[var(--accent-bg)]",

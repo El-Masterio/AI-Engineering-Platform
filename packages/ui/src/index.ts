@@ -22,6 +22,16 @@ export {
   type CardProps,
   type StatCardProps,
 } from "./primitives/card.js";
+export {
+  Dialog,
+  DialogTrigger,
+  DialogClose,
+  DialogTitle,
+  DialogDescription,
+  DialogOverlay,
+  DialogContent,
+  type DialogContentProps,
+} from "./primitives/dialog.js";
 export { Button, buttonVariants, type ButtonProps } from "./primitives/button.js";
 export { Badge, badgeVariants, type BadgeProps } from "./primitives/badge.js";
 export { Icon, type IconProps } from "./primitives/icon.js";
