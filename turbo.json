@@ -17,8 +17,12 @@
     "clean": {
       "cache": false
     },
+    // `^build` is not optional here. Workspace packages resolve through their
+    // exports map to dist/, which a clean clone does not have — without it,
+    // `pnpm dev` starts happily and then serves 500 on every route with
+    // "Cannot resolve @atelier/ui". It only appeared to work locally because a
+    // stale dist/ was already on disk.
     "dev": {
-      "//": "^build is not optional. Workspace packages resolve through their exports map to dist/, which a clean clone does not have — without this, `pnpm dev` starts happily and serves 500 on every route with 'Cannot resolve @atelier/ui'. It only ever worked locally because a stale dist/ was lying around.",
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
