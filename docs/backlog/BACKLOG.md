@@ -143,9 +143,16 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 
 ### M010 · Local development environment · S · 🏗
 **Objective** One-command onboarding.
-**Dependencies** M004
+**Dependencies** M004 ✅
 **Deliverables** `docker-compose.yml` (Postgres + Redis), `pnpm db:up/migrate/seed/dev` scripts, synthetic seed data.
 **Acceptance** A clean clone reaches a running app in three commands · seeds are synthetic only · documented in the developer guide.
+**Verified** By cloning into a temp directory four times and running the commands — not by trusting a working tree that already had `node_modules`, `dist` and a `.env` in it. Final run: `pnpm install` 9 s, `pnpm setup` 12 s, `pnpm dev` up in ~6 s. Every route 200, unknown route 404. 9 seed unit tests plus 4 integration tests against a real Postgres.
+**The clean clone found four bugs that a working tree hides.** This is the whole value of the criterion:
+- `scripts/*.mjs` imported `@atelier/config` and `@atelier/db`, which the **root** `package.json` never declared. pnpm's strict isolation refused them. Nothing had ever run those scripts before.
+- `docker-compose.yml` pinned `container_name`, so a second checkout collided with the first. Compose derives project-scoped names for exactly this reason.
+- `DATABASE_URL` is required with no default, so `setup` could not reach the database. The schema stays strict — a required variable that silently falls back to localhost is how a production process ends up happily connected to nothing — and `setup` now provisions `.env` from `.env.example`, never overwriting one.
+- **`pnpm dev` served 500 on every route.** `turbo.json`'s `dev` task had no `dependsOn`, so `@atelier/ui` resolved to a `dist/` that a fresh checkout does not have. It only ever worked because a stale `dist/` was on disk — the same class as the bug M003's first CI run found.
+**Notes** The migrate and seed entrypoints live in `scripts/`, not `packages/db`: the boundaries rule rejected the first attempt, and it was right — a data-access package that reads `process.env` cannot be embedded, tested against a second database, or reused. Seeds are synthetic **by construction**: addresses use `example.test`, which RFC 2606 reserves and nobody can register, and a test fails the build if that stops being true. Two organizations are seeded rather than one, because with a single tenant a broken RLS policy looks exactly like correct behaviour.
 
 ### M011 · Deploy pipeline to staging · M · 🏗
 **Objective** Stages 8–11 of §24.
