@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.mjs", ".storybook/*.ts"]
+    },
+    "packages/db": {
+      "entry": ["src/**/*.test.ts", "src/**/*.integration.test.ts"]
+    }
+  }
+}

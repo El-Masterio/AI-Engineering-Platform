@@ -36,10 +36,22 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["packages/*/src/**/*.test.{ts,tsx}", "apps/*/src/**/*.test.{ts,tsx}"],
+    // Integration tests need Docker and a real Postgres. They are §24 stage 3
+    // and run from packages/db/vitest.integration.config.ts, not here — mixing
+    // them would make the fast suite slow and the slow suite look flaky.
+    exclude: ["**/node_modules/**", "**/dist/**", "**/*.integration.test.ts"],
     coverage: {
       provider: "v8",
       include: ["packages/*/src/**/*.{ts,tsx}"],
-      exclude: ["**/*.stories.tsx", "**/*.test.{ts,tsx}", "**/index.ts"],
+      exclude: [
+        "**/*.stories.tsx",
+        "**/*.test.{ts,tsx}",
+        "**/index.ts",
+        // Covered by the integration suite, which reports its own coverage.
+        // Counting it here would measure it as 0% and fail the floor for a
+        // reason that has nothing to do with how well it is tested.
+        "packages/db/**",
+      ],
       /**
        * §23's floors, enforced rather than reported (§24 stage 2). 80% overall
        * is the baseline; the higher per-path floors §23 sets for auth, tenant

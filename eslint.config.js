@@ -209,6 +209,14 @@ export default tseslint.config(
             // npm and node builtins are broadly allowed; narrowed at the bottom.
             { allow: { to: { module: { origin: "external" } } } },
             { allow: { to: { module: { origin: "builtin" } } } },
+            // `origin: "builtin"` does NOT match a `node:`-prefixed specifier,
+            // and unicorn/prefer-node-protocol requires that prefix — so between
+            // them every `import ... from "node:fs"` fell through to the default
+            // disallow. It went unnoticed until M004, because no non-test source
+            // file in a package had imported a builtin before. The narrowing
+            // policies at the bottom still apply: domain purity is verified to
+            // reject `node:fs` even with this allow in place.
+            { allow: { to: { module: { source: "node:*" } } } },
 
             // domain knows nothing but itself.
             {
@@ -283,6 +291,17 @@ export default tseslint.config(
               disallow: { to: { module: { origin: "external" } } },
               message:
                 "packages/domain must have ZERO external dependencies (ADR-001, §19). Inject a port instead.",
+            },
+            // The same `node:`-prefix blind spot as the allow above, and here it
+            // mattered more: this rule is the one enforcing ADR-001's zero-
+            // dependency guarantee, and `import { readFile } from "node:fs"` in
+            // a domain entity sailed straight through it. Proven by writing the
+            // violation — the rule reported nothing until this policy existed.
+            {
+              from: { element: { type: "domain" } },
+              disallow: { to: { module: { source: "node:*" } } },
+              message:
+                "packages/domain must not touch the Node runtime (ADR-001, §19). Pure logic only — inject a port.",
             },
             {
               from: { file: { categories: { anyOf: ["service", "job"] } } },
@@ -433,7 +452,23 @@ export default tseslint.config(
       // silently no-ops here.
       "boundaries/dependencies": "off",
       "boundaries/no-unknown-dependencies": "off",
+      // beforeAll/beforeEach assigning a module-scoped fixture is the canonical
+      // test-setup shape. The rule guards against accidental global mutation in
+      // product code, which is a different problem — the alternative here is
+      // wrapping every fixture in a holder object to satisfy a linter.
+      "unicorn/no-top-level-assignment-in-function": "off",
     },
+  },
+
+  // ── This file ────────────────────────────────────────────────────────────
+  // `max-lines` exists to stop logic accreting in one place. This is a
+  // declarative manifest that is roughly half explanatory comment by design,
+  // and the boundaries policy list in particular MUST be readable top to bottom
+  // in one file: its ordering is load-bearing (last match wins), and splitting
+  // it across modules would hide the single most error-prone thing about it.
+  {
+    files: ["eslint.config.js"],
+    rules: { "max-lines": ["warn", { max: 800, skipBlankLines: true, skipComments: true }] },
   },
 
   // ── jsdom environment shims ──────────────────────────────────────────────
@@ -462,6 +497,9 @@ export default tseslint.config(
       "apps/web/src/app/**/not-found.tsx",
       "apps/web/src/app/**/template.tsx",
       "apps/web/*.config.{ts,mjs}",
+      // Vitest, Vite and friends read a default export; that is their contract.
+      "*.config.{ts,mjs,js}",
+      "packages/*/*.config.{ts,mjs,js}",
     ],
     rules: { "import-x/no-default-export": "off" },
   },

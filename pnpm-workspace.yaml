@@ -14,3 +14,19 @@ allowBuilds:
   # Native binding for the TypeScript import resolver used by eslint-plugin-import-x.
   # Without its build step the resolver falls back to a slow JS path or fails outright.
   unrs-resolver: true
+
+  # ── Declined ───────────────────────────────────────────────────────────────
+  # All three arrive transitively via @testcontainers/postgresql and are test-only.
+  # Declining is the default posture: each is an optional acceleration whose
+  # absence costs nothing measurable here, and every approved build is another
+  # postinstall script running with full permissions on a developer's machine
+  # and on CI. The integration suite is verified to run with all three off.
+  #
+  # ssh2's optional native crypto accelerator; ssh2 is pure JS without it.
+  cpu-features: false
+  # Generates static type helpers at install time. The runtime path we use does
+  # not need them.
+  protobufjs: false
+  # Testcontainers' transport to the Docker daemon — pure JS, and here it talks
+  # to a local socket rather than over SSH at all.
+  ssh2: false

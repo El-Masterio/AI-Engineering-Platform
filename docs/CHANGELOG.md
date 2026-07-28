@@ -9,6 +9,36 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M004 — Postgres, Drizzle, and the first migration, with tenant isolation live from row one.**
+  `packages/db` now holds the tenancy and identity core: `organizations`, `users`, `memberships`.
+  - **Row-level security with `FORCE`** on all three tables. `FORCE` is the part that matters —
+    without it the table owner bypasses every policy, and the application connects as the owner
+    often enough that the control would look present and do nothing (ADR-003).
+  - **`TenantContext` and a branded `ScopedTransaction`.** A repository cannot be constructed
+    without both, and neither can be produced from a bare string, so an unscoped query is a compile
+    error rather than a review responsibility (§15 layer 2).
+  - **Hand-written SQL migrations** with a runner: `NNNN_verb_noun.{up,down}.sql`, a checksum ledger
+    that refuses a migration edited after it was applied, and a `down` for every `up`. drizzle-kit
+    generates none of those three things, so Drizzle stays the typed query surface and SQL is the
+    source of truth for DDL.
+  - **A schema-drift suite** as the price of that split: it introspects the migrated database and
+    fails if the SQL and the Drizzle definitions disagree.
+  - **CI stage 3 is live** — the integration job now runs the cross-tenant suite against a real
+    PostgreSQL 17 via Testcontainers.
+
+### Fixed
+
+- **`packages/domain` could import Node builtins and nothing complained.** The purity rule
+  disallows `origin: "external"`, which does not match a `node:`-prefixed specifier — and
+  `unicorn/prefer-node-protocol` requires that prefix. So `import { readFile } from "node:fs"` in a
+  domain entity sailed straight through the rule enforcing ADR-001's zero-dependency guarantee.
+  Found by writing the violation; the rule reported nothing until a `source: "node:*"` policy
+  existed. The same blind spot was blocking legitimate builtin imports in `packages/db`.
+- ESLint could not parse `packages/*/vitest.*.config.ts` — outside every tsconfig project, so those
+  files were silently unlinted.
+
+### Added
+
 - **M003 — CI pipeline.** `.github/workflows/ci.yml` implements §24 stages 1, 2 and 4 as three
   parallel jobs, with a composite setup action so the Node and pnpm pins live in one place.
   - **Static analysis**: Prettier, ESLint, dependency-cruiser, **knip** (dead code), the WCAG

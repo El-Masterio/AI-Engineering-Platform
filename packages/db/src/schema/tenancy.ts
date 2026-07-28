@@ -1,0 +1,95 @@
+import { sql } from "drizzle-orm";
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+
+/**
+ * Drizzle definitions for the tenancy and identity core.
+ *
+ * These describe the schema; they do not create it. DDL lives in
+ * migrations/0001_create_tenancy_and_identity.up.sql, per §15's requirement for
+ * named, reviewed, reversible migrations. What lives here is the typed surface
+ * queries are written against.
+ *
+ * The two can drift, and drift here means a query that compiles and fails at
+ * runtime. schema-drift.integration.test.ts introspects the migrated database
+ * and fails if this file and the SQL disagree.
+ */
+
+/** Columns every domain table carries (§15 conventions). */
+const timestamps = {
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+};
+
+export const organizations = pgTable(
+  "organizations",
+  {
+    id: uuid("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    settings: jsonb("settings").notNull().default({}),
+    plan: text("plan").notNull().default("free"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("uq_organizations_slug")
+      .on(table.slug)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey(),
+    email: text("email").notNull(),
+    name: text("name"),
+    avatarUrl: text("avatar_url"),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("uq_users_email")
+      .on(sql`lower(${table.email})`)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
+
+/** The join every RLS policy resolves through (§15). */
+export const memberships = pgTable(
+  "memberships",
+  {
+    id: uuid("id").primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").notNull().default("member"),
+    invitedBy: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("uq_memberships_organization_user")
+      .on(table.organizationId, table.userId)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("idx_memberships_organization_id_user_id").on(table.organizationId, table.userId),
+    index("idx_memberships_user_id").on(table.userId),
+    index("idx_memberships_invited_by").on(table.invitedBy),
+  ],
+);
+
+export const MEMBERSHIP_ROLES = ["owner", "admin", "member", "viewer"] as const;
+export type MembershipRole = (typeof MEMBERSHIP_ROLES)[number];
+
+export const ORGANIZATION_PLANS = ["free", "team", "enterprise"] as const;
+export type OrganizationPlan = (typeof ORGANIZATION_PLANS)[number];
+
+export type Organization = typeof organizations.$inferSelect;
+export type NewOrganization = typeof organizations.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Membership = typeof memberships.$inferSelect;
+export type NewMembership = typeof memberships.$inferInsert;

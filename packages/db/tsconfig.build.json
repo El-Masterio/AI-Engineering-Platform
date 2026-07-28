@@ -1,0 +1,5 @@
+{
+  "//": "Emit config: same settings as tsconfig.json, but tests and the integration harness stay out of dist. The harness imports @testcontainers/postgresql, a devDependency that will not exist wherever this package is consumed.",
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/testing/**"]
+}

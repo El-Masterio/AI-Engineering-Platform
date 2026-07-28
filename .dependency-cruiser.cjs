@@ -64,9 +64,12 @@ module.exports = {
       comment: "Production code must not import a devDependency — it will be absent at runtime.",
       from: {
         path: "^(apps|packages)/[^/]+/src",
-        // Type-only declarations, tests and stories are not shipped code, so a
-        // devDependency import from them is correct rather than a defect.
-        pathNot: String.raw`\.(test|spec)\.tsx?$|\.d\.ts$|\.stories\.tsx?$`,
+        // Type-only declarations, tests, stories and test-support code are not
+        // shipped, so a devDependency import from them is correct rather than a
+        // defect. `src/testing/` is excluded from each package's tsconfig.build
+        // as well, so this is not merely a linter exemption — the code genuinely
+        // does not reach dist.
+        pathNot: String.raw`\.(test|spec)\.tsx?$|\.d\.ts$|\.stories\.tsx?$|/src/testing/`,
       },
       to: { dependencyTypes: ["npm-dev"] },
     },

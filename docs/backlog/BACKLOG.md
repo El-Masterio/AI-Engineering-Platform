@@ -75,12 +75,21 @@ Three real defects surfaced while wiring the gates, none of which any existing c
 protection requiring the three checks, and `TURBO_TOKEN`/`TURBO_TEAM` for the Turborepo *remote*
 cache. The workflow already consumes both if present and falls back to `actions/cache` without them.
 
-### M004 · Postgres, Drizzle, and first migration with RLS · M · 🏗🔒
+### M004 · Postgres, Drizzle, and first migration with RLS · M · 🏗🔒 — ✅ **Done** (2026-07-28)
 **Objective** The database foundation with tenant isolation active from migration one.
-**Dependencies** M001
+**Dependencies** M001 ✅
 **Deliverables** `packages/db` with Drizzle setup, migration runner, `organizations` + `users` + `memberships` tables, RLS policies with `FORCE ROW LEVEL SECURITY`, `TenantContext` type, tenant-scoped repository base.
 **Acceptance** Migration applies and rolls back · RLS blocks cross-tenant `SELECT` in a test · a repository call without `TenantContext` fails to compile · `FORCE` verified active.
 **Note** 🔒 This cannot be retrofitted. It is why M004 is fourth and not fortieth.
+**Verified** 22 integration tests against a real PostgreSQL 17 (Testcontainers), plus compile-time assertions. Migration applies, is idempotent, rolls back leaving nothing behind, and re-applies. `FORCE ROW LEVEL SECURITY` asserted directly against `pg_class.relforcerowsecurity` on all three tables. Cross-tenant `SELECT`/`INSERT`/`UPDATE`/`DELETE` all denied; an unset claim returns zero rows rather than erroring.
+**Notes** DDL is hand-written SQL, not drizzle-kit: §15 requires `NNNN_verb_noun` names, a reviewed diff, and a tested `down`, and drizzle-kit provides none of the three. Drizzle is the typed query surface. The cost of that split is drift, so a third suite introspects the migrated database and fails if the two descriptions disagree — verified by renaming a column and by dropping a `.notNull()`.
+
+Details worth carrying forward:
+- **The isolation suite runs as an ordinary role, not the superuser Testcontainers hands you.** A superuser bypasses RLS unconditionally and `FORCE` does not apply to it, so the entire suite would have passed no matter how broken the policies were. The harness asserts `rolsuper = false` before any test runs.
+- **`FORCE` needs its own test.** Removing it fails exactly one assertion and no isolation test, because the app role is not the table owner — so without a dedicated check the regression would be invisible.
+- **`set_config(..., true)` is transaction-local.** With `false` the claim survives on a pooled connection and leaks to the next borrower, which under PgBouncer transaction mode (ADR-003) is a routine cross-tenant read. There is a test for the leak.
+- Three probes confirmed the suite bites: dropping `FORCE` → 1 failure; neutering the `organizations` policy → 5; making the claim session-local → 2.
+- `users` carries per-command policies rather than one. Identity is global — a person exists before they belong anywhere — so `INSERT` is open while `SELECT`/`UPDATE` resolve through a shared membership.
 
 ### M005 · Configuration validation · S · 🏗
 **Objective** The process refuses to boot on invalid configuration.
