@@ -21,7 +21,8 @@
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "@atelier/domain": "workspace:*"
+    "@atelier/domain": "workspace:*",
+    "@atelier/observability": "workspace:*"
   },
   "devDependencies": {
     "@atelier/config": "workspace:*",

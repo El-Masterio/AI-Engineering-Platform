@@ -9,6 +9,60 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M006 — Observability skeleton.** `packages/observability`: OpenTelemetry setup, explicit span
+  helpers, a structured JSON logger with redaction, correlation context, and health probes. Both
+  apps now bootstrap tracing and logging before anything else.
+  - **Redaction is two-layer and not optional.** By key (`password`, `apiKey`, `sessionToken`) and
+    by value shape (`sk-ant-…`, GitHub tokens, AWS keys, JWTs, private-key blocks, credentialed
+    URLs). It runs in a pino formatter hook *and* on the message string, because the leak that
+    actually happens is `logger.error(\`failed to reach ${databaseUrl}\`)`, not a field somebody
+    named `password`. A connection string keeps its host and loses its credentials.
+  - **Correlation ids ride in `AsyncLocalStorage`**, so they survive `await` and cannot be forgotten
+    by a caller. Caller-supplied `x-request-id` values are sanitised — an unvalidated one is log
+    injection.
+  - `/healthz` checks nothing and `/readyz` checks dependencies, deliberately. Liveness failing
+    would have the orchestrator restart every replica and turn a database blip into an outage.
+    Readiness failing removes one replica and leaves it running.
+
+### Fixed / learned
+
+- **OpenTelemetry auto-instrumentation produced zero spans, silently.** Two independent causes, both
+  found by running it rather than reading about it:
+  - `@opentelemetry/instrumentation-pg` instruments the `pg` package; `packages/db` uses `postgres`
+    (postgres.js), which has no OTel auto-instrumentation. The dependency was removed.
+  - Under pure ESM, `import-in-the-middle` does not reliably patch `node:` core modules, so no HTTP
+    span appeared either.
+  Explicit helpers (`withSpan`, `withServerSpan`, `withDatabaseSpan`) carry the trace instead and
+  work under any module system. Shipping the auto-instrumented version would have delivered a
+  telemetry package that traced nothing while reporting success.
+- ESLint's script override now supplies `fetch`/`setTimeout` globals and allows `process.exit`,
+  which is what a CLI script is for.
+
+### Added
+
+- **M005 — Configuration validation.** The process refuses to boot on invalid configuration.
+  - `packages/config` gains a runtime surface: a Zod schema for `NODE_ENV`, `DATABASE_URL`,
+    `ANTHROPIC_API_KEY` and `LOG_LEVEL`, plus `loadEnv()` (throws) and `loadEnvOrExit()` (writes
+    every problem to stderr and exits **78**, `EX_CONFIG`). Both `apps/api` and `apps/orchestrator`
+    call it first.
+  - **Every failure is reported at once.** Fail-on-first turns one misconfiguration into one restart
+    per variable.
+  - **A secret's value never reaches the error message.** §17 treats a secret-shaped string in a log
+    as a P1 incident, and a validation error is exactly what gets pasted into a ticket.
+    `DATABASE_URL` and `ANTHROPIC_API_KEY` report the problem and never the value — not even a
+    length. Non-secrets *do* echo the value, because `(received: "verbose")` is the difference
+    between a fix and a guess.
+  - `ANTHROPIC_API_KEY` is required only when `NODE_ENV=production`, so a clean checkout can run the
+    tests and the dev server without a real key.
+  - **`.env.example`** documents every variable, and a test checks it in *both* directions — a
+    schema variable missing from the file fails, and so does a documented variable the schema does
+    not know. It is also parsed *through the schema*, so it must be a working configuration rather
+    than a correct list of names.
+  - No dotenv dependency: Node 24 reads `--env-file` natively, leaving `packages/config` with
+    exactly one runtime dependency (Zod, §14).
+
+### Added
+
 - **M004 — Postgres, Drizzle, and the first migration, with tenant isolation live from row one.**
   `packages/db` now holds the tenancy and identity core: `organizations`, `users`, `memberships`.
   - **Row-level security with `FORCE`** on all three tables. `FORCE` is the part that matters —

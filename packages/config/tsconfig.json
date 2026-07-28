@@ -1,0 +1,9 @@
+{
+  "//": "packages/config owns tsconfig.base.json, so it extends it by relative path rather than by package name — a package cannot depend on itself.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"]
+}

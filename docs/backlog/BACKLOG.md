@@ -93,15 +93,29 @@ Details worth carrying forward:
 
 ### M005 · Configuration validation · S · 🏗
 **Objective** The process refuses to boot on invalid configuration.
-**Dependencies** M002
+**Dependencies** M002 ✅
 **Deliverables** `packages/config` env schema (Zod), startup validation, complete `.env.example`.
 **Acceptance** A missing required var prevents startup with a clear message · a malformed URL is rejected · `.env.example` covers every variable.
+**Verified** 18 unit tests, plus three real processes rather than mocks: a missing `DATABASE_URL` exits **78** (`EX_CONFIG`) naming the variable; a malformed URL, a bad enum and a wrong-shaped key report **all three at once** and still exit 78; a valid environment boots and prints its resolved values.
+**Notes** Two decisions are load-bearing.
+- **Every failure is reported at once.** Fail-on-first turns one misconfiguration into one restart per variable.
+- **A secret's value never reaches the message.** §17: "a secret-shaped string in a log is a P1 incident with rotation", and a validation error is exactly what gets pasted into a ticket. `DATABASE_URL` and `ANTHROPIC_API_KEY` report the problem and never the value — not even a length, which is itself a hint. Non-secrets *do* echo the value, because `(received: "verbose")` is the difference between a fix and a guess.
+`.env.example` completeness is a test in **both** directions: a schema variable missing from the file fails, and so does a documented variable the schema does not know — the second is how you get someone setting a variable that does nothing. The file is also parsed *through the schema*, so it must be a working configuration and not merely a correct list of names.
+Four probes confirmed the gates bite: removing a variable from the example, adding a stray one, putting a non-working value in it, and demoting `DATABASE_URL` from secret — 1, 1, 1 and 2 failures respectively.
+No dotenv dependency: Node 24 reads `--env-file` natively, so `packages/config` has exactly one runtime dependency (Zod, §14).
 
 ### M006 · Observability skeleton · M · 🏗✅
 **Objective** Traces and structured logs before there is anything hard to debug.
-**Dependencies** M002
+**Dependencies** M002 ✅
 **Deliverables** `packages/observability`: OTel SDK setup, trace context propagation, structured JSON logger with **secret and PII redaction**, request-ID middleware, health/readiness endpoints.
 **Acceptance** A trace spans HTTP → service → DB · logs carry a correlation ID · a secret-shaped string is redacted in a test · `/healthz` and `/readyz` respond.
+**Verified** 87 unit tests and 8 integration tests. One trace across all three hops, asserted on a real Postgres and a real HTTP server. Correlation ids survive `await` and stay separate under concurrency. 8 classes of secret redacted, plus a live check in a real process. `/healthz` 200 with no dependency checks; `/readyz` 200 naming its checks, then **503 once the database is stopped while `/healthz` still returns 200** — the distinction that stops a database blip becoming a fleet restart.
+**Notes — auto-instrumentation does not carry the trace, and finding that out was the milestone.** Two independent reasons, both of which fail **silently**: the SDK starts, reports nothing, and exports zero spans.
+- `@opentelemetry/instrumentation-pg` instruments the `pg` package. `packages/db` uses `postgres` (postgres.js), a different library with no OTel auto-instrumentation. That dependency was never going to produce a span and has been removed.
+- Under pure ESM, `import-in-the-middle` does not reliably patch `node:` core modules, so the HTTP server span did not appear either.
+Explicit helpers (`withSpan`, `withServerSpan`, `withDatabaseSpan`) carry the trace instead. They work under any module system and are what a Fastify plugin will call at M016. `HttpInstrumentation` stays registered but is **not** what the trace depends on.
+The trace assertion runs in a **child process** launched the way a service is launched, because vitest resolves modules through Vite and OTel's loader hook never sees them — an in-process test there would have been testing vitest's module graph.
+Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know about, and by value shape (`sk-ant-…`, JWTs, credentialed URLs) for the leak that actually happens — an interpolated message, not a field somebody named `password`. A connection string keeps its host and loses its credentials, because the host is what you need in order to debug.
 
 ### M007 · Design tokens · S · 🏗 — ✅ **Done** (2026-07-27)
 **Objective** The §18 token system, live.
