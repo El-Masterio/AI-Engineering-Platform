@@ -1,0 +1,30 @@
+# Secret scanning (§24 stage 1, §17 security).
+#
+# Extends the upstream ruleset rather than replacing it — the default rules
+# cover the providers that matter to us (Anthropic, AWS, GitHub, Postgres URLs,
+# private keys) and are maintained by people who watch for new token formats.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "atelier-anthropic-key"
+description = "Anthropic API key"
+# Belt and braces: the upstream ruleset covers this, but the platform is built
+# on Claude (ADR-004) and a leaked model key is the single most likely and most
+# expensive credential incident we can have.
+regex = '''sk-ant-[a-zA-Z0-9_\-]{20,}'''
+keywords = ["sk-ant-"]
+
+[allowlist]
+description = "Paths that legitimately contain secret-shaped strings"
+paths = [
+  '''pnpm-lock\.yaml''',      # integrity hashes look like high-entropy secrets
+  '''\.playwright-mcp/''',    # transient browser-automation artifacts
+  '''storybook-static/''',    # build output
+]
+# Documented, non-secret placeholders. Anchored to the exact literal so a real
+# key that happens to sit nearby is still caught.
+regexes = [
+  '''sk-ant-EXAMPLE''',
+  '''postgres://postgres:postgres@localhost''',
+]

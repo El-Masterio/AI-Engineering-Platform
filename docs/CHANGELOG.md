@@ -7,6 +7,42 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ## [Unreleased]
 
+### Added
+
+- **M003 — CI pipeline.** `.github/workflows/ci.yml` implements §24 stages 1, 2 and 4 as three
+  parallel jobs, with a composite setup action so the Node and pnpm pins live in one place.
+  - **Static analysis**: Prettier, ESLint, dependency-cruiser, **knip** (dead code), the WCAG
+    contrast gate, **a dependency licence gate**, and **gitleaks** secret scanning.
+  - **Unit + coverage**: Vitest with §23's floors *enforced* (80% lines/statements/branches/
+    functions) rather than reported.
+  - **Build**: typecheck, Turborepo build, Storybook build, and a check that Storybook actually
+    compiled its Tailwind utilities.
+  - Caching: pnpm store via `setup-node`, Turborepo via `actions/cache`. The remote cache is wired
+    behind `TURBO_TOKEN`/`TURBO_TEAM` and falls back cleanly when they are absent.
+  - **Stage 3 (integration) is deliberately absent** until M004 gives it a database. §24 now carries
+    a stage-status table saying which stages are live and which are waiting.
+- `scripts/check-licenses.mjs` — fail-closed licence gate. Permissive licences pass; anything else
+  must be individually acknowledged in the script *with a written reason*. Five packages are, all
+  weak-copyleft or attribution in build/test tooling.
+- `scripts/check-storybook-css.mjs` — asserts the Storybook bundle contains compiled utilities.
+- `.nvmrc`, `.gitleaks.toml`, and a root `postcss.config.mjs`.
+
+### Fixed
+
+- **Storybook had rendered every component unstyled since M008.** No PostCSS config existed at the
+  repo root, so Vite inlined Tailwind's source stylesheets rather than running the engine: the
+  bundle contained `@layer utilities` and not one utility inside it. `pnpm build:storybook` exited 0
+  the entire time. Found because knip asked why the root declared `@tailwindcss/postcss` without
+  using it.
+- **ESLint was linting `storybook-static/`** — minified vendor bundles, under type-aware rules. The
+  directory is absent from a clean checkout, so the gap only appeared once CI started building
+  Storybook. **Lint dropped from 110 s to 9.9 s.**
+- **`@atelier/config` was a decorative dependency in 12 packages.** Every `tsconfig.json` extended it
+  by relative path, so the declared edge did nothing. Now extended by package name, which is also
+  what makes the declaration true. `tailwindcss` moved to `packages/ui`, the package whose
+  `theme.css` imports it, and was dropped from `apps/web` and the root.
+- Root `@testing-library/user-event` removed — both consumers declare their own.
+
 ### Changed — BREAKING (visual)
 
 - **Design System v2.0 — the entire visual identity is replaced.** Owner directive; see

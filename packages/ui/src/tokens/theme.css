@@ -16,6 +16,15 @@
 @import "tailwindcss";
 @import "./tokens.css";
 
+/* Tailwind v4 scans for class names starting from the CSS file's own location,
+   which finds nothing useful from inside src/tokens/. Declaring the package's
+   own sources here means @atelier/ui is self-sufficient: any consumer that
+   imports this file gets the primitives' utilities compiled, without having to
+   know the package's internal layout. Storybook silently rendered every
+   component unstyled for want of this line — Tailwind ran, found no content,
+   and emitted zero utilities. Paths are relative to this file. */
+@source "../";
+
 @theme inline {
   /* ── Colour: semantic only ─────────────────────────────────────────────── */
   --color-base: var(--bg-base);

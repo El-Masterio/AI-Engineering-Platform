@@ -1,0 +1,29 @@
+name: Setup workspace
+description: >
+  Node + pnpm + a warm dependency store, shared by every CI job so the version
+  pins live in exactly one place.
+
+runs:
+  using: composite
+  steps:
+    # `run_install: false` because setup-node's pnpm cache needs the store path,
+    # which only exists once pnpm itself is installed. Install comes after.
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    # No `node-version` here on purpose: .nvmrc is the single source of truth,
+    # and package.json's `engines` field fails the install if they ever diverge.
+    - name: Install Node
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      # --frozen-lockfile is the gate: a PR that changes a dependency without
+      # committing the updated lockfile fails here rather than resolving to
+      # something nobody reviewed.
+      run: pnpm install --frozen-lockfile

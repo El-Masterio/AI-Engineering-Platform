@@ -1,10 +1,6 @@
 /* The whole design system: Tailwind bridge + tokens, from @atelier/ui. */
 @import "@atelier/ui/theme.css";
 
-/* Tailwind v4 scans sources it can see; the workspace UI package is external
-   to this app's tree, so point at it explicitly or its utilities are purged. */
-@source "../../../../packages/ui/src";
-
 /* next/font hashes each family into a generated custom property at build time.
    The token layer names the families literally so packages/ui stays free of any
    Next.js dependency; this block is the one place the two meet. Each falls back

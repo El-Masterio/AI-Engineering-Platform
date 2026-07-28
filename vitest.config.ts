@@ -19,6 +19,21 @@ export default defineConfig({
       provider: "v8",
       include: ["packages/*/src/**/*.{ts,tsx}"],
       exclude: ["**/*.stories.tsx", "**/*.test.{ts,tsx}", "**/index.ts"],
+      /**
+       * §23's floors, enforced rather than reported (§24 stage 2). 80% overall
+       * is the baseline; the higher per-path floors §23 sets for auth, tenant
+       * isolation, the policy engine and cost metering attach to packages that
+       * do not exist yet, and land with them.
+       *
+       * Lines AND branches, because line coverage alone is satisfied by walking
+       * through a conditional without ever taking the other side of it.
+       */
+      thresholds: {
+        lines: 80,
+        statements: 80,
+        branches: 80,
+        functions: 80,
+      },
     },
   },
 });

@@ -1,6 +1,6 @@
 {
   "//": "Next.js needs bundler resolution and preserved JSX, which differ from the NodeNext base. Everything else - the \u00a721 strict set - is inherited.",
-  "extends": "../../packages/config/tsconfig.base.json",
+  "extends": "@atelier/config/tsconfig.base.json",
   "compilerOptions": {
     "jsx": "preserve",
     "module": "ESNext",

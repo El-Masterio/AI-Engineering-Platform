@@ -49,11 +49,31 @@ parallelizable around the critical path. IDs are unchanged.
 **Verified** All 10 adversarial cases rejected: domain→external npm · domain→db · `*.routes.ts`→db · `*.service.ts`→fastify · bare `any` · TS enum · default export · `console.log` · circular dependency (depcruise exit 1) · domain-purity depcruise rule. `any` with `-- justified:` accepted; a disable comment *without* justification rejected. commitlint rejects bad type/case/period/length and accepts a valid message. Clean repo: `pnpm verify` exit 0. **Pre-commit hook: 3992 ms** (budget 10 s).
 **Notes** Three latent misconfigurations were found only because verification was adversarial — a clean lint run proved nothing. See the M002 completion report. Deferred to M003 (CI): `gitleaks` secret scanning, `knip` dead-code detection, and the `max-lines` 800 hard-fail (ESLint cannot express two severities for one rule; 400-warn is live).
 
-### M003 · CI pipeline — static analysis, test, build · M · 🏗✅
+### M003 · CI pipeline — static analysis, test, build · M · 🏗✅ — ✅ **Done** (2026-07-28)
 **Objective** Every PR gated before review.
-**Dependencies** M002
+**Dependencies** M002 ✅
 **Deliverables** GitHub Actions workflow implementing stages 1–4 of §24; Turborepo remote cache; pnpm store cache.
 **Acceptance** PR triggers the pipeline · a lint failure blocks merge · cached no-op run completes in < 3 min · branch protection requires green CI.
+**Verified** Three parallel jobs (static / unit+coverage / build). Every step run locally with real output: 11 gates, all exit 0; `pnpm verify` exit 0; `pnpm install --frozen-lockfile` exit 0. Fully cached serial re-run **27 s** against a 3-minute budget, with Turborepo reporting `12 cached, 12 total — FULL TURBO` in 87 ms. Four new gates each verified by reintroducing the fault: unused dependency → knip fails and names it; unacknowledged copyleft → licence gate fails and names the package; coverage below floor → vitest fails with the measured number; Tailwind silently not compiling → Storybook CSS gate fails with 6 missing utilities **while `build:storybook` still exits 0**.
+**Notes** Stage 3 (integration) deliberately NOT implemented — there is no database, and a job that
+passes because it has nothing to run is a fake gate. It lands with M004; §24 now carries a
+stage-status table.
+
+Three real defects surfaced while wiring the gates, none of which any existing check caught:
+- **Storybook rendered every component unstyled from M008 onward.** No PostCSS config existed at the
+  repo root, so Vite inlined Tailwind's source stylesheets instead of running the engine — the
+  bundle had `@layer utilities` and zero utilities in it. `pnpm build:storybook` exited 0 throughout.
+  Fixed, plus `scripts/check-storybook-css.mjs` so it cannot recur silently.
+- **ESLint was linting `storybook-static/`** — minified vendor bundles, type-checked. Invisible
+  because the directory is absent from a clean checkout and only appears once CI builds Storybook.
+  Lint went from **110 s to 9.9 s** once ignored.
+- **`@atelier/config` was declared by 12 packages and used by none of them** — every `tsconfig.json`
+  extended it by relative path, so the dependency edge was decorative. Now extended by package name.
+  `tailwindcss` likewise moved to `packages/ui`, the package whose `theme.css` actually imports it.
+
+**Owner-gated remainder** (needs credentials/admin, cannot be done from a dev machine): branch
+protection requiring the three checks, and `TURBO_TOKEN`/`TURBO_TEAM` for the Turborepo *remote*
+cache. The workflow already consumes both if present and falls back to `actions/cache` without them.
 
 ### M004 · Postgres, Drizzle, and first migration with RLS · M · 🏗🔒
 **Objective** The database foundation with tenant isolation active from migration one.

@@ -30,6 +30,11 @@ export default tseslint.config(
       "**/.next/**",
       "**/next-env.d.ts",
       "**/coverage/**",
+      // Storybook's build output. Absent from a clean checkout, so this gap
+      // stayed invisible until CI started building it: ESLint was type-checking
+      // minified vendor bundles and taking 110s to report nonsense about them.
+      "**/storybook-static/**",
+      "**/.playwright-mcp/**",
       "docs/**",
       "skills/**",
     ],

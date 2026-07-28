@@ -1,0 +1,128 @@
+name: CI
+
+# §24 stages 1, 2 and 4. Stage 3 (integration: Testcontainers Postgres + Redis,
+# cross-tenant suite, migration up/down) lands with M004 — there is no database
+# yet, and a job that passes because it has nothing to run is not a gate.
+#
+# Runs on every branch push, not only on pull requests, so a milestone branch is
+# verified before a PR exists. Same-repo PRs therefore get two runs; the
+# concurrency group below cancels superseded ones, and the duplicate is worth
+# the earlier feedback.
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Turborepo remote cache. Absent secrets are empty strings, which turbo treats
+  # as "no remote cache" and falls back to the local one restored below — so the
+  # pipeline works unconfigured and gets faster the moment an owner adds them.
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  # Turbo prints a hyperlinked summary that is noise in CI logs.
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+
+jobs:
+  # ── [1] Static analysis ──────────────────────────────────────────────────
+  static:
+    name: "[1] Static analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks needs history to scan the commits a PR actually adds;
+          # a shallow clone would only ever see the tip.
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+
+      # Ordered cheapest-first so the common failures report in seconds.
+      - name: Formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Dependency graph — no cycles, no boundary violations
+        run: pnpm depcruise
+
+      - name: Dead code
+        run: pnpm knip
+
+      - name: Design token contrast (WCAG 2.2 AA)
+        run: pnpm check:contrast
+
+      - name: Dependency licences
+        run: pnpm check:licenses
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── [2] Unit + contract ──────────────────────────────────────────────────
+  test:
+    name: "[2] Unit + coverage"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      # Coverage floors come from §23 and are enforced in vitest.config.ts, so
+      # a drop below them fails here rather than being reported and ignored.
+      - name: Vitest with coverage floors
+        run: pnpm test:coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ── [4] Build ────────────────────────────────────────────────────────────
+  build:
+    name: "[4] Build + typecheck"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      # Local Turborepo cache. Keyed by commit so a re-run of the same SHA is a
+      # no-op; restore-keys let a new commit start from the previous build's
+      # cache instead of cold. Redundant once a remote cache is configured, and
+      # harmless alongside it.
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      # §18 governance: Storybook must actually compile Tailwind. It silently
+      # did not for two milestones; a green build proved nothing.
+      - name: Build Storybook
+        run: pnpm build:storybook
+
+      - name: Storybook compiled its utilities
+        run: pnpm check:storybook-css
