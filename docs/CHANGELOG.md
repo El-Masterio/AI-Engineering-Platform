@@ -9,6 +9,29 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M005 — Configuration validation.** The process refuses to boot on invalid configuration.
+  - `packages/config` gains a runtime surface: a Zod schema for `NODE_ENV`, `DATABASE_URL`,
+    `ANTHROPIC_API_KEY` and `LOG_LEVEL`, plus `loadEnv()` (throws) and `loadEnvOrExit()` (writes
+    every problem to stderr and exits **78**, `EX_CONFIG`). Both `apps/api` and `apps/orchestrator`
+    call it first.
+  - **Every failure is reported at once.** Fail-on-first turns one misconfiguration into one restart
+    per variable.
+  - **A secret's value never reaches the error message.** §17 treats a secret-shaped string in a log
+    as a P1 incident, and a validation error is exactly what gets pasted into a ticket.
+    `DATABASE_URL` and `ANTHROPIC_API_KEY` report the problem and never the value — not even a
+    length. Non-secrets *do* echo the value, because `(received: "verbose")` is the difference
+    between a fix and a guess.
+  - `ANTHROPIC_API_KEY` is required only when `NODE_ENV=production`, so a clean checkout can run the
+    tests and the dev server without a real key.
+  - **`.env.example`** documents every variable, and a test checks it in *both* directions — a
+    schema variable missing from the file fails, and so does a documented variable the schema does
+    not know. It is also parsed *through the schema*, so it must be a working configuration rather
+    than a correct list of names.
+  - No dotenv dependency: Node 24 reads `--env-file` natively, leaving `packages/config` with
+    exactly one runtime dependency (Zod, §14).
+
+### Added
+
 - **M004 — Postgres, Drizzle, and the first migration, with tenant isolation live from row one.**
   `packages/db` now holds the tenancy and identity core: `organizations`, `users`, `memberships`.
   - **Row-level security with `FORCE`** on all three tables. `FORCE` is the part that matters —

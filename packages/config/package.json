@@ -2,15 +2,31 @@
   "name": "@atelier/config",
   "version": "0.0.0",
   "private": true,
-  "description": "Shared build and tooling configuration",
+  "description": "Shared build configuration and validated runtime environment",
   "type": "module",
   "files": [
+    "dist",
     "tsconfig.base.json"
   ],
   "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
     "./tsconfig.base.json": "./tsconfig.base.json"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "vitest": "^4.1.10"
   }
 }
