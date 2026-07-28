@@ -9,6 +9,14 @@
 export { createClient, type ClientOptions } from "./client.js";
 
 export {
+  seed,
+  SEED_ORGANIZATIONS,
+  SEED_USERS,
+  SEED_MEMBERSHIPS,
+  type SeedSummary,
+} from "./seed.js";
+
+export {
   loadMigrations,
   appliedMigrations,
   migrateUp,

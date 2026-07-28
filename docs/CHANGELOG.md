@@ -9,6 +9,37 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M010 — Local development environment.** A clean clone reaches a running app in three commands:
+  `pnpm install`, `pnpm setup`, `pnpm dev` (~27 s end to end).
+  - `docker-compose.yml` with Postgres 17 and Redis, both with healthchecks so `--wait` means
+    something. No `container_name`, so two checkouts can run side by side.
+  - `pnpm db:up` / `db:down` / `db:reset` / `db:migrate` / `db:migrate down` / `db:seed`, plus
+    `setup` chaining them. `setup` provisions `.env` from `.env.example` and never overwrites one.
+  - A **synthetic** seed: two organizations, three people. Addresses use `example.test`, which
+    RFC 2606 reserves and nobody can register, and a test fails the build if that stops being true.
+    Two organizations rather than one, because with a single tenant a broken RLS policy looks
+    exactly like correct behaviour when you click around.
+  - [§25 Developer Guide](04-engineering/25-developer-guide.md), including the failure modes that
+    actually happen.
+
+### Fixed
+
+- **Four bugs that only a clean clone exposes**, found by cloning into a temp directory and running
+  the commands rather than trusting a working tree with `node_modules`, `dist` and `.env` already
+  in it:
+  - `scripts/*.mjs` imported `@atelier/config` and `@atelier/db`, which the **root** `package.json`
+    never declared; pnpm's strict isolation refused them.
+  - `docker-compose.yml` pinned `container_name`, so a second checkout collided with the first.
+  - `DATABASE_URL` is required with no default, so `setup` could not reach the database. The schema
+    stays strict; `setup` provisions the `.env` instead.
+  - **`pnpm dev` served 500 on every route** — `turbo.json`'s `dev` task had no `dependsOn`, so
+    `@atelier/ui` resolved to a `dist/` a fresh checkout does not have. Same class as the bug M003's
+    first CI run found.
+- `turbo.json` rejects a `//` key inside a task object — it parses JSONC but validates keys
+  strictly, so the explanatory field failed the whole file.
+
+### Added
+
 - **M006 — Observability skeleton.** `packages/observability`: OpenTelemetry setup, explicit span
   helpers, a structured JSON logger with redaction, correlation context, and health probes. Both
   apps now bootstrap tracing and logging before anything else.
