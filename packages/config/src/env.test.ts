@@ -239,3 +239,44 @@ describe(".env.example", () => {
     }
   });
 });
+
+describe("an unresolved platform reference is named as such", () => {
+  const base = { NODE_ENV: "development" as const };
+
+  it("says the reference is unresolved, not that the URL is malformed", () => {
+    // The real Railway failure: ${{Postgres.DATABASE_URL}} arrived literally and
+    // the container crash-looped eleven times pointing at the wrong thing.
+    let thrown: unknown;
+    try {
+      loadEnv({ ...base, DATABASE_URL: "${{Postgres.DATABASE_URL}}" });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(EnvironmentError);
+    const problem = (thrown as EnvironmentError).issues[0]?.problem ?? "";
+    expect(problem).toContain("unresolved platform reference");
+    expect(problem).toContain("case-sensitive");
+    expect(problem).not.toContain("must be a postgres://");
+  });
+
+  it("still rejects an ordinary malformed URL with the ordinary message", () => {
+    let thrown: unknown;
+    try {
+      loadEnv({ ...base, DATABASE_URL: "mysql://localhost/db" });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+    expect((thrown as EnvironmentError).issues[0]?.problem).toContain("must be a postgres://");
+  });
+
+  it("does not echo the value, which is still a secret variable", () => {
+    let thrown: unknown;
+    try {
+      loadEnv({ ...base, DATABASE_URL: "${{Postgres.DATABASE_URL}}" });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+    expect((thrown as EnvironmentError).message).not.toContain("Postgres.DATABASE_URL}}");
+  });
+});

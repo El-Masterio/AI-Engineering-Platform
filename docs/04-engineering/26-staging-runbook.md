@@ -151,6 +151,21 @@ by design, so the very first run can produce the image Railway needs before Rail
 **Job [11] warns "STAGING_URL is not set".**
 Expected until step 5. Railway issues a domain only after a successful deploy.
 
+**The container crash-loops on `DATABASE_URL must be a postgres:// … connection string`.**
+The `${{Postgres.DATABASE_URL}}` reference did not resolve, so the literal template arrived as the
+value. Since M011 the message says so explicitly ("unresolved platform reference"); older images
+give the generic one and send you looking at the wrong thing. Two causes, in order of likelihood:
+
+1. **The variable change was never applied.** Railway stages variable edits — an "Apply N changes"
+   banner sits at the top of the canvas until you press **Deploy**. Staged is not saved.
+2. **The service name does not match.** References are **case-sensitive** and must name the service
+   exactly as it appears on the canvas. Use **Variables → New Variable → Add a Reference** and pick
+   the database from the list rather than typing the reference by hand — it cannot be misspelled
+   that way.
+
+Verify from the Railway shell before redeploying: `echo $DATABASE_URL` should print a
+`postgresql://…` string, not `${{…}}`.
+
 **The smoke test fails on `serving revision …` after a rollback.**
 It should not — the revision assertion is skipped on the rollback path, because the running revision
 is deliberately the *old* commit. If you see it, the run was a forward deploy that silently deployed
