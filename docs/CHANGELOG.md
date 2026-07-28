@@ -9,6 +9,22 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M013 — Domain package: organizations, users, memberships.** Pure, immutable, zero external
+  imports (enforced by dependency-cruiser and the boundaries rule, not by convention). 94 tests, 90%
+  floor enforced per-path.
+  - **An organization must always keep at least one owner** — the invariant the milestone exists for.
+    Enforced over the whole membership set, with `transferOwnership` as the atomic alternative to
+    promote-then-demote.
+  - `ports/clock.port.ts`: time as branded epoch milliseconds, injected. `Date` is mutable, carries a
+    meaningless timezone and compares by reference; §21's lint rules already forbid `Date.now()` here.
+  - Email normalisation lowercases and trims but **does not** strip dots or `+tags` — those are
+    Gmail conventions, and merging `a.b@` with `ab@` conflates two real accounts. Changing an
+    address clears verification.
+- `OPENROUTER_API_KEY` and `GROQ_API_KEY` in the env schema. Production requires **at least one**
+  provider key rather than a named one, so the schema does not pre-empt an ADR that is still owed.
+
+### Added
+
 - **M010 — Local development environment.** A clean clone reaches a running app in three commands:
   `pnpm install`, `pnpm setup`, `pnpm dev` (~27 s end to end).
   - `docker-compose.yml` with Postgres 17 and Redis, both with healthchecks so `--wait` means

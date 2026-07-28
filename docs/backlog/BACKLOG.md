@@ -174,9 +174,12 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 
 ### M013 · Domain package: organizations and users · S · 🏗
 **Objective** Pure domain entities with invariants, zero dependencies.
-**Dependencies** M001
+**Dependencies** M001 ✅
 **Deliverables** `packages/domain/organizations`, `users`, `memberships`; `ports/clock.port.ts`; errors.
 **Acceptance** Zero external imports (verified by dependency-cruiser) · invariants unit-tested · 90% coverage.
+**Verified** 94 tests, zero external imports (dependency-cruiser clean), 90% floor enforced per-path in `vitest.config.ts` rather than promised.
+**The invariant worth having:** an organization must always keep at least one owner. Without it the last owner can demote or remove themselves and the organization becomes permanently unadministrable — nobody can invite, change billing or delete it, and recovery means a support engineer editing the database by hand. Enforced over the whole membership SET, because that is the level it is true at; a function taking one membership cannot see the others. Every escape route is covered: demote to any role, remove, remove-when-sole-member. `transferOwnership` exists because promote-then-demote can be interrupted midway and demote-then-promote trips the rule.
+**Notes** Time arrives through `ports/clock.port.ts` as branded epoch milliseconds, not `Date` — `Date` is mutable, carries a meaningless timezone and compares by reference. Everything is immutable and returns new values. Email normalisation lowercases and trims but deliberately does NOT strip dots or `+tags`: those are Gmail conventions, not standards, and merging `a.b@` with `ab@` conflates two real accounts. Changing an address clears verification, or someone verifies a throwaway and swaps in one they do not own.
 
 ### M014 · Authentication · M · 🔒✨
 **Objective** Email/password and OAuth sign-in.

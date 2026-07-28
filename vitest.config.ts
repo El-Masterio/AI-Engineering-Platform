@@ -66,6 +66,13 @@ export default defineConfig({
         statements: 80,
         branches: 80,
         functions: 80,
+        // §23 sets 90% for packages/domain: pure logic, no excuse.
+        "packages/domain/src/**/*.ts": {
+          lines: 90,
+          statements: 90,
+          branches: 90,
+          functions: 90,
+        },
       },
     },
   },
