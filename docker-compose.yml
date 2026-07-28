@@ -1,0 +1,62 @@
+# Local development stack.
+#
+# Not a deployment artifact — staging and production are provisioned by
+# OpenTofu at M011 (§24). This file exists so a clean clone reaches a running
+# app in three commands, and for nothing else.
+#
+#   pnpm install
+#   pnpm setup      # brings this up, migrates, seeds
+#   pnpm dev
+#
+# Data lives in named volumes, so `pnpm db:down` keeps it and `pnpm db:reset`
+# deliberately does not.
+
+services:
+  postgres:
+    # Pinned to the same major the integration suite runs against (ADR-003).
+    # A local database on a different major than CI is a class of bug that only
+    # ever shows up in CI.
+    image: postgres:17-alpine
+    container_name: atelier-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: atelier
+      # Deterministic collation, so ORDER BY matches production regardless of
+      # the developer's locale.
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # `pnpm db:up` uses `--wait`, which is only as good as this check. Without
+      # it, compose reports ready the moment the container starts and the first
+      # migration races the database's own startup.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d atelier"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  redis:
+    # Cache and queue only — never the sole source of truth for anything
+    # (ADR-003). Provisioned now because the orchestrator's job queue lands on
+    # it; nothing reads it yet, which is why there is no REDIS_URL in the env
+    # schema. It goes in when something needs it.
+    image: redis:8-alpine
+    container_name: atelier-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 2s
+
+volumes:
+  postgres-data:

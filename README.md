@@ -29,18 +29,28 @@ Progress tracker:
 
 ## Quick start
 
+Three commands from a clean clone to a running app. Needs Docker running.
+
 ```bash
-npm install -g pnpm      # `corepack enable pnpm` needs admin on Windows
 pnpm install
-pnpm dev                 # dashboard        -> http://localhost:3000
+pnpm setup               # Postgres + Redis, migrate, seed
+pnpm dev                 # dashboard -> http://localhost:3000
+```
+
+```bash
 pnpm storybook           # component gallery -> http://localhost:6006
 pnpm verify              # every gate: format, lint, deps, contrast, types, tests, build
+pnpm test:integration    # real Postgres via Testcontainers
+pnpm db:reset            # destroy the volume and start over
 ```
+
+Full guide, including what to do when it misbehaves:
+[docs/04-engineering/25-developer-guide.md](docs/04-engineering/25-developer-guide.md).
 
 Individual gates: `pnpm lint` · `pnpm depcruise` · `pnpm check:contrast` · `pnpm typecheck` ·
 `pnpm test` · `pnpm build` · `pnpm format`. A pre-commit hook formats and lints staged files (~4 s).
 
-Requires **Node 24 LTS** (see `.nvmrc`) and **pnpm 11+** (pinned via `packageManager`).
+Requires **Node 24 LTS** (see `.nvmrc`), **pnpm 11+** (pinned via `packageManager`) and **Docker**.
 
 ## Start here
 
