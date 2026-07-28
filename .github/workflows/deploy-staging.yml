@@ -56,6 +56,11 @@ jobs:
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
+      # cosign is NOT preinstalled on GitHub runners. Assuming it was cost a
+      # full build: the image pushed, then signing died with exit 127 and took
+      # the job — and therefore the deploy — with it.
+      - uses: sigstore/cosign-installer@v3
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -166,6 +171,12 @@ jobs:
             echo "::warning::Railway is not configured; image published but not deployed. See docs/04-engineering/26-staging-runbook.md."
             echo "> **Not deployed.** \`RAILWAY_TOKEN\` and/or \`RAILWAY_SERVICE\` are unset — see [the staging runbook](docs/04-engineering/26-staging-runbook.md)." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      # `imagetools` talks straight to the registry and needs no builder, but
+      # this job assumed cosign was on the runner and was wrong about that, so
+      # the buildx plugin is installed rather than assumed too. It costs 5s.
+      - uses: docker/setup-buildx-action@v3
+        if: steps.gate.outputs.configured == 'true'
 
       - name: Log in to GHCR
         if: steps.gate.outputs.configured == 'true'
