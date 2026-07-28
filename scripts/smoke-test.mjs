@@ -19,7 +19,10 @@ if (!baseUrl) {
   process.exit(2);
 }
 
-const base = baseUrl.replace(/\/$/, "");
+// Railway shows the domain without a scheme, so that is what gets pasted into
+// STAGING_URL. `fetch` throws "Failed to parse URL" on a bare host, which reads
+// like the service is broken rather than the variable being half-written.
+const base = (/^https?:\/\//.test(baseUrl) ? baseUrl : `https://${baseUrl}`).replace(/\/$/, "");
 const failures = [];
 
 /** Retry: a container that has just started is allowed a few seconds. */

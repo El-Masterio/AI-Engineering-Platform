@@ -74,3 +74,47 @@ describe("readiness", () => {
     expect(performance.now() - startedAt).toBeLessThan(150);
   });
 });
+
+describe("a failing check reports the reason to the operator, not to the wire", () => {
+  it("hands the real error to onError while the body stays generic", async () => {
+    const seen: unknown[] = [];
+    const report = await readiness([
+      {
+        name: "database",
+        probe: () => Promise.reject(new Error("connect ECONNREFUSED 10.0.0.1:5432")),
+        onError: (error) => {
+          seen.push(error);
+        },
+      },
+    ]);
+
+    // The operator gets everything...
+    expect(seen).toHaveLength(1);
+    expect((seen[0] as Error).message).toContain("ECONNREFUSED");
+
+    // ...and the unauthenticated caller gets nothing useful (§17).
+    expect(report.status).toBe("fail");
+    expect(JSON.stringify(report)).not.toContain("ECONNREFUSED");
+    expect(report.checks[0]?.detail).toBe("check failed");
+  });
+
+  it("is not called when the check passes", async () => {
+    let calls = 0;
+    await readiness([{ name: "db", probe: () => Promise.resolve(), onError: () => calls++ }]);
+    expect(calls).toBe(0);
+  });
+
+  it("survives an onError that itself throws", async () => {
+    // A broken logger must degrade the diagnosis, never the probe.
+    const report = await readiness([
+      {
+        name: "db",
+        probe: () => Promise.reject(new Error("down")),
+        onError: () => {
+          throw new Error("logger exploded");
+        },
+      },
+    ]);
+    expect(report.status).toBe("fail");
+  });
+});

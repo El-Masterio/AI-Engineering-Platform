@@ -34,6 +34,18 @@ export type ReadinessCheck = {
   probe: () => Promise<void>;
   /** Per-check budget. A hung dependency must not hang the probe. */
   timeoutMs?: number;
+  /**
+   * Called with the real error when the check fails.
+   *
+   * The HTTP body deliberately says only "check failed" — its audience is
+   * unauthenticated and a driver error carries the connection string. But that
+   * left the actual reason recorded *nowhere*: a 503 with no log line tells an
+   * operator that something is wrong and nothing about what, which is how a
+   * staging deploy fails a health check for five minutes while everyone
+   * guesses. The two audiences are different, so they get different detail —
+   * this one goes to the redacting logger (§M006), not to the wire.
+   */
+  onError?: (error: unknown) => void;
 };
 
 /** Liveness: the process answered, so it is alive. Deliberately trivial. */
@@ -58,6 +70,12 @@ async function runCheck(check: ReadinessCheck): Promise<CheckResult> {
       durationMs: Math.round(performance.now() - startedAt),
     };
   } catch (error: unknown) {
+    // Never let a logging failure turn a degraded check into a crashed probe.
+    try {
+      check.onError?.(error);
+    } catch {
+      /* ignore */
+    }
     return {
       name: check.name,
       status: "fail",
