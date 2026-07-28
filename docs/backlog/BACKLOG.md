@@ -11,6 +11,22 @@ Complexity: XS · S · M · L (XL is prohibited — split it first)
 > **Do not implement any milestone automatically.** Per [CLAUDE.md](../../CLAUDE.md), work starts only
 > on an explicit "Start Milestone X" or "Implement the next milestone."
 
+## Active sequence deviation — owner-approved 2026-07-27
+
+**M007 → M008 → M009 pulled ahead of M003–M006.** After M002 the repository had no runnable surface
+(the first URL is M009), and the owner asked to reach something demonstrable sooner.
+
+This is a reordering, not a scope change: no milestone is added, removed, or altered, and
+[§25](../05-delivery/25-roadmap.md) already designates design-system and UI-shell work as
+parallelizable around the critical path. IDs are unchanged.
+
+| Consequence | Handling |
+|---|---|
+| **M003 (CI) is deferred**, so pushes are not pipeline-gated for three milestones | Local husky hooks and `pnpm verify` still gate every commit. Accepted, time-boxed to M009. |
+| M004 (Postgres + RLS) — the critical path — slips by three milestones | 🔒 Not skipped, only resequenced. Tenant isolation remains non-negotiable and lands before any data path exists. |
+
+**Order now:** M007 → M008 → M009 → M003 → M004 → M005 → M006 → M010 …
+
 ---
 
 # PHASE 1 — Foundation & Core Loop (MVP)
@@ -33,11 +49,31 @@ Complexity: XS · S · M · L (XL is prohibited — split it first)
 **Verified** All 10 adversarial cases rejected: domain→external npm · domain→db · `*.routes.ts`→db · `*.service.ts`→fastify · bare `any` · TS enum · default export · `console.log` · circular dependency (depcruise exit 1) · domain-purity depcruise rule. `any` with `-- justified:` accepted; a disable comment *without* justification rejected. commitlint rejects bad type/case/period/length and accepts a valid message. Clean repo: `pnpm verify` exit 0. **Pre-commit hook: 3992 ms** (budget 10 s).
 **Notes** Three latent misconfigurations were found only because verification was adversarial — a clean lint run proved nothing. See the M002 completion report. Deferred to M003 (CI): `gitleaks` secret scanning, `knip` dead-code detection, and the `max-lines` 800 hard-fail (ESLint cannot express two severities for one rule; 400-warn is live).
 
-### M003 · CI pipeline — static analysis, test, build · M · 🏗✅
+### M003 · CI pipeline — static analysis, test, build · M · 🏗✅ — ✅ **Done** (2026-07-28)
 **Objective** Every PR gated before review.
-**Dependencies** M002
+**Dependencies** M002 ✅
 **Deliverables** GitHub Actions workflow implementing stages 1–4 of §24; Turborepo remote cache; pnpm store cache.
 **Acceptance** PR triggers the pipeline · a lint failure blocks merge · cached no-op run completes in < 3 min · branch protection requires green CI.
+**Verified** Three parallel jobs (static / unit+coverage / build). Every step run locally with real output: 11 gates, all exit 0; `pnpm verify` exit 0; `pnpm install --frozen-lockfile` exit 0. Fully cached serial re-run **27 s** against a 3-minute budget, with Turborepo reporting `12 cached, 12 total — FULL TURBO` in 87 ms. Four new gates each verified by reintroducing the fault: unused dependency → knip fails and names it; unacknowledged copyleft → licence gate fails and names the package; coverage below floor → vitest fails with the measured number; Tailwind silently not compiling → Storybook CSS gate fails with 6 missing utilities **while `build:storybook` still exits 0**.
+**Notes** Stage 3 (integration) deliberately NOT implemented — there is no database, and a job that
+passes because it has nothing to run is a fake gate. It lands with M004; §24 now carries a
+stage-status table.
+
+Three real defects surfaced while wiring the gates, none of which any existing check caught:
+- **Storybook rendered every component unstyled from M008 onward.** No PostCSS config existed at the
+  repo root, so Vite inlined Tailwind's source stylesheets instead of running the engine — the
+  bundle had `@layer utilities` and zero utilities in it. `pnpm build:storybook` exited 0 throughout.
+  Fixed, plus `scripts/check-storybook-css.mjs` so it cannot recur silently.
+- **ESLint was linting `storybook-static/`** — minified vendor bundles, type-checked. Invisible
+  because the directory is absent from a clean checkout and only appears once CI builds Storybook.
+  Lint went from **110 s to 9.9 s** once ignored.
+- **`@atelier/config` was declared by 12 packages and used by none of them** — every `tsconfig.json`
+  extended it by relative path, so the dependency edge was decorative. Now extended by package name.
+  `tailwindcss` likewise moved to `packages/ui`, the package whose `theme.css` actually imports it.
+
+**Owner-gated remainder** (needs credentials/admin, cannot be done from a dev machine): branch
+protection requiring the three checks, and `TURBO_TOKEN`/`TURBO_TEAM` for the Turborepo *remote*
+cache. The workflow already consumes both if present and falls back to `actions/cache` without them.
 
 ### M004 · Postgres, Drizzle, and first migration with RLS · M · 🏗🔒
 **Objective** The database foundation with tenant isolation active from migration one.
@@ -58,23 +94,29 @@ Complexity: XS · S · M · L (XL is prohibited — split it first)
 **Deliverables** `packages/observability`: OTel SDK setup, trace context propagation, structured JSON logger with **secret and PII redaction**, request-ID middleware, health/readiness endpoints.
 **Acceptance** A trace spans HTTP → service → DB · logs carry a correlation ID · a secret-shaped string is redacted in a test · `/healthz` and `/readyz` respond.
 
-### M007 · Design tokens · S · 🏗
+### M007 · Design tokens · S · 🏗 — ✅ **Done** (2026-07-27)
 **Objective** The §18 token system, live.
-**Dependencies** M001
+**Dependencies** M001 ✅
 **Deliverables** `packages/ui/tokens/tokens.css` (primitives + semantic, both themes), Tailwind config consuming CSS variables, `data-theme` switching.
 **Acceptance** All §18 tokens defined · both themes pass automated WCAG AA contrast checks · a hardcoded hex in a component fails lint.
+**Verified** 116 unique tokens across 12 groups · `scripts/check-contrast.mjs` → **40 pairs, 0 failing** in both themes · hex literal, `rgb()` call and direct primitive reference all rejected by lint, semantic token accepted · Tailwind compile confirms `bg-surface` → `var(--bg-surface)` with **zero** primitive utilities generated · theme API exported and typed. All six gates exit 0.
+**Notes** The contrast checker found **4 genuine WCAG 1.4.11 failures in §18's own specified values** (`--border-default` at 2.60:1 dark / 2.56:1 light against a 3:1 requirement). Tokens corrected and §18 amended with the machine-verified figures.
 
-### M008 · UI primitives · M · ✨
+### M008 · UI primitives · M · ✨ — ✅ **Done** (2026-07-27)
 **Objective** The base component set.
-**Dependencies** M007
+**Dependencies** M007 ✅
 **Deliverables** Button, Input, Textarea, Select, Checkbox, Switch, Badge, Icon, Avatar, Tooltip, **StatusIndicator** — each with stories and tests.
 **Acceptance** Every component covers default/hover/focus/active/disabled/loading/error · keyboard operable · axe clean · renders correctly in both themes.
+**Verified** 11/11 components exported and loading at runtime (14/14 including `Field`, `cn`, theme API) · **42 tests passing** across 4 files · 9 axe assertions covering every component · keyboard operation asserted for Button, Checkbox, Switch, Select and Tooltip · a structural-fingerprint test proves both themes render identically (no component branches on theme) · Storybook builds and serves at `localhost:6006` with a live theme toolbar. All seven gates exit 0.
+**Notes** Adds a `Field` wrapper (label/description/error wiring) so no control can ship without an associated label — §18 forbids placeholder-as-label. Radix supplies behaviour; all styling is ours from semantic tokens only. `packages/ui` now splits `tsconfig.json` (editor + lint, includes tests) from `tsconfig.build.json` (emit, excludes them).
 
-### M009 · AppShell and routing skeleton · S · ✨
+### M009 · AppShell and routing skeleton · S · ✨ — ✅ **Done** (2026-07-27)
 **Objective** Somewhere to put screens.
-**Dependencies** M008
+**Dependencies** M008 ✅
 **Deliverables** Next.js App Router setup, AppShell (collapsible sidebar + topbar), route groups, error and loading boundaries.
 **Acceptance** Navigation works · sidebar collapse persists · error boundary catches a thrown error · LCP within budget on an empty page.
+**Verified** (measured in a real browser via Playwright against the production build) Navigation: `/agents` updates URL, title, `aria-current`, breadcrumb and content · Collapse: 248px → 56px, persisted to storage, **survives a full page load** · Error boundary: a deliberately throwing route renders it, shows a digest and **does not leak the raw error message** (§16) · **LCP 32 ms against a 2500 ms budget** (FCP 32 ms, TTFB 6 ms, 47 KB transfer). Routes: `/`→302, `/projects`, `/agents`, `/settings`, `/projects/[id]` all 200; unknown route 404. 52 tests. All seven gates exit 0.
+**Notes** Fixed a spec violation found only by looking at the running app: `resolveInitialTheme` preferred the OS `prefers-color-scheme` over the dark default, so a light-mode OS overrode §18's dark-first product decision. Now dark unless explicitly stored; revisit at M083 when light mode formally ships. Also added `THEME_BASE_COLOR` — browser-chrome metadata cannot read a CSS variable, so the two literals are duplicated by necessity and a test asserts they stay equal to `--bg-base`.
 
 ### M010 · Local development environment · S · 🏗
 **Objective** One-command onboarding.
@@ -418,7 +460,7 @@ Complexity: XS · S · M · L (XL is prohibited — split it first)
 
 | ID | Title | Cx | Type | Deps | Objective / key acceptance |
 |---|---|---|---|---|---|
-| M083 | Light theme | S | ✨ | M007 | Full light mode; WCAG AA verified in both themes; token remap only |
+| M083 | Dark theme | S | ✨ | M007 | Full dark palette; WCAG AA verified in both themes; token remap only. **Inverted by ADR-008** — v2.0 ships light, so this milestone now adds dark. The `data-theme` hook and the toggle scaffolding it needs were deliberately removed rather than left inert; restoring them is part of the scope. |
 | M084 | WCAG 2.2 AA conformance pass | M | ✅ | M083 | Full audit and remediation; manual screen-reader audit; axe clean |
 | M085 | Architecture module | M | ✨ | M075 | Living component graph, dependency view, ADR browser |
 | M086 | Architecture drift detection | M | ✅ | M085 | Documented graph compared to the real import graph; drift reported |

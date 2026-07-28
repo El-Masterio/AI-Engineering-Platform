@@ -41,11 +41,30 @@
                 └─▶ Auto-rollback on SLO burn
 ```
 
+### Implementation status
+
+`.github/workflows/ci.yml` implements stages **1, 2 and 4** as of M003. The rest are scaffolded by
+this document, not by code, and land with the milestones that give them something to run.
+
+| Stage | Status | Lands at |
+|---|---|---|
+| 1 Static analysis | ✅ live | M003 |
+| 2 Unit + coverage | ✅ live | M003 |
+| 3 Integration | ⏳ nothing to run — no database exists | M004 |
+| 4 Build | ✅ live | M003 |
+| 5 Replay agent evals | ⏳ no orchestrator | M037+ |
+| 6 Quality budgets | ⏳ partial — an axe suite and the WCAG contrast gate run inside stages 1–2; bundle size and Lighthouse need a deployed target | M083+ |
+| 7–12 Preview → production | ⏳ no deployment target | M011+ |
+
+A stage is not added to the workflow until it has something real to assert. A job that passes
+because it has nothing to run is not a gate, and it is worse than no job at all — it reports green
+and teaches people the pipeline is covering something it is not.
+
 ### Stage detail
 
 | # | Stage | Contents | Blocks merge |
 |---|---|---|---|
-| 1 | Static analysis | Prettier check, ESLint, `tsc --noEmit`, dependency-cruiser (no cycles), knip (dead code), gitleaks, license check | ✅ |
+| 1 | Static analysis | Prettier check, ESLint, `tsc --noEmit`, dependency-cruiser (no cycles), knip (dead code), gitleaks, license check, WCAG contrast gate, Storybook-compiled-CSS gate | ✅ |
 | 2 | Unit + contract | Vitest, coverage floors enforced per path | ✅ |
 | 3 | Integration | Testcontainers Postgres + Redis, **cross-tenant suite**, authorization matrix, migration up/down | ✅ |
 | 4 | Build | Turborepo build of all packages and apps; type-check across boundaries | ✅ |

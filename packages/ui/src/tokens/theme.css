@@ -1,0 +1,148 @@
+/**
+ * Tailwind v4 theme bridge — Design System v2.0.
+ *
+ * Tailwind v4 is CSS-first: `@theme` declarations generate the utility classes.
+ * Every entry below points at a SEMANTIC token from tokens.css rather than a
+ * literal value, so `bg-surface` resolves through `--bg-surface` at runtime.
+ *
+ * Consequence worth stating: there is no `bg-w-150` utility and there never
+ * should be. Primitives are deliberately absent from the utility surface — the
+ * only way to reach one from a component is to bypass the design system, which
+ * the lint rule in eslint.config.js rejects.
+ *
+ * Import order matters: tokens.css must come first (it defines the variables).
+ */
+
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Tailwind v4 scans for class names starting from the CSS file's own location,
+   which finds nothing useful from inside src/tokens/. Declaring the package's
+   own sources here means @atelier/ui is self-sufficient: any consumer that
+   imports this file gets the primitives' utilities compiled, without having to
+   know the package's internal layout. Storybook silently rendered every
+   component unstyled for want of this line — Tailwind ran, found no content,
+   and emitted zero utilities. Paths are relative to this file. */
+@source "../";
+
+@theme inline {
+  /* ── Colour: semantic only ─────────────────────────────────────────────── */
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-surface-2: var(--bg-surface-2);
+  --color-elevated: var(--bg-elevated);
+  --color-sidebar: var(--bg-sidebar);
+  --color-inset: var(--bg-inset);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+  --color-overlay: var(--bg-overlay);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-muted: var(--border-muted);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-focus: var(--border-focus);
+
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-placeholder: var(--text-placeholder);
+  --color-disabled: var(--text-disabled);
+  --color-inverse: var(--text-inverse);
+  --color-accent: var(--text-accent);
+  --color-link: var(--text-link);
+
+  --color-brand: var(--brand);
+  --color-accent-solid: var(--accent);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-bg-hover: var(--accent-bg-hover);
+  --color-accent-bg-active: var(--accent-bg-active);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft-bg: var(--accent-soft-bg);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+
+  --color-sky: var(--secondary);
+  --color-sky-strong: var(--secondary-strong);
+  --color-sky-soft-bg: var(--secondary-soft-bg);
+  --color-sky-soft-fg: var(--secondary-soft-fg);
+  --color-slate: var(--slate);
+
+  --color-ok: var(--status-ok);
+  --color-ok-bg: var(--status-ok-bg);
+  --color-warn: var(--status-warn);
+  --color-warn-bg: var(--status-warn-bg);
+  --color-err: var(--status-err);
+  --color-err-bg: var(--status-err-bg);
+  --color-err-fill: var(--status-err-fill);
+  --color-info: var(--status-info);
+  --color-info-bg: var(--status-info-bg);
+  --color-running: var(--status-running);
+  --color-running-bg: var(--status-running-bg);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --text-caption: var(--text-caption);
+  --text-small: var(--text-small);
+  --text-button: var(--text-button);
+  --text-body: var(--text-body);
+  --text-h5: var(--text-h5);
+  --text-h4: var(--text-h4);
+  --text-h3: var(--text-h3);
+  --text-h2: var(--text-h2);
+  --text-h1: var(--text-h1);
+  --text-hero: var(--text-hero);
+
+  --leading-tight: var(--leading-tight);
+  --leading-snug: var(--leading-snug);
+  --leading-normal: var(--leading-normal);
+  --leading-relaxed: var(--leading-relaxed);
+
+  --tracking-tight: var(--tracking-tight);
+  --tracking-snug: var(--tracking-snug);
+  --tracking-normal: var(--tracking-normal);
+  --tracking-wide: var(--tracking-wide);
+
+  /* ── Spacing — the directive's sanctioned steps only ───────────────────── */
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+  --spacing-16: var(--space-16);
+  --spacing-20: var(--space-20);
+  --spacing-24: var(--space-24);
+
+  /* ── Radius ────────────────────────────────────────────────────────────── */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-control: var(--radius-control);
+  --radius-full: var(--radius-full);
+
+  /* ── Shadow ────────────────────────────────────────────────────────────── */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  /* ── Layout ────────────────────────────────────────────────────────────── */
+  --container-max: var(--container-max);
+  --container-prose: var(--container-prose);
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+}

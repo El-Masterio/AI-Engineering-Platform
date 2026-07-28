@@ -1,8 +1,11 @@
 {
-  "extends": "../../packages/config/tsconfig.base.json",
+  "extends": "@atelier/config/tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "//": "Covers tests and stories so the editor and ESLint have type info. The BUILD uses tsconfig.build.json, which excludes them from emit."
 }

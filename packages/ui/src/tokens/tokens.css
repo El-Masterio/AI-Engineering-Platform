@@ -1,0 +1,368 @@
+/**
+ * Atelier design tokens — Design System v2.0 (warm neutral).
+ *
+ * The machine-readable form of docs/03-design/18-design-system.md v2.0, which
+ * encodes the owner's UI/UX Design System Directive v2.0. See
+ * docs/decisions/ADR-008-design-system-v2.md for why v1 (dark, teal) was
+ * replaced wholesale.
+ *
+ * TWO LAYERS, and the separation is load-bearing:
+ *   • PRIMITIVES  (--w-*, --s-*, --o-*, --b-*, …) are raw scales. A component
+ *     may NEVER reference one directly — that is a review rejection.
+ *   • SEMANTIC    (--bg-*, --text-*, --border-*, …) are what components use.
+ *
+ * ── ON THE DERIVED VALUES ────────────────────────────────────────────────────
+ * The directive's palette was measured against WCAG 2.2 AA (NFR-A11Y-3) before
+ * a line of it was implemented. 20 of 23 load-bearing pairs failed. Every
+ * specified colour is present below and unchanged, and is used wherever the
+ * requirement is 3:1 (non-text: indicators, progress, charts, the logo mark) or
+ * where it already passed. Where a specified colour would carry TEXT and failed
+ * 4.5:1, a DERIVED shade sits beside it — same hue and saturation, darkened by
+ * the minimum needed to pass. Each is marked `DERIVED` with its measured ratio.
+ *
+ * The most visible consequence: the primary button fills with --o-700 (#c8510e,
+ * 4.53:1 under white) rather than the specified #f06d22 (3.04:1). The vivid
+ * #f06d22 remains the brand orange everywhere text is not involved.
+ *
+ * Contrast is verified in CI by scripts/check-contrast.mjs. Changing a colour
+ * here without re-running it is how an accessibility regression ships.
+ */
+
+:root {
+  /* ══ PRIMITIVES ═════════════════════════════════════════════════════════ */
+
+  /* ── Warm neutral — the 60% of the interface ───────────────────────────── */
+  --w-0: #ffffff; /* cards */
+  --w-25: #fbfaf8; /* elevated surface */
+  --w-50: #f7f5f1; /* primary background */
+  --w-100: #f1eee9; /* secondary background */
+  --w-150: #ece8e2; /* sidebar */
+  --w-200: #e5e2dc; /* secondary border */
+  --w-300: #dad6cf; /* primary border */
+  --w-350: #f4f1ec; /* ghost hover */
+
+  /* ── Slate — text and control boundaries ───────────────────────────────── */
+  --s-200: #d3d9e2; /* input border (decorative weight) */
+  --s-300: #c3cbd6; /* disabled text */
+  --s-400: #a2acba; /* placeholder */
+  --s-450: #7386a3; /* DERIVED control boundary — 3.04:1 on the sidebar */
+  --s-500: #7c8797; /* muted (spec) — non-text use only */
+  --s-600: #5f6978; /* DERIVED muted text — 4.55:1 on the sidebar */
+  --s-700: #556070; /* secondary text — 5.86:1 on #f7f5f1 */
+  --s-900: #1e2430; /* primary text — 14.28:1 on #f7f5f1 */
+
+  /* ── Orange — primary accent. 15% of the interface, never more. ────────── */
+  --o-50: #ffe9db; /* soft orange */
+  --o-400: #ff7a2c; /* hover (spec) — non-text only */
+  --o-500: #f06d22; /* PRIMARY BRAND — non-text only (3.04:1 on #fff) */
+  --o-600: #d95f18; /* pressed (spec) — non-text only */
+  --o-700: #c8510e; /* DERIVED action fill — 4.53:1 under white text */
+  --o-800: #ab4409; /* DERIVED hover/pressed for --o-700 */
+  --o-900: #b1480c; /* DERIVED accent text — 4.53:1 on every surface */
+
+  /* ── Blue — secondary accent. Charts, focus, selection, links. ─────────── */
+  --b-50: #eef4ff; /* info background */
+  --b-100: #e6edff; /* light blue — selected nav */
+  --b-200: #c7d2f5; /* light slate */
+  --b-400: #87a4ef; /* hover (spec) */
+  --b-500: #7695e6; /* SKY BLUE — brand secondary, non-text */
+  --b-600: #5d81e1; /* DERIVED focus ring — 3.02:1 on the sidebar */
+  --b-700: #3260da; /* DERIVED link / nav-active text — 4.50:1 everywhere */
+
+  /* ── Slate blue — professional balance. 10%. ───────────────────────────── */
+  --sb-500: #5766a1; /* DERIVED from the spec's #5f6ea8 — 4.50:1 on the sidebar */
+
+  /* ── Status ────────────────────────────────────────────────────────────── */
+  --ok-500: #2b9759; /* DERIVED dot/icon from the spec's #34b56a — 3.03:1 */
+  --ok-700: #25804b; /* DERIVED text */
+  --ok-50: #edf9f1;
+
+  --warn-500: #ae7c1b; /* DERIVED dot/icon from the spec's #d99b22 — 3.02:1 */
+  --warn-700: #936917; /* DERIVED text */
+  --warn-50: #fff8e8;
+
+  --err-500: #d95a5a; /* spec, unchanged — 3.09:1, passes as a dot/icon */
+  --err-600: #d44242; /* DERIVED fill — 4.51:1 under white text */
+  --err-700: #d03333; /* DERIVED text */
+  --err-50: #fff0f0;
+
+  --info-500: #4d83e6; /* DERIVED dot/icon from the spec's #5e8fe8 — 3.02:1 */
+  --info-700: #2869e0; /* DERIVED text */
+  --info-50: #eef4ff;
+
+  /* ── Chart series — non-text; the bar is 3:1 against each other ────────── */
+  --chart-1: #f06d22;
+  --chart-2: #7695e6;
+  --chart-3: #5f6ea8;
+  --chart-4: #34b56a;
+  --chart-5: #d99b22;
+  --chart-6: #bfc8d3;
+
+  /* ══ TYPOGRAPHY ═════════════════════════════════════════════════════════ */
+  /* Manrope carries display and headings — it has enough character to give the
+     product an identity. Inter carries body and UI, where its larger x-height
+     reads better at 13–16px. Both are self-hosted by next/font in apps/web, so
+     there is no external request at runtime. */
+  --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Directive type scale, in rem so the browser font-size preference is
+     honoured (NFR-A11Y). Comments give the px value at a 16px root. */
+  --text-caption: 0.8125rem; /* 13px */
+  --text-small: 0.875rem; /* 14px */
+  --text-button: 0.9375rem; /* 15px */
+  --text-body: 1rem; /* 16px */
+  --text-h5: 1.25rem; /* 20px */
+  --text-h4: 1.5rem; /* 24px */
+  --text-h3: 2rem; /* 32px */
+  --text-h2: 2.5rem; /* 40px */
+  --text-h1: 3.25rem; /* 52px */
+  --text-hero: 4rem; /* 64px */
+
+  --leading-tight: 1.15; /* hero and h1 */
+  --leading-snug: 1.3; /* headings */
+  --leading-normal: 1.55; /* body */
+  --leading-relaxed: 1.7; /* long prose */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  --tracking-tight: -0.02em; /* display sizes only — large text needs it */
+  --tracking-snug: -0.011em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+
+  /* ══ SPACING — 8px base grid ════════════════════════════════════════════ */
+  /* The directive's sanctioned steps, and only these. 20px is deliberately
+     absent: it is off the 8px grid, and every prior use of it was a near-miss
+     for 16 or 24. Naming is --space-N where N × 4px = the value. */
+  --space-0: 0;
+  --space-px: 1px;
+  --space-1: 0.25rem; /* 4 */
+  --space-2: 0.5rem; /* 8 */
+  --space-3: 0.75rem; /* 12 */
+  --space-4: 1rem; /* 16 */
+  --space-6: 1.5rem; /* 24 */
+  --space-8: 2rem; /* 32 */
+  --space-10: 2.5rem; /* 40 */
+  --space-12: 3rem; /* 48 */
+  --space-16: 4rem; /* 64 */
+  --space-20: 5rem; /* 80 */
+  --space-24: 6rem; /* 96 */
+
+  /* ══ RADIUS — rounded, never sharp ══════════════════════════════════════ */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Controls sit slightly tighter than their containers, so a control inside a
+     card does not read as a second card. */
+  --radius-control: 12px;
+
+  /* ══ CONTROL GEOMETRY ═══════════════════════════════════════════════════ */
+  --control-h: 48px; /* directive default for buttons and inputs */
+  --control-h-sm: 36px; /* dense contexts: table rows, toolbars */
+  --control-h-lg: 56px;
+  --control-px: 24px;
+
+  /* ══ LAYOUT ═════════════════════════════════════════════════════════════ */
+  --container-max: 1440px; /* directive maximum content width */
+  --container-prose: 72ch;
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 72px;
+  --topbar-h: 64px;
+
+  /* ══ Z-INDEX ════════════════════════════════════════════════════════════ */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+  --z-tooltip: 60;
+
+  /* ══ MOTION — 150–200ms, ease-in-out, no bounce ═════════════════════════ */
+  --dur-fast: 150ms;
+  --dur-normal: 200ms;
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ══ GRADIENTS — extremely subtle, never a large colourful field ════════ */
+  --gradient-primary: linear-gradient(135deg, #f06d22, #ff8c4a);
+  --gradient-secondary: linear-gradient(135deg, #7695e6, #a7bbf5);
+  --gradient-neutral: linear-gradient(180deg, #ffffff, #f5f2ee);
+}
+
+/* ══ SEMANTIC TOKENS ══════════════════════════════════════════════════════ */
+/* The directive specifies exactly one palette, and lists "too dark" among the
+   things to avoid. Light is therefore the product, not a mode. The
+   `[data-theme]` hook is kept so M083 can add a dark counterpart without
+   re-architecting, but there is no second palette to invent today. */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── Surfaces ──────────────────────────────────────────────────────────── */
+  --bg-base: var(--w-50);
+  --bg-surface: var(--w-0); /* cards */
+  --bg-surface-2: var(--w-100); /* recessed panels */
+  --bg-elevated: var(--w-25); /* popovers, menus */
+  --bg-sidebar: var(--w-150);
+  --bg-inset: var(--w-0); /* inputs, code blocks */
+  --bg-hover: var(--w-350);
+  --bg-selected: var(--b-100); /* soft blue — selection is blue, not orange */
+  /* Modal scrim: --s-900 at 24%. Written literally because a var() cannot be
+     given an alpha channel without color-mix, and this is the only alpha in
+     the system. */
+  --bg-overlay: rgb(30 36 48 / 0.24);
+
+  /* ── Borders ───────────────────────────────────────────────────────────── */
+  /* subtle/muted are DECORATIVE — dividers and card outlines. WCAG 1.4.11 does
+     not apply to them, which is what lets them stay as soft as the directive
+     asks. `default` and `strong` are CONTROL BOUNDARIES and must clear 3:1. */
+  --border-subtle: var(--w-200);
+  --border-muted: var(--w-300);
+  --border-default: var(--s-450);
+  --border-strong: var(--s-600); /* the spec's #7c8797 lands at 2.98:1 here */
+  --border-focus: var(--b-600);
+
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --text-primary: var(--s-900);
+  --text-secondary: var(--s-700);
+  --text-tertiary: var(--s-600); /* DERIVED from the spec's muted #7c8797 */
+  /* The spec's #a2acba reads at 2.30:1 — placeholder is text a user has to
+     read, so it is held to 4.5:1 like any other. It stays visibly lighter than
+     an entered value, which sits at 14.28:1. */
+  --text-placeholder: var(--s-600);
+  --text-disabled: var(--s-300);
+  --text-inverse: var(--w-0);
+  --text-accent: var(--o-900);
+  --text-link: var(--b-700);
+
+  /* ── Accent: orange ────────────────────────────────────────────────────── */
+  /* `--brand` is the vivid spec orange, used where nothing depends on
+     distinguishing it: the logo mark and gradients. `--accent` is orange as a
+     MEANINGFUL indicator (progress fill, active marker) and is gated at 3:1 —
+     the spec's own pressed value clears it on every surface. */
+  --brand: var(--o-500);
+  --accent: var(--o-600);
+  --accent-bg: var(--o-700); /* action fill, carries white text */
+  --accent-bg-hover: var(--o-800);
+  --accent-bg-active: var(--o-900);
+  --accent-fg: var(--w-0);
+  --accent-soft-bg: var(--o-50);
+  --accent-soft-fg: var(--o-900);
+
+  /* ── Accent: blue (secondary) ──────────────────────────────────────────── */
+  --secondary: var(--b-500);
+  --secondary-strong: var(--b-600);
+  --secondary-soft-bg: var(--b-100);
+  --secondary-soft-fg: var(--b-700);
+  --slate: var(--sb-500);
+
+  /* ── Status ────────────────────────────────────────────────────────────── */
+  --status-ok: var(--ok-700);
+  --status-ok-bg: var(--ok-50);
+  --status-ok-dot: var(--ok-500);
+  --status-warn: var(--warn-700);
+  --status-warn-bg: var(--warn-50);
+  --status-warn-dot: var(--warn-500);
+  --status-err: var(--err-700);
+  --status-err-bg: var(--err-50);
+  --status-err-fill: var(--err-600);
+  --status-err-dot: var(--err-500);
+  --status-info: var(--info-700);
+  --status-info-bg: var(--info-50);
+  --status-info-dot: var(--info-500);
+  --status-running: var(--b-700);
+  --status-running-bg: var(--b-50);
+
+  --diff-add-bg: var(--ok-50);
+  --diff-del-bg: var(--err-50);
+
+  /* ── Shadows — "should almost disappear" ───────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgb(25 25 25 / 0.04);
+  --shadow-md: 0 8px 30px rgb(25 25 25 / 0.05);
+  --shadow-lg: 0 16px 48px rgb(25 25 25 / 0.08);
+}
+
+/* ══ Base element defaults ════════════════════════════════════════════════ */
+/* `@layer base` is load-bearing, not tidiness. Unlayered CSS wins over ANY
+   cascade layer, so while these rules sat unlayered they silently outranked
+   every Tailwind utility — `outline-none` on a component could not override the
+   `:focus-visible` rule below. That went unnoticed because most components
+   re-declare the same focus ring the global one provides; it surfaced the first
+   time a component wanted a different one. Utilities beat base, so components
+   are back in charge.
+
+   Tailwind's preflight is also `@layer base`; tokens.css is imported after it,
+   so these rules still win within the layer. */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    /* rem-based type scale respects the browser font-size preference (NFR-A11Y). */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+    line-height: var(--leading-normal);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-snug);
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+
+  /* Visible, non-colour-dependent focus (NFR-A11Y-4). The floor for anything
+     that does not style its own focus; components may override it. */
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Motion supports usability, never decoration (NFR-A11Y-6). Deliberately
+   unlayered: this is an accessibility override that must beat everything. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

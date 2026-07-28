@@ -62,7 +62,7 @@ Recorded now so it isn't rediscovered as a surprise:
 | **D-005** | Managed containers, not Kubernetes | Fine to ~1,000 concurrent runs | Scale or cost crossover, measured | 6 |
 | **D-006** | Single model provider | Fine while quality leads | Provider risk materializes, or a competitor's model clearly wins a task class | — |
 | **D-007** | Fixed agent definitions (not user-editable) | Fine for MVP | Customer demand for custom agents | 8 |
-| **D-008** | Dark mode only | Fine for design partners | Self-serve launch | 4 |
+| **D-008** | Light mode only | Fine for design partners; v2.0 specifies one palette | Self-serve launch | 4 |
 | **D-009** | GitHub only | Fine for the beachhead | GitLab demand from a paying segment | 4 |
 | **D-010** | No ZDR (managed runtime constraint) | Blocks some enterprise | First lost deal citing ZDR | 7 |
 | **D-011** | Rolling deploys, no canary | Fine at low traffic | Traffic sufficient for a meaningful canary signal | 6 |

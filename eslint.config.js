@@ -28,7 +28,13 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/.turbo/**",
       "**/.next/**",
+      "**/next-env.d.ts",
       "**/coverage/**",
+      // Storybook's build output. Absent from a clean checkout, so this gap
+      // stayed invisible until CI started building it: ESLint was type-checking
+      // minified vendor bundles and taking 110s to report nonsense about them.
+      "**/storybook-static/**",
+      "**/.playwright-mcp/**",
       "docs/**",
       "skills/**",
     ],
@@ -108,7 +114,14 @@ export default tseslint.config(
       complexity: ["error", 15],
       "max-lines": ["warn", { max: 400, skipBlankLines: true, skipComments: true }],
       eqeqeq: ["error", "always", { null: "ignore" }],
-      "no-param-reassign": ["error", { props: true }],
+      "no-param-reassign": [
+        "error",
+        {
+          props: true,
+          // Mutating these IS the function's purpose; flagging it is noise.
+          ignorePropertyModificationsFor: ["document", "draft", "acc", "accumulator"],
+        },
+      ],
     },
   },
 
@@ -323,6 +336,45 @@ export default tseslint.config(
     },
   },
 
+  // ── §18 governance: no hardcoded design values in components ─────────────
+  // Components reference SEMANTIC tokens only. A literal colour or raw px size
+  // is invisible to theming, so it silently breaks light mode and the contrast
+  // guarantee that scripts/check-contrast.mjs enforces over the token set.
+  // tokens.css is exempt by construction — it is CSS, not linted here.
+  {
+    files: ["packages/ui/**/*.{ts,tsx}", "apps/web/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "TSEnumDeclaration",
+          message: "TS enums are prohibited (§21). Use an `as const` object plus a union type.",
+        },
+        {
+          // #fff / #ffffff / #ffffffff
+          selector: String.raw`Literal[value=/#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/]`,
+          message:
+            "Hardcoded colour. Use a semantic design token (§18) — e.g. `bg-surface`, `text-primary`, or var(--text-primary). Literals bypass theming and the contrast gate.",
+        },
+        {
+          selector: String.raw`TemplateElement[value.raw=/#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/]`,
+          message: "Hardcoded colour in a template literal. Use a semantic design token (§18).",
+        },
+        {
+          selector: String.raw`Literal[value=/\b(?:rgb|rgba|hsl|hsla)\(/]`,
+          message:
+            "Hardcoded colour function. Use a semantic design token (§18) rather than a literal colour.",
+        },
+        {
+          // Reaching past the semantic layer into a raw scale.
+          selector: String.raw`Literal[value=/var\(\s*--(?:n|a|ok|warn|err|info|run)-[0-9]/]`,
+          message:
+            "Primitive token referenced directly. Components must use SEMANTIC tokens (--bg-*, --text-*, --border-*, --status-*), never a raw scale (§18).",
+        },
+      ],
+    },
+  },
+
   // ── Unicorn: naming and modern idioms ────────────────────────────────────
   {
     plugins: { unicorn },
@@ -332,11 +384,20 @@ export default tseslint.config(
       "unicorn/filename-case": ["error", { cases: { kebabCase: true, pascalCase: true } }],
       // Fights our domain vocabulary rule ("say `organization`, not `org`").
       "unicorn/prevent-abbreviations": "off",
+      // Same problem: it renames `Props` -> `Properties` and `props` ->
+      // `properties`. `Props` IS the React vocabulary; §21 says match the
+      // domain's terms, so this rule is actively wrong here.
+      "unicorn/name-replacements": "off",
       // null is meaningful against a SQL database.
       "unicorn/no-null": "off",
       "unicorn/no-array-reduce": "off",
       // We deliberately avoid default exports (§21).
       "unicorn/prefer-module": "error",
+      // Iterator helpers (.toArray()) are ES2025; packages compile against
+      // ES2023, so the rule suggests an API TypeScript cannot type here.
+      // Revisit when the shared lib target moves past ES2023.
+      "unicorn/prefer-iterator-to-array": "off",
+      "unicorn/prefer-iterator-to-array-at-end": "off",
       "unicorn/prefer-node-protocol": "error",
     },
   },
@@ -348,25 +409,83 @@ export default tseslint.config(
     rules: { ...jsxA11y.flatConfigs.recommended.rules },
   },
 
-  // ── Tests: relax what does not apply ─────────────────────────────────────
+  // ── Tests and stories: relax what does not apply ─────────────────────────
   {
-    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "e2e/**", "evals/**"],
+    files: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.stories.tsx",
+      ".storybook/**",
+      "vitest.config.ts",
+      "vitest.setup.ts",
+      "e2e/**",
+      "evals/**",
+    ],
     rules: {
+      // Test and story tooling lives in the root devDependencies by design.
+      "import-x/no-extraneous-dependencies": "off",
+      "import-x/no-default-export": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
       "@typescript-eslint/no-unnecessary-condition": "off",
       "max-lines": "off",
-      "boundaries/element-types": "off",
-      "boundaries/external": "off",
+      // Rule names must match the v7 unified rule; the pre-rename names were
+      // silently no-ops here.
+      "boundaries/dependencies": "off",
+      "boundaries/no-unknown-dependencies": "off",
     },
+  },
+
+  // ── jsdom environment shims ──────────────────────────────────────────────
+  // A polyfill's whole job is assigning to globals and matching a native shape.
+  // These rules are correct for product code and wrong here.
+  {
+    files: ["vitest.setup.ts"],
+    rules: {
+      "unicorn/no-global-object-property-assignment": "off",
+      "unicorn/no-useless-undefined": "off",
+      "unicorn/consistent-class-member-order": "off",
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
+      "@typescript-eslint/no-empty-function": "off",
+    },
+  },
+
+  // ── Next.js app: the framework's contract requires default exports ───────
+  // Pages, layouts, error and loading boundaries are matched by filename and
+  // MUST default-export. That is the framework's API, not a style choice.
+  {
+    files: [
+      "apps/web/src/app/**/page.tsx",
+      "apps/web/src/app/**/layout.tsx",
+      "apps/web/src/app/**/error.tsx",
+      "apps/web/src/app/**/loading.tsx",
+      "apps/web/src/app/**/not-found.tsx",
+      "apps/web/src/app/**/template.tsx",
+      "apps/web/*.config.{ts,mjs}",
+    ],
+    rules: { "import-x/no-default-export": "off" },
+  },
+
+  // Next.js owns the app-directory naming contract: `[param]`, `(group)`,
+  // `@slot`. unicorn/filename-case cannot know that, and renaming would break
+  // routing.
+  {
+    files: ["apps/web/src/app/**"],
+    rules: { "unicorn/filename-case": "off" },
   },
 
   // ── Scripts and tooling: console is the point ────────────────────────────
   {
     files: ["scripts/**", "*.config.js", "*.config.mjs", "eslint.config.js"],
+    languageOptions: {
+      globals: { console: "readonly", process: "readonly", URL: "readonly" },
+    },
     rules: {
       "no-console": "off",
       "import-x/no-default-export": "off",
       "import-x/no-extraneous-dependencies": "off",
+      // resolve() walks a var() chain — genuine recursion, not an accidental one.
+      "unicorn/no-useless-recursion": "off",
     },
   },
 

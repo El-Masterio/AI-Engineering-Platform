@@ -5,6 +5,9 @@
   "compilerOptions": {
     "noEmit": true,
     "rootDir": ".",
+    // The workspace view now spans .tsx (packages/ui) as well as .ts.
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "outDir": ".turbo/tsconfig-noemit",
     // No `baseUrl` — deprecated in TS 7; `paths` resolves relative to this file.
     // Maps workspace packages to SOURCE rather than dist. Without this,
@@ -13,9 +16,19 @@
     // vanished from the graph and the domain-purity and dev-dependency rules
     // silently never fired. Tooling-only: package builds do not extend this file.
     "paths": {
-      "@atelier/*": ["./packages/*/src/index.ts"]
+      "@atelier/*": ["./packages/*/src/index.ts"],
+      // apps/web's own alias, mirrored here so dependency-cruiser can resolve it.
+      "@/*": ["./apps/web/src/*"]
     }
   },
-  "include": ["apps/*/src/**/*.ts", "apps/*/src/**/*.tsx", "packages/*/src/**/*.ts"],
+  "include": [
+    "apps/*/src/**/*.ts",
+    "apps/*/src/**/*.tsx",
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
+    ".storybook/**/*.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts"
+  ],
   "exclude": ["node_modules", "**/dist/**", "**/.turbo/**", "**/.next/**"]
 }

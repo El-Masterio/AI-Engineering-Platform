@@ -1,0 +1,5 @@
+{
+  "//": "Emit config: same settings as tsconfig.json but tests and stories are excluded from dist.",
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx"]
+}
