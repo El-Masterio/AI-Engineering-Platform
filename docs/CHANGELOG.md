@@ -9,6 +9,58 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M011 — staging deploy pipeline** ([ADR-009](decisions/ADR-009-railway-staging.md): Railway, GHCR,
+  staging only). Code complete; the deploy itself awaits a Railway project.
+  - `apps/api` gained a real HTTP server with `/`, `/healthz`, `/readyz`, correlation ids and
+    **graceful SIGTERM shutdown** — verified draining to exit 0 in a container.
+  - Multi-stage `Dockerfile`, non-root, multi-arch (amd64 + arm64), provenance and SBOM attested,
+    **cosign keyless-signed** so there is no signing key to store or leak.
+  - `deploy-staging.yml` runs only after CI is green, deploys **by digest**, and takes a digest input
+    for rollback. A tag can be moved; a digest is the image.
+  - `scripts/smoke-test.mjs` gates promotion — 8 checks including *"is this the revision we just
+    built"*, which is what catches a deploy that silently did nothing.
+  - [§26 Staging Runbook](04-engineering/26-staging-runbook.md).
+  - `PORT` and `GIT_SHA` added to the env schema.
+
+### Fixed
+
+- **The licence gate was silently platform-dependent.** `pnpm licenses list` reports only what is
+  installed for the current platform, so acknowledging `@img/sharp-win32-x64` by name passed on
+  Windows and failed in Linux CI on `@img/sharp-libvips-linux-x64`. Platform binaries of an
+  already-reviewed package are now matched by anchored pattern, with a self-test asserting both what
+  the patterns must match **and what they must not** — the fuzzy matching is the only place in the
+  gate where a quiet widening could waive review invisibly.
+- **Integration tests assumed a built `dist/`.** `trace-probe.mjs` imports the compiled output on
+  purpose (its whole point is running through Node's real resolution rather than Vite's), but nothing
+  guaranteed the build had happened — it passed locally against a stale `dist/` and failed on a clean
+  checkout. `test:integration` now builds first.
+- **"Deploy by digest" was claimed but not implemented.** The deploy step computed the digest and
+  then ran a bare `railway redeploy`, which redeploys whatever the service already points at. The
+  workflow now repoints `:staging` at the chosen digest with `docker buildx imagetools create`
+  before redeploying, and skips the build entirely on a rollback — rebuilding from `main` would have
+  produced a different image than the one being rolled back to.
+- **Deploy failed hard when Railway was not configured yet**, which made the setup unperformable:
+  Railway needs an image in GHCR before it can be pointed at one, and issues no domain until it has
+  deployed. Jobs [10] and [11] now warn and skip instead, so the first run publishes the image.
+
+### Added
+
+- **M013 — Domain package: organizations, users, memberships.** Pure, immutable, zero external
+  imports (enforced by dependency-cruiser and the boundaries rule, not by convention). 94 tests, 90%
+  floor enforced per-path.
+  - **An organization must always keep at least one owner** — the invariant the milestone exists for.
+    Enforced over the whole membership set, with `transferOwnership` as the atomic alternative to
+    promote-then-demote.
+  - `ports/clock.port.ts`: time as branded epoch milliseconds, injected. `Date` is mutable, carries a
+    meaningless timezone and compares by reference; §21's lint rules already forbid `Date.now()` here.
+  - Email normalisation lowercases and trims but **does not** strip dots or `+tags` — those are
+    Gmail conventions, and merging `a.b@` with `ab@` conflates two real accounts. Changing an
+    address clears verification.
+- `OPENROUTER_API_KEY` and `GROQ_API_KEY` in the env schema. Production requires **at least one**
+  provider key rather than a named one, so the schema does not pre-empt an ADR that is still owed.
+
+### Added
+
 - **M010 — Local development environment.** A clean clone reaches a running app in three commands:
   `pnpm install`, `pnpm setup`, `pnpm dev` (~27 s end to end).
   - `docker-compose.yml` with Postgres 17 and Redis, both with healthchecks so `--wait` means

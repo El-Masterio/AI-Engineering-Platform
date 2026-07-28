@@ -106,7 +106,7 @@ Updated in the same commit as each milestone's work.
 | Phase | Done | Total | Progress |
 |---|---:|---:|---|
 | P0 Blueprint | 1 | 1 | ██████████ 100% |
-| P1 Foundation | 10 | 52 | ██░░░░░░░░ 19% |
+| P1 Foundation | 11 | 52 | ██░░░░░░░░ 21% |
 | P2 Collaboration | 0 | 15 | ░░░░░░░░░░ 0% |
 | P3 Depth | 0 | 15 | ░░░░░░░░░░ 0% |
 | P4 Polish | 0 | 12 | ░░░░░░░░░░ 0% |
@@ -114,9 +114,9 @@ Updated in the same commit as each milestone's work.
 | P6 Commercial | 0 | 11 | ░░░░░░░░░░ 0% |
 | P7 Enterprise | 0 | 10 | ░░░░░░░░░░ 0% |
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
-| **Total** | **10** | **132** | █░░░░░░░░░ **8%** |
+| **Total** | **11** | **132** | █░░░░░░░░░ **8%** |
 
-**Currently in progress:** none. **Next up:** `M011 — Deploy pipeline to staging`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
+**Currently in progress:** `M011` — code complete, awaiting a Railway project (see §26 Staging Runbook). **Next up:** `M014 — Authentication`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
 
 ### Completed
 
@@ -132,6 +132,7 @@ Updated in the same commit as each milestone's work.
 | M005 | Configuration validation | 2026-07-28 | Refuses to boot on bad config (exit 78), verified with real processes; secrets never echoed |
 | M006 | Observability skeleton | 2026-07-28 | Trace across HTTP→service→DB; 8 secret classes redacted; found OTel auto-instrumentation silently traced nothing |
 | M010 | Local development environment | 2026-07-28 | Clean clone to running app in 3 commands (~27 s); the clone found 4 bugs a working tree hid |
+| M013 | Domain: organizations and users | 2026-07-28 | 94 tests, zero external imports, 90% floor; last-owner invariant enforced set-wide |
 
 ## Milestone hygiene rules
 

@@ -12,6 +12,7 @@ export {
   isSecretVariable,
   EnvironmentError,
   ENV_VARIABLE_NAMES,
+  MODEL_PROVIDER_VARIABLES,
   type Env,
   type NodeEnvironment,
   type LogLevel,

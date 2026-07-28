@@ -110,12 +110,18 @@ importers:
 
   apps/api:
     dependencies:
+      '@atelier/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@atelier/domain':
         specifier: workspace:*
         version: link:../../packages/domain
       '@atelier/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
     devDependencies:
       '@atelier/config':
         specifier: workspace:*

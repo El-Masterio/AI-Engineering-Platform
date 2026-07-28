@@ -22,6 +22,8 @@ async function exampleKeys(): Promise<string[]> {
 
 const VALID_DATABASE_URL = "postgresql://postgres:hunter2@localhost:5432/atelier";
 const VALID_API_KEY = "sk-ant-EXAMPLE-not-a-real-key";
+const VALID_OPENROUTER_KEY = "sk-or-EXAMPLE-not-a-real-key";
+const VALID_GROQ_KEY = "gsk_EXAMPLEnotarealkey";
 
 /** A complete, valid environment; spread it and override the one thing under test. */
 function validEnv(
@@ -32,6 +34,8 @@ function validEnv(
     LOG_LEVEL: "info",
     DATABASE_URL: VALID_DATABASE_URL,
     ANTHROPIC_API_KEY: VALID_API_KEY,
+    OPENROUTER_API_KEY: VALID_OPENROUTER_KEY,
+    GROQ_API_KEY: VALID_GROQ_KEY,
     ...overrides,
   };
 }
@@ -75,17 +79,48 @@ describe("a missing required variable stops startup", () => {
     expect(error.message).toContain(".env.example");
   });
 
-  it("requires the model key in production and not otherwise", () => {
-    const production = expectRejection(
-      validEnv({ NODE_ENV: "production", ANTHROPIC_API_KEY: undefined }),
+  it("requires SOME model provider in production, not a specific one", () => {
+    // Which provider is still an open decision, so the schema requires at least
+    // one rather than naming the winner.
+    const noProvider = expectRejection(
+      validEnv({
+        NODE_ENV: "production",
+        ANTHROPIC_API_KEY: undefined,
+        OPENROUTER_API_KEY: undefined,
+        GROQ_API_KEY: undefined,
+      }),
     );
-    expect(production.issues).toContainEqual({
-      variable: "ANTHROPIC_API_KEY",
-      problem: "is required when NODE_ENV=production",
-    });
+    expect(noProvider.message).toContain("at least one of");
 
-    // The same environment is fine in development.
-    expect(() => loadEnv(validEnv({ ANTHROPIC_API_KEY: undefined }))).not.toThrow();
+    // Any single provider satisfies it.
+    for (const provider of [
+      { OPENROUTER_API_KEY: VALID_OPENROUTER_KEY },
+      { GROQ_API_KEY: VALID_GROQ_KEY },
+      { ANTHROPIC_API_KEY: VALID_API_KEY },
+    ]) {
+      expect(() =>
+        loadEnv(
+          validEnv({
+            NODE_ENV: "production",
+            ANTHROPIC_API_KEY: undefined,
+            OPENROUTER_API_KEY: undefined,
+            GROQ_API_KEY: undefined,
+            ...provider,
+          }),
+        ),
+      ).not.toThrow();
+    }
+
+    // None of them is needed outside production.
+    expect(() =>
+      loadEnv(
+        validEnv({
+          ANTHROPIC_API_KEY: undefined,
+          OPENROUTER_API_KEY: undefined,
+          GROQ_API_KEY: undefined,
+        }),
+      ),
+    ).not.toThrow();
   });
 });
 
@@ -105,9 +140,13 @@ describe("a malformed value is rejected", () => {
     expect(error.issues.map((i) => i.variable)).toContain("LOG_LEVEL");
   });
 
-  it("rejects an API key of the wrong shape", () => {
-    const error = expectRejection(validEnv({ ANTHROPIC_API_KEY: "definitely-not-a-key" }));
-    expect(error.issues.map((i) => i.variable)).toContain("ANTHROPIC_API_KEY");
+  it.each([
+    ["ANTHROPIC_API_KEY", "definitely-not-a-key"],
+    ["OPENROUTER_API_KEY", "sk-ant-wrong-provider"],
+    ["GROQ_API_KEY", "not-a-groq-key"],
+  ])("rejects a %s of the wrong shape", (variable, value) => {
+    const error = expectRejection(validEnv({ [variable]: value }));
+    expect(error.issues.map((i) => i.variable)).toContain(variable);
   });
 });
 
@@ -155,6 +194,8 @@ describe("secrets never appear in the error", () => {
 
   it("agrees with itself about which variables are secret", () => {
     expect(isSecretVariable("ANTHROPIC_API_KEY")).toBe(true);
+    expect(isSecretVariable("OPENROUTER_API_KEY")).toBe(true);
+    expect(isSecretVariable("GROQ_API_KEY")).toBe(true);
     expect(isSecretVariable("DATABASE_URL")).toBe(true);
     expect(isSecretVariable("LOG_LEVEL")).toBe(false);
     expect(isSecretVariable("NODE_ENV")).toBe(false);
@@ -192,7 +233,7 @@ describe(".env.example", () => {
     const contents = await readFile(".env.example", "utf8");
     // The placeholder is allowlisted in .gitleaks.toml; anything else that
     // looks like a live key has no business in a committed file.
-    const keyLike = contents.match(/sk-ant-[\w-]+/g) ?? [];
+    const keyLike = contents.match(/sk-ant-[\w-]+|sk-or-[\w-]+|gsk_[\w-]+/g) ?? [];
     for (const candidate of keyLike) {
       expect(candidate, "a committed example must never hold a real key").toContain("EXAMPLE");
     }

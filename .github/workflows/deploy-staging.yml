@@ -1,0 +1,235 @@
+name: Deploy staging
+
+# §24 stages 8–11, scoped to staging by ADR-009.
+#
+# Only on main, and only after CI is green: this workflow does not re-run the
+# gates, it depends on them having passed. A deploy that races its own tests is
+# not a gate.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  # Manual re-deploy, and the rollback path — pass a previously built digest.
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: "Image digest to deploy (sha256:...). Empty builds from main."
+        required: false
+        type: string
+
+concurrency:
+  # Never two deploys at once. Cancelling mid-flight would leave staging on an
+  # unknown revision, so queue instead.
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/api
+
+jobs:
+  # ── [9] Artifact: build, sign, SBOM ──────────────────────────────────────
+  image:
+    name: "[9] Build and publish image"
+    # Skip when CI failed (workflow_run fires on failure too), and skip entirely
+    # on a rollback — re-running main's build would produce a DIFFERENT image
+    # than the digest being rolled back to, which is the opposite of a rollback.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.digest == '') ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      # Cosign keyless signing exchanges this for a short-lived certificate —
+      # no signing key to store, rotate or leak (§24 secrets policy).
+      id-token: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # The workflow's own token. ADR-009: no extra account, no stored secret.
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=staging
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          # arm64 as well as amd64 so the same image runs on Graviton or an
+          # Apple-silicon laptop without a rebuild.
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: GIT_SHA=${{ github.sha }}
+          provenance: true
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sign the image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          # Keyless: the signature is bound to this repository and workflow, so
+          # "who built this" is verifiable without trusting a key we hold.
+          cosign sign --yes "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+
+      - name: Record the digest in the summary
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          {
+            echo "### Image"
+            echo ""
+            echo '```'
+            echo "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+            echo '```'
+            echo ""
+            echo "Roll back by re-running this workflow with that digest."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── [10] Deploy ──────────────────────────────────────────────────────────
+  deploy:
+    name: "[10] Deploy to staging"
+    needs: image
+    # `always()` so a rollback still deploys when the image job was skipped.
+    # The digest guard below is what actually decides whether there is anything
+    # to deploy, so a genuinely failed build cannot slip through.
+    if: >-
+      always() &&
+      (needs.image.result == 'success' || inputs.digest != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # Re-pointing the :staging tag is a registry write.
+      packages: write
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # Railway pulls `:staging`; the digest is what we actually chose. Pointing
+      # the tag at the digest here means a forward deploy and a rollback run the
+      # SAME path — a rollback that is only exercised during an incident is a
+      # rollback nobody knows works.
+      - name: Resolve the digest to deploy
+        id: target
+        env:
+          DIGEST: ${{ inputs.digest || needs.image.outputs.digest }}
+        run: |
+          if [ -z "${DIGEST}" ]; then
+            echo "::error::No image digest to deploy."
+            exit 1
+          fi
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Deploying ${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+
+      - name: Is Railway configured yet?
+        id: gate
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
+        run: |
+          if [ -n "${RAILWAY_TOKEN}" ] && [ -n "${RAILWAY_SERVICE}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            # A warning, not a failure. The image is published by this point,
+            # and the image is the thing Railway needs before it can be pointed
+            # at anything — failing here would make the setup unperformable.
+            # It is loud, and it stops the moment the two settings exist.
+            echo "::warning::Railway is not configured; image published but not deployed. See docs/04-engineering/26-staging-runbook.md."
+            echo "> **Not deployed.** \`RAILWAY_TOKEN\` and/or \`RAILWAY_SERVICE\` are unset — see [the staging runbook](docs/04-engineering/26-staging-runbook.md)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Log in to GHCR
+        if: steps.gate.outputs.configured == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Point :staging at the chosen digest
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          DIGEST: ${{ steps.target.outputs.digest }}
+        run: |
+          # Manifest-level retag: no pull, no rebuild, and the multi-arch index
+          # is preserved. On a forward deploy this is a no-op; on a rollback it
+          # is the whole mechanism.
+          docker buildx imagetools create \
+            --tag "${REGISTRY}/${IMAGE_NAME}:staging" \
+            "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+
+      - name: Redeploy the Railway service
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
+          DIGEST: ${{ steps.target.outputs.digest }}
+        run: |
+          npm install -g @railway/cli
+          # Railway re-pulls `:staging`, which now resolves to DIGEST. The health
+          # check on /readyz is what holds traffic on the old container until the
+          # new one answers — that is where zero-downtime actually comes from.
+          railway redeploy --service "${RAILWAY_SERVICE}" --yes
+          {
+            echo "### Deployed"
+            echo ""
+            echo '```'
+            echo "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+            echo '```'
+            echo ""
+            echo "Roll back by re-running this workflow with that digest."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── [11] Verify ──────────────────────────────────────────────────────────
+  smoke:
+    name: "[11] Smoke test"
+    needs: deploy
+    if: always() && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Smoke the deployed service
+        env:
+          STAGING_URL: ${{ vars.STAGING_URL }}
+          # On a rollback the running revision is the OLD commit, not this run's
+          # SHA, so the revision assertion would be wrong. Skipped rather than
+          # weakened: the remaining checks still gate the deploy.
+          EXPECTED_REVISION: ${{ inputs.digest == '' && github.sha || '' }}
+        run: |
+          if [ -z "${STAGING_URL}" ]; then
+            echo "::warning::STAGING_URL is not set; nothing to smoke. See docs/04-engineering/26-staging-runbook.md."
+            exit 0
+          fi
+          node scripts/smoke-test.mjs "$STAGING_URL" "$EXPECTED_REVISION"

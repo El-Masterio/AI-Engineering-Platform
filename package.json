@@ -38,7 +38,8 @@
     "test:integration": "pnpm --filter @atelier/db --filter @atelier/observability test:integration",
     "test:watch": "vitest",
     "typecheck": "turbo run typecheck",
-    "verify": "pnpm format:check && pnpm lint && pnpm depcruise && pnpm knip && pnpm check:contrast && pnpm check:licenses && pnpm typecheck && pnpm test:coverage && pnpm build"
+    "verify": "pnpm format:check && pnpm lint && pnpm depcruise && pnpm knip && pnpm check:contrast && pnpm check:licenses && pnpm typecheck && pnpm test:coverage && pnpm build",
+    "smoke": "node scripts/smoke-test.mjs"
   },
   "devDependencies": {
     "@atelier/config": "workspace:*",

@@ -19,6 +19,11 @@
  */
 import { writeFileSync } from "node:fs";
 import { InMemorySpanExporter, SimpleSpanProcessor } from "@opentelemetry/sdk-trace-node";
+// dist/, not src/: the point of this probe is that it runs through Node's real
+// module resolution rather than Vite's. That makes the build a hard prerequisite
+// — `test:integration` therefore builds first. On a clean checkout without it,
+// this file dies with ERR_MODULE_NOT_FOUND, which is how it failed in CI while
+// passing locally against a stale dist/ left on disk.
 import { startTracing } from "../../dist/tracing.js";
 import { withDatabaseSpan, withServerSpan, withSpan } from "../../dist/spans.js";
 

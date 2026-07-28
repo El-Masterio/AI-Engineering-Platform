@@ -18,11 +18,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "start": "node dist/main.js"
   },
   "dependencies": {
+    "@atelier/db": "workspace:*",
     "@atelier/domain": "workspace:*",
-    "@atelier/observability": "workspace:*"
+    "@atelier/observability": "workspace:*",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@atelier/config": "workspace:*",

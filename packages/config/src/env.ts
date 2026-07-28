@@ -24,7 +24,12 @@ import { z } from "zod";
  */
 
 /** A variable whose value must never be echoed back in an error or a log. */
-const SECRET_VARIABLES = new Set(["ANTHROPIC_API_KEY", "DATABASE_URL"]);
+const SECRET_VARIABLES = new Set([
+  "ANTHROPIC_API_KEY",
+  "OPENROUTER_API_KEY",
+  "GROQ_API_KEY",
+  "DATABASE_URL",
+]);
 
 export function isSecretVariable(name: string): boolean {
   return SECRET_VARIABLES.has(name);
@@ -55,11 +60,16 @@ const envObject = z.object({
   DATABASE_URL: postgresUrl,
 
   /**
-   * Optional outside production so a clean checkout can run the test suite
-   * and the dev server without a real model key. Required in production by
-   * the refinement below — a production deploy that cannot reach the model
-   * provider is not a working deploy, and discovering that on the first
-   * request is worse than refusing to boot.
+   * Model provider credentials.
+   *
+   * All three are optional individually; the refinement below requires AT LEAST
+   * ONE in production. Naming a single provider as the required one would bake
+   * in a choice that is still open — the owner's stated plan is OpenRouter with
+   * Groq as failover, while ADR-002 (Managed Agents) is still the architecture
+   * of record and is Anthropic-only. Nothing in the codebase calls a model yet,
+   * so this schema stays deliberately provider-agnostic until it does.
+   *
+   * See the model-provider entry in docs/decisions/DECISION-LOG.md.
    */
   ANTHROPIC_API_KEY: z
     .string()
@@ -67,6 +77,24 @@ const envObject = z.object({
     .refine((value) => value.startsWith("sk-ant-"), {
       // Shape only. This deliberately says nothing about the value itself.
       message: "does not look like an Anthropic API key (expected an sk-ant- prefix)",
+    })
+    .optional(),
+
+  /** Primary provider in the owner's plan. Keys are `sk-or-v1-…`. */
+  OPENROUTER_API_KEY: z
+    .string()
+    .min(1)
+    .refine((value) => value.startsWith("sk-or-"), {
+      message: "does not look like an OpenRouter API key (expected an sk-or- prefix)",
+    })
+    .optional(),
+
+  /** Failover provider. Keys are `gsk_…`. */
+  GROQ_API_KEY: z
+    .string()
+    .min(1)
+    .refine((value) => value.startsWith("gsk_"), {
+      message: "does not look like a Groq API key (expected a gsk_ prefix)",
     })
     .optional(),
 
@@ -80,14 +108,33 @@ const envObject = z.object({
    * should cost.
    */
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
+
+  /** Port to listen on. Railway injects this; 3001 locally. */
+  PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
+
+  /** Git SHA of the running build, surfaced on / so a deploy is identifiable. */
+  GIT_SHA: z.string().optional(),
 });
 
+/** Every credential that can reach a model. */
+export const MODEL_PROVIDER_VARIABLES = [
+  "OPENROUTER_API_KEY",
+  "GROQ_API_KEY",
+  "ANTHROPIC_API_KEY",
+] as const;
+
 export const envSchema = envObject.superRefine((env, ctx) => {
-  if (env.NODE_ENV === "production" && env.ANTHROPIC_API_KEY === undefined) {
+  // At least one provider in production, not a specific one. A deploy that
+  // cannot reach any model is not a working deploy, and finding that out on the
+  // first request is worse than refusing to boot — but which provider is still
+  // an open decision, and the schema should not settle it.
+  const configured = MODEL_PROVIDER_VARIABLES.filter((name) => env[name] !== undefined);
+
+  if (env.NODE_ENV === "production" && configured.length === 0) {
     ctx.addIssue({
       code: "custom",
-      path: ["ANTHROPIC_API_KEY"],
-      message: "is required when NODE_ENV=production",
+      path: ["OPENROUTER_API_KEY"],
+      message: `is required when NODE_ENV=production — set at least one of ${MODEL_PROVIDER_VARIABLES.join(", ")}`,
     });
   }
 });
