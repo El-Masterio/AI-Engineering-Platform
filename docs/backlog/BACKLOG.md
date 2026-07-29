@@ -223,11 +223,19 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Verified in the container** Everything M011, M014 and M015 proved still holds through Fastify: `/` with revision · `/healthz` · `/readyz` with a live database check · §16 envelope with `request_id` on an unmatched route · auth sign-up 200 with the raw body reaching Better Auth · personal organization provisioned as `owner` · `ETag` on GET · SIGTERM → drain → exit 0.
 **Note** `target`/`lib` moved ES2023 → **ES2024**, matching Node 24. The old setting made TypeScript hide APIs the runtime has, so the compiler and lint rules disagreed and the workaround was always to write the older form.
 
-### M017 · Policy engine · M · 🔒🏗
+### M017 · Policy engine · M · 🔒🏗 — ✅ **Done** (2026-07-29)
 **Objective** One place that answers "may this actor do this?"
-**Dependencies** M015
+**Dependencies** M015 ✅
 **Deliverables** `packages/policy`: `assert(principal, action, resource)`, role definitions, deny-by-default, decision logging.
 **Acceptance** Exhaustive authorization matrix tests · deny by default verified · every denial audited · 95% coverage · a lint rule flags inline role checks in handlers.
+**Exhaustive means generated** Every (role × action) cell is produced from the catalogue, not listed by hand — a hand-written list stops being exhaustive the moment someone adds an action, silently. 30 actions × 4 roles, and the expected answer is derived from the matrix and Control 7 rather than restating the engine.
+**The model I got wrong first** I made the approval-gated actions ungranted by *every* role, reasoning that §17's "not overridable at any autonomy level" meant "nobody may". That made the gate **unusable** — an approval could be presented and the action still refused for lack of a role — so the control was not stricter, it was broken. The test asking for the approved path is what showed it. The right model: the **role** says who may perform, the **approval** says a human signed off on this instance; both required, neither substituting.
+**Order is load-bearing** Control 7 is checked *before* the role matrix, so the gate holds even if the matrix is wrong. Granting `deploy:production` to the owner role reads as reasonable and would otherwise delete the control.
+**Deny-by-default is structural** Every non-grant path returns a denial with a reason, so an action added to the catalogue and forgotten in the matrix is refused. A separate test asserts that list is **empty**, because a forgotten action is safe *and invisible* — it looks like a deliberate restriction and behaves like a job nobody can do.
+**Scopes narrow, never widen** An API key is bounded by its scopes **and** its owner's role, intersected — a key must not let its holder exceed the person who created it.
+**Errors say nothing** `AuthorizationError`'s message is fixed prose; the reason is a field for the audit record. A 403 that explains itself confirms the resource exists.
+**Lint rule verified adversarially** A probe file with `user.role === "owner"`, `"admin" !== membership.role` and `switch (user.role)` produced three errors naming §16; clean after removal. Scoped to `apps/**` — `packages/policy` defines the rules and `packages/domain` owns `canManage`, so both compare roles legitimately.
+**Coverage** 100% of `packages/policy`; 96.0% overall.
 
 ### M018 · Immutable audit log · M · 🔒🏗
 **Objective** Every state change recorded, permanently.
