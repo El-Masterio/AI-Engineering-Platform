@@ -24,6 +24,20 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Fixed
 
+- **M011 completed 2026-07-29** — the pipeline deploys to staging unassisted, verified 8/8 against
+  the live service. Five defects surfaced only once it met real infrastructure, and every one of
+  them was invisible on a development machine:
+  - the licence gate was **platform-dependent** (Windows binaries acknowledged, Linux ones not);
+  - `test:integration` assumed a built `dist/` that only existed locally;
+  - **"deploy by digest" was computed and then never used** — a bare `railway redeploy` redeploys
+    whatever the service already points at;
+  - OCI references must be lowercase and `github.repository` preserves capitalisation, so `cosign`
+    could not parse a reference the push had just used successfully;
+  - **`ARG GIT_SHA` was never declared**, so Docker discarded the build-arg and `/` served no
+    revision — silently disarming the smoke check that exists to catch a deploy doing nothing. It
+    had "passed" local verification because `GIT_SHA` was set at run time with `-e`, testing a
+    mechanism that was not the one shipping.
+
 - **The licence gate was silently platform-dependent.** `pnpm licenses list` reports only what is
   installed for the current platform, so acknowledging `@img/sharp-win32-x64` by name passed on
   Windows and failed in Linux CI on `@img/sharp-libvips-linux-x64`. Platform binaries of an
