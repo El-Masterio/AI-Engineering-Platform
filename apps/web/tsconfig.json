@@ -8,7 +8,7 @@
     // ES2024, matching the base config and the Node 24 runtime. This file
     // pinned ES2023 and so hid APIs the runtime has — the third place that
     // override was lurking after M016 bumped the base.
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "lib": ["ES2024", "ESNext.Array", "DOM", "DOM.Iterable"],
     "noEmit": true,
     "allowJs": true,
     "incremental": true,

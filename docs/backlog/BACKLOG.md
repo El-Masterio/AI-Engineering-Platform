@@ -308,12 +308,18 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 
 ## Stage 1C — Agent substrate (M023–M036) · highest risk
 
-### M023 · AgentRuntime port and fake adapter · L · 🏗
+### M023 · AgentRuntime port and fake adapter · L · 🏗 — ✅ **Done** (2026-07-30)
 **Objective** The abstraction the entire product depends on.
-**Dependencies** M013
+**Dependencies** M013 ✅
 **Deliverables** `packages/agent-runtime`: the 5-method port, `AgentSpec`/`RunContext`/`RunEvent` types, in-memory fake adapter, **shared conformance suite** every adapter must pass.
 **Acceptance** Fake adapter passes the conformance suite · the port has no provider-specific types · ADR written including reversal cost and revisit triggers.
-**Note** Requires design review before implementation. This is the seam that makes ADR-002 reversible.
+**Design review held** as the backlog required. One question went to the owner: §13 wants the tool allowlist "enforced by the orchestrator, not by the model's cooperation", but ADR-002 chose a runtime that executes tools inside its own sandbox, so a mandatory pre-execution veto might be unimplementable. Owner chose **declare + stream + veto where supported** — three layers, honest about the runtime's limits without abandoning the requirement.
+**[ADR-012](../decisions/ADR-012-agent-runtime-port.md)** records the five methods, what is deliberately absent, and its own revisit triggers.
+**Purity is tested, not asserted** "The port has no provider-specific types" cannot live in prose. `port-purity.test.ts` reads the interface files and fails on a vendor name or a provider stream shape, and it asserts the list of files it checks matches what is on disk — a new interface file nobody added would otherwise be unchecked while the test still passed. **Verified adversarially:** adding `stop_reason` to `RunContext` and a model id to the spec each fail with the file and term named.
+**The suite is the deliverable, not the fake** ADR-002's exit ramp is M127 writing a second adapter that passes this suite, so a weak suite makes that promise decorative. Three deliberately broken adapters prove it has teeth: one replaying from *now* instead of the beginning, one with an *inclusive* cursor (a double charge on every reconnect for a `usage` event), and one reporting a tool result *before* its call, which makes independent allowlist enforcement impossible.
+**The fake enforces rather than obeys** Scripted to call `bash` when the spec grants only `read`, it refuses — because a fake that did whatever its script said would let every orchestrator test pass while the allowlist was broken.
+**Replay is in the signature from line one** §12 needs the gateway to replay from history; that is impossible unless the port resumes. Two properties the suite pins: omitting the cursor replays from the **beginning, not from now**, and the cursor is **exclusive**.
+**Two type problems worth recording** `Omit` over a union does not distribute — it collapses to the common fields and rejects a variant's own discriminant as unknown, so `RunEventBody` is named separately. And `lib` gained `ESNext.Array` for `Array.fromAsync`, which Node 24 implements while TypeScript still files it under esnext.
 
 ### M024 · Agent specification schema · M · 🤖🏗
 **Objective** Agents as versioned data.

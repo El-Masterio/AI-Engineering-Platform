@@ -9,7 +9,7 @@
     "jsx": "react-jsx",
     // ES2024 to match the base config and the Node 24 runtime — this file
     // overrode it back to ES2023, so the tooling view disagreed with every build.
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "lib": ["ES2024", "ESNext.Array", "DOM", "DOM.Iterable"],
     "outDir": ".turbo/tsconfig-noemit",
     // No `baseUrl` — deprecated in TS 7; `paths` resolves relative to this file.
     // Maps workspace packages to SOURCE rather than dist. Without this,
