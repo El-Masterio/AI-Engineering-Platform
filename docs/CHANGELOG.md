@@ -9,6 +9,37 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M024 — agents as versioned data.** `agent_definitions` (migration 0009), a Zod schema for the
+  §13 spec, a directory-listing loader, and the six MVP roles as YAML.
+  [ADR-013](decisions/ADR-013-agent-definitions-as-per-tenant-data.md).
+  - **A new role is added by authoring a file.** Nothing in the loader names a role — it lists
+    `packages/agent-runtime/roles/` — so a seventh file is the whole procedure.
+  - **Versions are immutable once referenced by a run**, enforced twice: an actionable error from the
+    repository, and a trigger that refuses the write whatever issued it. DELETE is frozen too, or
+    DELETE-then-INSERT would rewrite history while passing every other check.
+  - **The authored format is §13's, verbatim** — snake_case, `max_wall_clock: 45m`, nested `bash:`.
+    A bare number where a duration belongs is rejected rather than read as milliseconds.
+  - 13 rejection cases, including a misspelled permission key, camelCase written by mistake, `- bash`
+    with no allowlist, a spec that both writes and reviews code, and `can_deploy` with no approval
+    requirement (§17 Control 7).
+
+### Fixed
+
+- **The cross-tenant suite silently skipped INSERT coverage for any new table.**
+  `insertForeignRow` throws when a table has no fixture, but the call sat *inside* the
+  `try`/bare-`catch` that reads a thrown error as "the write was refused" — so a new tenant-scoped
+  table got no INSERT test while the suite stayed green. That is the failure mode the file's own
+  comment calls the worst one, sitting inside the check meant to prevent it. Found by deleting
+  M024's fixture and watching the suite pass.
+- **The tier vocabulary contradicted [ADR-004](decisions/ADR-004-model-tiering.md).** M023 shipped
+  `planning`/`implementation`/`review`/`utility`; the ADR's table says
+  `reasoning`/`implementation`/`utility`/`frontier`, grouping planning, architecture, code review and
+  security review into one tier because they share a capability requirement. The invented split let a
+  spec name a tier the mapping table has no entry for. `xhigh` and `max` were missing from the effort
+  levels for the same reason. `adr-004-alignment.test.ts` now reads the ADR and pins both.
+
+### Changed
+
 - **M023 — the AgentRuntime port.** `packages/agent-runtime`: five methods, the spec and event types,
   an in-memory fake adapter, and the **shared conformance suite** every adapter must pass.
   [ADR-012](decisions/ADR-012-agent-runtime-port.md).

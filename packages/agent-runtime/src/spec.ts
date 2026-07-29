@@ -12,12 +12,27 @@
  * whatever its provider calls the right model; the port never learns the answer.
  */
 
-/** Model selection, resolved by ADR-004 inside an adapter. */
-export const MODEL_TIERS = ["planning", "implementation", "review", "utility"] as const;
+/**
+ * Model selection, resolved by ADR-004 inside an adapter.
+ *
+ * These four names are ADR-004's, verbatim. M023 invented
+ * `planning`/`review` instead, which read plausibly and was simply wrong —
+ * ADR-004 groups planning, architecture, code review and security review into
+ * ONE tier because they share a capability requirement, and splitting them here
+ * would have meant the spec could express a tier the mapping table has no entry
+ * for. A test pins these against the ADR.
+ */
+export const MODEL_TIERS = ["reasoning", "implementation", "utility", "frontier"] as const;
 export type ModelTier = (typeof MODEL_TIERS)[number];
 
-/** How hard to think. Maps to whatever the provider calls reasoning effort. */
-export const EFFORT_LEVELS = ["low", "medium", "high", "adaptive"] as const;
+/**
+ * How hard to think. Maps to whatever the provider calls reasoning effort.
+ *
+ * `xhigh` and `max` exist because ADR-004's table uses them — the reasoning tier
+ * is `high`/`xhigh` and frontier is `xhigh`/`max`. Omitting them would make the
+ * top two tiers inexpressible at the effort they were chosen for.
+ */
+export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
 export type EffortLevel = (typeof EFFORT_LEVELS)[number];
 
 /**

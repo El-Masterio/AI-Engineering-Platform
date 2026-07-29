@@ -83,6 +83,32 @@ output_contract:
 Two properties matter most: **`tools` is an allowlist** (absence means denied), and
 **`permissions` is enforced by the orchestrator**, not by the model's cooperation.
 
+### Where specifications live (M024, [ADR-013](../decisions/ADR-013-agent-definitions-as-per-tenant-data.md))
+
+The format above is the **authored** format, accepted verbatim — snake_case keys, `max_wall_clock`
+as a duration string, `bash:` as a nested mapping. A customer copies it out of this document, so
+this document is the contract; `parseAgentSpecFile` in `packages/contracts` translates it into the
+internal type.
+
+| Concern | Where |
+|---|---|
+| The platform's own roles | `packages/agent-runtime/roles/*.yaml` — one file per role, filename = `id` |
+| Validation | `packages/contracts/src/agent-spec.schema.ts` — strict; unknown keys are rejected |
+| Loading | `packages/agent-runtime/src/definitions/loader.ts` — lists a directory; names no role |
+| Persistence | `agent_definitions`, tenant-scoped, one row per `(organization, agent, version)` |
+
+Three rules the schema enforces at load, so an invalid role cannot be authored at all:
+
+1. **No spec both writes code and reviews it.** The structural rule below, made unexpressible.
+2. **A permission implies its gate.** `can_deploy` without `deploy` in `requires_approval_for` is
+   refused — §17 Control 7 is "not overridable by configuration at any autonomy level".
+3. **`bash` carries an allowlist or is not granted.** `- bash` alone fails rather than quietly
+   meaning something narrower than it reads.
+
+**A role changes by gaining a version, never by having one edited.** `version` is part of the
+identity, and once a run has referenced a version the row is frozen by a database trigger — so a
+completed run's audit trail keeps describing the agent that actually ran.
+
 ---
 
 ## The 19 roles

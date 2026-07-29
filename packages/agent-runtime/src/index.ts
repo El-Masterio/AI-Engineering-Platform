@@ -47,3 +47,10 @@ export {
   type ScriptedStep,
 } from "./fake.js";
 export { runConformanceSuite, CONFORMANCE_SPEC, type TestHarness } from "./conformance.js";
+
+export {
+  loadDefinitionFile,
+  loadDefinitions,
+  PLATFORM_ROLES_DIR,
+  type LoadedDefinition,
+} from "./definitions/loader.js";
