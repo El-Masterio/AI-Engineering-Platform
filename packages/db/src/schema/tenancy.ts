@@ -174,3 +174,35 @@ export const auditLog = pgTable(
     index("idx_audit_log_org_action").on(table.organizationId, table.action, table.createdAt),
   ],
 );
+
+/**
+ * API keys (§16, migration 0007).
+ *
+ * `prefix` is public and shown in lists; `keyHash` is a SHA-256 of the secret.
+ * The secret itself is stored nowhere — it is returned once at creation.
+ */
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    prefix: text("prefix").notNull(),
+    keyHash: text("key_hash").notNull(),
+    name: text("name").notNull(),
+    scopes: text("scopes").array().notNull().default([]),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_api_keys_hash").on(table.keyHash),
+    index("idx_api_keys_organization_id").on(table.organizationId, table.createdAt),
+  ],
+);

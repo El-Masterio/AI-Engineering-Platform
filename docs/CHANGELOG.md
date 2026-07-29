@@ -9,6 +9,26 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M019 — API keys.** `atl_…` bearer tokens, scoped per §16, hashed at rest, prefix-visible,
+  revocable immediately.
+  - **SHA-256, deliberately not Argon2id** — the opposite choice to M014's passwords for the
+    opposite reason. A key is 256 bits of CSPRNG output, so there is no dictionary attack to slow
+    down, and a slow hash on every authenticated request is a denial-of-service vector.
+  - **One answer for every invalid key** (unknown, malformed, revoked, expired). Distinguishing them
+    tells an attacker which of their guesses was once real.
+  - Verification runs with **no tenant context** — which organization the caller belongs to is what
+    the call determines — through a narrow `SECURITY DEFINER` function rather than a widened policy.
+  - Lookup is by **hash, never by prefix**: a prefix is public and not unique.
+
+### Fixed
+
+- **M017 conflated policy actions with §16 scopes.** The scopes are coarse and plural
+  (`projects:write`); the actions are fine and singular (`project:create`). Compared directly, a key
+  scoped `projects:write` would have been refused every write it was created to perform. A scope is
+  now a bundle of actions.
+
+### Added
+
 - **M018 — immutable audit log.** FR-AUDIT-1..5, §17 Control 8.
   - **Immutability is a grant, not a convention.** `atelier_app` holds SELECT and INSERT only, so
     `UPDATE audit_log SET …` fails at the database. TRUNCATE is refused separately because RLS does
