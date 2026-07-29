@@ -211,11 +211,17 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Deliberately NOT built** "List the organizations a user belongs to" — a cross-tenant read needing a second session claim (`app.current_user_id`) and a policy change. M015's acceptance does not require it; the organization switcher does, and it can arrive with its own ADR rather than riding in on this one.
 **Known gap** **D-013** — the user row is committed before the provisioning hook runs, so a failure there leaves a user with no organization. Repairing it lazily needs the same cross-tenant read.
 
-### M016 · API conventions and error envelope · S · 🏗
+### M016 · API conventions and error envelope · S · 🏗 — ✅ **Done** (2026-07-29)
 **Objective** §16 implemented once, centrally.
-**Dependencies** M006, M015
+**Dependencies** M006 ✅, M015 ✅
 **Deliverables** Fastify plugins: error handler producing the §16 envelope, JSON Schema validation, cursor pagination helper, idempotency middleware, ETag/If-Match support, OpenAPI generation.
 **Acceptance** Every error shape matches the envelope · `request_id` present on all errors · OpenAPI generates and validates · pagination helper rejects `limit > 100`.
+**Framework** Fastify, per §14. The decision-log entry "Fastify vs. NestJS — revisit with implementation experience" is triggered by the **P1 gate retrospective**, not by this milestone, so it was not reopened. M011's `node:http` server was always a placeholder and said so.
+**The word that mattered was "everywhere"** An envelope covering the errors we remember to throw, while Fastify's own 404s and validation failures keep their default shape, is a convention plus exceptions. So three handlers, not one — `setErrorHandler`, `setNotFoundHandler` and `setSchemaErrorFormatter` — and the tests go looking for the framework's shapes rather than only checking ours.
+**A 500 discards the message** An unexpected error's text is written for us, not a caller: table names, driver output, occasionally a connection string. The only way to guarantee §16's "never leaks internals" for an error nobody anticipated is to not use its message. Asserted by throwing one containing a table name and a database host and checking neither reaches the body.
+**Two silent-failure bugs caught** `@fastify/swagger` collects routes through an `onRoute` hook, so a fire-and-forget `register()` loads it *after* the routes it documents — producing a valid, empty OpenAPI document and a green build, with §16's "docs cannot drift from code" false on day one. And a conflicting idempotency INSERT **blocks** rather than failing, so a duplicate of a minutes-long agent run would hold a connection until the original finished; a transaction-local `lock_timeout` turns that into a fast `in_flight`.
+**Verified in the container** Everything M011, M014 and M015 proved still holds through Fastify: `/` with revision · `/healthz` · `/readyz` with a live database check · §16 envelope with `request_id` on an unmatched route · auth sign-up 200 with the raw body reaching Better Auth · personal organization provisioned as `owner` · `ETag` on GET · SIGTERM → drain → exit 0.
+**Note** `target`/`lib` moved ES2023 → **ES2024**, matching Node 24. The old setting made TypeScript hide APIs the runtime has, so the compiler and lint rules disagreed and the workaround was always to write the older form.
 
 ### M017 · Policy engine · M · 🔒🏗
 **Objective** One place that answers "may this actor do this?"

@@ -1,9 +1,10 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import Fastify, { type FastifyInstance } from "fastify";
+import etag from "@fastify/etag";
+import swagger from "@fastify/swagger";
 import {
   healthStatusCode,
   liveness,
   readiness,
-  withServerSpan,
   withCorrelation,
   newCorrelationId,
   sanitizeRequestId,
@@ -11,18 +12,21 @@ import {
   type Logger,
 } from "@atelier/observability";
 import type { Sql } from "postgres";
+import { registerErrorHandler } from "./plugins/error-handler.plugin.js";
 
 /**
- * The staging service.
+ * The API service, on Fastify (§14, M016).
  *
- * `node:http` rather than Fastify: the framework decision is M016's and is
- * still open (§14 lists Fastify vs. NestJS as pending). What M011 needs is a
- * process that listens, answers probes, and shuts down cleanly — none of which
- * depends on the framework, and all of which the deploy pipeline needs in order
- * to be verifiable at all.
+ * M011 built this on bare `node:http` and said so in a comment: the framework
+ * decision belonged to this milestone, and a deploy pipeline needed something
+ * that listens, answers probes and drains cleanly rather than something final.
+ * This replaces it. Everything M011 and M014 verified — probes, correlation
+ * ids, graceful shutdown, the auth mount — is preserved, because the container
+ * checks from those milestones still have to pass.
  *
- * GATE 1A asks for "a trivial endpoint deployed through the full pipeline,
- * traced end to end". That is `/` here, and it is deliberately trivial.
+ * Everything §16 defines lives in `plugins/` and `lib/` rather than in route
+ * handlers, so a new endpoint gets the conventions by existing rather than by
+ * its author remembering them.
  */
 
 export type ServerOptions = {
@@ -32,186 +36,209 @@ export type ServerOptions = {
   sql?: Sql;
   /** Surfaced on `/` so a deploy can be identified without guessing. */
   revision?: string;
-  /**
-   * Handles everything under `/api/auth/*` (M014).
-   *
-   * A Web `Request` → `Response` function, which is what Better Auth exposes.
-   * Absent means the process serves no auth routes and those paths 404 — a
-   * worker or a migration job has no reason to hold a connection that can read
-   * password hashes.
-   */
+  /** Handles everything under `/api/auth/*` (M014). */
   authHandler?: (request: Request) => Promise<Response>;
+};
+
+export type RunningServer = {
+  app: FastifyInstance;
+  port: number;
+  shutdown: () => Promise<void>;
 };
 
 /** Everything Better Auth owns lives under this prefix. */
 const AUTH_PREFIX = "/api/auth";
 
-export type RunningServer = {
-  server: Server;
-  port: number;
-  /** Drain and stop. Safe to call more than once. */
-  shutdown: () => Promise<void>;
-};
-
-function json(response: ServerResponse, status: number, body: unknown): void {
-  const payload = JSON.stringify(body);
-  response.writeHead(status, {
-    "content-type": "application/json; charset=utf-8",
-    "content-length": Buffer.byteLength(payload),
-  });
-  response.end(payload);
-}
-
-/**
- * Adapt a `node:http` request into a Web `Request`.
- *
- * Better Auth speaks the Web platform's shapes; `node:http` predates them. The
- * body is buffered rather than streamed because auth payloads are a few hundred
- * bytes and streaming would add a failure mode for no benefit.
- */
-async function toWebRequest(request: IncomingMessage, origin: string): Promise<Request> {
-  const method = request.method ?? "GET";
-  const hasBody = method !== "GET" && method !== "HEAD";
-
-  let body: Buffer | undefined;
-  if (hasBody) {
-    const chunks: Buffer[] = [];
-    for await (const chunk of request) chunks.push(chunk as Buffer);
-    body = Buffer.concat(chunks);
-  }
-
-  const headers = new Headers();
-  const incoming = Object.entries(request.headers);
-  for (const [name, value] of incoming) {
-    if (value === undefined) continue;
-    // A repeated header (Set-Cookie, Accept) arrives as an array.
-    const values = Array.isArray(value) ? value : [value];
-    for (const single of values) headers.append(name, single);
-  }
-
-  return new Request(new URL(request.url ?? "/", origin), {
-    method,
-    headers,
-    ...(body !== undefined && body.length > 0 && { body }),
-  });
-}
-
-/** Write a Web `Response` back through `node:http`. */
-async function writeWebResponse(response: ServerResponse, result: Response): Promise<void> {
-  for (const [name, value] of result.headers) {
-    // getSetCookie() rather than get(): several cookies must stay several
-    // headers, and Headers joins them with a comma that browsers mis-parse.
-    if (name.toLowerCase() === "set-cookie") continue;
-    response.setHeader(name, value);
-  }
-  const cookies = result.headers.getSetCookie();
-  if (cookies.length > 0) response.setHeader("set-cookie", cookies);
-
-  response.writeHead(result.status);
-  response.end(result.body === null ? undefined : Buffer.from(await result.arrayBuffer()));
-}
-
-function createApiServer(options: ServerOptions): Server {
+export async function buildServer(options: ServerOptions): Promise<FastifyInstance> {
   const { logger, sql, revision, authHandler } = options;
 
-  return createServer((request, response) => {
-    const url = request.url ?? "/";
+  const app = Fastify({
+    /**
+     * Fastify's own logger is off; §M006's pino instance is the one carrying
+     * redaction and correlation. Two loggers would mean two formats, and one
+     * of them unredacted.
+     */
+    logger: false,
+    /**
+     * Reuse the inbound correlation id as Fastify's request id, so
+     * `request.id` in the error envelope and `x-request-id` on the response are
+     * the same value. §16 puts `request_id` on every error because "it's how
+     * support works" — two different ids would make that false while looking
+     * true.
+     */
+    genReqId: (request) =>
+      sanitizeRequestId(request.headers[REQUEST_ID_HEADER]) ?? newCorrelationId(),
+    requestIdHeader: REQUEST_ID_HEADER,
+    // Trust the proxy for client IP: staging runs behind Railway's edge, and
+    // rate limiting keyed on the proxy's address throttles everyone as one.
+    trustProxy: true,
+  });
 
-    // Probes are answered before anything else and are not traced: they fire
-    // constantly and would drown every useful span.
-    if (url === "/healthz") {
-      const report = liveness();
-      json(response, healthStatusCode(report), report);
-      return;
-    }
+  registerErrorHandler(app, logger);
 
-    if (url === "/readyz") {
-      void (async () => {
-        const report = await readiness(
-          sql === undefined
-            ? []
-            : [
-                {
-                  name: "database",
-                  probe: async () => void (await sql`SELECT 1`),
-                  // The wire gets "check failed"; the log gets the reason.
-                  // Without this a failing deploy is undiagnosable from outside
-                  // the container.
-                  onError: (error) =>
-                    logger.error({ err: error, check: "database" }, "readiness check failed"),
-                },
-              ],
-        );
-        json(response, healthStatusCode(report), report);
-      })();
-      return;
-    }
+  // ETag on GET responses, so §16's optimistic concurrency has a validator to
+  // compare against. Strong, not weak — a conditional WRITE needs byte equality.
+  await app.register(etag, { weak: false });
 
-    const correlationId = newCorrelationId();
-    const requestId = sanitizeRequestId(request.headers[REQUEST_ID_HEADER]);
+  /**
+   * AWAITED, and before any route is declared.
+   *
+   * `@fastify/swagger` collects routes through an `onRoute` hook, and a hook
+   * only sees routes registered after the plugin has loaded. `register()` defers
+   * until `ready()`, so a fire-and-forget registration loads the plugin AFTER
+   * the routes it was supposed to document — producing a valid, empty document
+   * and a passing build. §16's "docs cannot drift from code" would have been
+   * false on the first day, in the least visible way possible.
+   */
+  await app.register(swagger, {
+    openapi: {
+      info: {
+        title: "Atelier API",
+        description:
+          "Conventions in §16. Errors share one envelope; lists are cursor-paginated; " +
+          "mutations accept If-Match and Idempotency-Key.",
+        version: "0.1.0",
+      },
+      components: {
+        securitySchemes: {
+          session: { type: "apiKey", in: "cookie", name: "better-auth.session_token" },
+        },
+      },
+    },
+  });
 
-    // Authentication owns its whole prefix, including the paths it 404s. It is
-    // handled inside the correlation scope so an auth failure is traceable,
-    // but the body is entirely Better Auth's.
-    if (authHandler !== undefined && url.startsWith(`${AUTH_PREFIX}/`)) {
-      void withCorrelation({ correlationId, ...(requestId && { requestId }) }, async () => {
-        response.setHeader(REQUEST_ID_HEADER, correlationId);
-        try {
-          const origin = `http://${request.headers.host ?? "localhost"}`;
-          await writeWebResponse(response, await authHandler(await toWebRequest(request, origin)));
-        } catch (error: unknown) {
-          // Never leak an auth-layer error to the caller: the detail belongs in
-          // the redacting log, and the caller gets a shape it can act on.
-          logger.error({ err: error, path: url }, "auth handler failed");
-          if (!response.headersSent) {
-            json(response, 500, {
-              error: { code: "INTERNAL", message: "Authentication is unavailable." },
-            });
-          }
-        }
-      });
-      return;
-    }
-
-    void withCorrelation({ correlationId, ...(requestId && { requestId }) }, async () => {
-      // NFR-OBS-6: the id is on the response whether or not anything went wrong.
-      response.setHeader(REQUEST_ID_HEADER, correlationId);
-
-      await withServerSpan(request, () => {
-        if (url === "/") {
-          logger.info({ path: url }, "request");
-          json(response, 200, {
-            service: "@atelier/api",
-            status: "ok",
-            ...(revision !== undefined && { revision }),
-          });
-          return Promise.resolve();
-        }
-
-        json(response, 404, { error: { code: "NOT_FOUND", message: "No such route." } });
-        return Promise.resolve();
-      });
+  // ── Correlation ────────────────────────────────────────────────────────
+  app.addHook("onRequest", (request, reply, done) => {
+    // NFR-OBS-6: the id is on the response whether or not anything went wrong.
+    void reply.header(REQUEST_ID_HEADER, request.id);
+    void withCorrelation({ correlationId: request.id }, () => {
+      done();
+      return Promise.resolve();
     });
   });
+
+  // ── Probes ─────────────────────────────────────────────────────────────
+  // Hidden from OpenAPI: they are infrastructure, not API surface, and an
+  // orchestrator does not read the spec to find them.
+  app.get("/healthz", { schema: { hide: true } }, (_request, reply) => {
+    const report = liveness();
+    return reply.status(healthStatusCode(report)).send(report);
+  });
+
+  app.get("/readyz", { schema: { hide: true } }, async (_request, reply) => {
+    const report = await readiness(
+      sql === undefined
+        ? []
+        : [
+            {
+              name: "database",
+              probe: async () => void (await sql`SELECT 1`),
+              // The wire gets "check failed"; the log gets the reason.
+              onError: (error) =>
+                logger.error({ err: error, check: "database" }, "readiness check failed"),
+            },
+          ],
+    );
+    return reply.status(healthStatusCode(report)).send(report);
+  });
+
+  app.get("/", { schema: { hide: true } }, () => ({
+    service: "@atelier/api",
+    status: "ok",
+    ...(revision !== undefined && { revision }),
+  }));
+
+  // ── Authentication (M014) ──────────────────────────────────────────────
+  if (authHandler !== undefined) {
+    /**
+     * Auth payloads must reach Better Auth as RAW BYTES.
+     *
+     * It reads and validates its own bodies, and a body Fastify has already
+     * parsed cannot be read again — the request would arrive looking empty and
+     * every auth POST would fail as a validation error with nothing wrong in it.
+     */
+    app.addContentTypeParser(
+      "application/json",
+      { parseAs: "buffer" },
+      (request, payload, done) => {
+        if (request.url.startsWith(`${AUTH_PREFIX}/`)) {
+          done(null, payload);
+          return;
+        }
+        try {
+          const text = (payload as Buffer).toString("utf8");
+          done(null, text.length === 0 ? undefined : JSON.parse(text));
+        } catch (error: unknown) {
+          done(error as Error);
+        }
+      },
+    );
+
+    /**
+     * Better Auth owns its whole prefix, including the paths it 404s, so this
+     * is one wildcard rather than a route per endpoint.
+     */
+    app.route({
+      method: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      url: `${AUTH_PREFIX}/*`,
+      schema: { hide: true },
+      handler: async (request, reply) => {
+        const origin = `${request.protocol}://${request.hostname}`;
+        const headers = new Headers();
+        for (const [name, value] of Object.entries(request.headers)) {
+          if (value === undefined) continue;
+          const values = Array.isArray(value) ? value : [value];
+          for (const single of values) headers.append(name, single);
+        }
+
+        const hasBody = request.method !== "GET" && request.method !== "HEAD";
+        const body = hasBody && Buffer.isBuffer(request.body) ? request.body : undefined;
+
+        const response = await authHandler(
+          new Request(new URL(request.url, origin), {
+            method: request.method,
+            headers,
+            ...(body !== undefined && body.length > 0 && { body }),
+          }),
+        );
+
+        for (const [name, value] of response.headers) {
+          // getSetCookie() rather than get(): several cookies must stay several
+          // headers, and Headers joins them with a comma browsers mis-parse.
+          if (name.toLowerCase() === "set-cookie") continue;
+          void reply.header(name, value);
+        }
+        const cookies = response.headers.getSetCookie();
+        if (cookies.length > 0) void reply.header("set-cookie", cookies);
+
+        return reply
+          .status(response.status)
+          .send(response.body === null ? undefined : Buffer.from(await response.arrayBuffer()));
+      },
+    });
+  }
+
+  return app;
 }
 
 /**
  * Start listening, and wire graceful shutdown.
  *
- * §24 requires SIGTERM to stop accepting, drain in flight, then exit. Without
- * it a rolling deploy kills connections mid-response, which shows up as a
- * handful of 502s per release and gets blamed on the load balancer.
- *
- * The forced-exit timer is the other half: a request that never finishes must
- * not hold the process open forever, or the orchestrator SIGKILLs it and the
- * drain was pointless.
+ * §24 requires SIGTERM to stop accepting, drain in flight, then exit. Fastify's
+ * `close()` does the draining; the forced-exit timer is still ours, because a
+ * request that never finishes must not hold the process open forever — the
+ * orchestrator would SIGKILL it and the drain was pointless.
  */
 export async function startApiServer(options: ServerOptions): Promise<RunningServer> {
-  const server = createApiServer(options);
+  const app = await buildServer(options);
   const { logger } = options;
 
-  await new Promise<void>((resolve) => server.listen(options.port, resolve));
-  const address = server.address();
+  // 0.0.0.0, not localhost: inside a container, binding the loopback makes the
+  // service unreachable from outside it, and the symptom is a health check that
+  // times out while the process looks perfectly healthy.
+  await app.listen({ port: options.port, host: "0.0.0.0" });
+
+  const address = app.server.address();
   const port = typeof address === "object" && address !== null ? address.port : options.port;
   logger.info({ port }, "listening");
 
@@ -221,22 +248,13 @@ export async function startApiServer(options: ServerOptions): Promise<RunningSer
     isShuttingDown = true;
     logger.info("draining");
 
-    await new Promise<void>((resolve) => {
-      const forced = setTimeout(() => {
-        logger.warn("drain timed out; closing anyway");
-        resolve();
-      }, 10_000);
-      forced.unref();
+    const forced = setTimeout(() => {
+      logger.warn("drain timed out; closing anyway");
+    }, 10_000);
+    forced.unref();
 
-      server.close(() => {
-        clearTimeout(forced);
-        resolve();
-      });
-      // Node keeps keep-alive sockets open past `close()`; without this the
-      // drain waits the full timeout on every deploy.
-      server.closeIdleConnections();
-    });
-
+    await app.close();
+    clearTimeout(forced);
     logger.info("stopped");
   };
 
@@ -247,5 +265,5 @@ export async function startApiServer(options: ServerOptions): Promise<RunningSer
     });
   }
 
-  return { server, port, shutdown };
+  return { app, port, shutdown };
 }

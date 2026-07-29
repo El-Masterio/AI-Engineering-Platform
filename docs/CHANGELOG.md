@@ -9,6 +9,39 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M016 — API conventions.** §16 implemented once, centrally. `apps/api` moves from the
+  placeholder `node:http` server to **Fastify** (§14's choice; the NestJS revisit is triggered by
+  the P1 gate retrospective, not by this milestone).
+  - **One error envelope, everywhere.** Three handlers, because Fastify produces errors on three
+    paths with three default shapes — thrown errors, unmatched routes, and schema validation. An
+    envelope that covers only the first is a convention with exceptions.
+  - A **500 discards the error message** rather than forwarding it. An unexpected error's text
+    carries table names and driver output, and the only way to guarantee §16's "never leaks
+    internals" for an error nobody anticipated is not to use it.
+  - Cursor pagination that **refuses** `limit > 100` rather than clamping — clamping tells a caller
+    asking for 5000 that they have the whole list.
+  - Idempotency in Postgres, in the same transaction as the work it protects: if the work committed
+    and the key did not, a retry in that window does the work twice.
+  - `ETag`/`If-Match`, with `If-Match` **required** on a conditional write. Optional-if-absent makes
+    the protection opt-in, and the caller who forgets it is the one who overwrites someone's work.
+  - OpenAPI generated from the route schemas; probes are hidden from it.
+
+### Fixed
+
+- **`@fastify/swagger` was registered fire-and-forget**, so it loaded *after* the routes it
+  documents — a valid, empty OpenAPI document and a green build, with "docs cannot drift from code"
+  false from day one.
+- **A conflicting idempotency INSERT blocks rather than failing.** A duplicate of a minutes-long
+  agent run would have held a connection until the original finished. A transaction-local
+  `lock_timeout` turns it into a fast in-flight response.
+
+### Changed
+
+- `target`/`lib` ES2023 → **ES2024**, matching the Node 24 runtime. The old setting hid APIs that
+  genuinely exist, so the compiler and the lint rules disagreed about what was available.
+
+### Added
+
 - **M015 — organizations and tenant resolution.** FR-ORG-1..3.
   - A **personal organization on signup**, created atomically with its owner membership. It works
     without a new grant or a policy change by claiming an organization that does not exist yet:

@@ -116,7 +116,7 @@ Updated in the same commit as each milestone's work.
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
 | **Total** | **11** | **132** | █░░░░░░░░░ **8%** |
 
-**Currently in progress:** none. **Next up:** `M016 — API conventions and error envelope`. **Last completed:** `M015 — Organization and membership management`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
+**Currently in progress:** none. **Next up:** `M017 — Policy engine`. **Last completed:** `M016 — API conventions and error envelope`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
 
 ### Completed
 

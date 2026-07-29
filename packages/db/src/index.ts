@@ -59,9 +59,17 @@ export {
   type NewMembership,
   type MembershipRole,
   type OrganizationPlan,
+  idempotencyKeys,
 } from "./schema/tenancy.js";
 
 export { sessions, accounts, verifications } from "./schema/authentication.js";
+
+export {
+  withIdempotency,
+  sweepIdempotencyKeys,
+  hashRequest,
+  type IdempotencyOutcome,
+} from "./idempotency.js";
 
 export {
   provisionPersonalOrganization,
