@@ -9,6 +9,28 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M018 — immutable audit log.** FR-AUDIT-1..5, §17 Control 8.
+  - **Immutability is a grant, not a convention.** `atelier_app` holds SELECT and INSERT only, so
+    `UPDATE audit_log SET …` fails at the database. TRUNCATE is refused separately because RLS does
+    not filter it — a role holding it could empty the table for every tenant at once.
+  - **Completeness is a type.** `writeAudit` takes a `ScopedTransaction`, which only `withTenant`
+    produces, so it cannot open its own transaction and cannot be called after the action committed.
+  - Range-partitioned by month from the start, with partition creation automated and idempotent.
+  - Query API for org admins, keyset-paginated — this is the table being appended to while you page
+    through it.
+  - `auditEventForDecision` turns an M017 policy decision into a record, distinguishing an
+    `api_key` actor from a `user`.
+
+### Fixed
+
+- The partition function ran as its **caller**, so the application role could not create one.
+  `SECURITY DEFINER` with an empty `search_path`, rather than granting the app role CREATE on the
+  schema to solve a one-table problem.
+- The schema-drift check counted each monthly partition as an undeclared table — it would have
+  failed the build on the first of every month.
+
+### Added
+
 - **M017 — policy engine.** `packages/policy` is the single decision point §16 requires: every
   handler calls `policy.assert(principal, action, resource)` and a lint rule now refuses
   `if (user.role === "owner")` anywhere in `apps/**`.
