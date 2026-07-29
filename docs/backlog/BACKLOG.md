@@ -91,7 +91,7 @@ Details worth carrying forward:
 - Three probes confirmed the suite bites: dropping `FORCE` → 1 failure; neutering the `organizations` policy → 5; making the claim session-local → 2.
 - `users` carries per-command policies rather than one. Identity is global — a person exists before they belong anywhere — so `INSERT` is open while `SELECT`/`UPDATE` resolve through a shared membership.
 
-### M005 · Configuration validation · S · 🏗
+### M005 · Configuration validation · S · 🏗 — ✅ **Done** (2026-07-28)
 **Objective** The process refuses to boot on invalid configuration.
 **Dependencies** M002 ✅
 **Deliverables** `packages/config` env schema (Zod), startup validation, complete `.env.example`.
@@ -104,7 +104,7 @@ Details worth carrying forward:
 Four probes confirmed the gates bite: removing a variable from the example, adding a stray one, putting a non-working value in it, and demoting `DATABASE_URL` from secret — 1, 1, 1 and 2 failures respectively.
 No dotenv dependency: Node 24 reads `--env-file` natively, so `packages/config` has exactly one runtime dependency (Zod, §14).
 
-### M006 · Observability skeleton · M · 🏗✅
+### M006 · Observability skeleton · M · 🏗✅ — ✅ **Done** (2026-07-28)
 **Objective** Traces and structured logs before there is anything hard to debug.
 **Dependencies** M002 ✅
 **Deliverables** `packages/observability`: OTel SDK setup, trace context propagation, structured JSON logger with **secret and PII redaction**, request-ID middleware, health/readiness endpoints.
@@ -141,7 +141,7 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Verified** (measured in a real browser via Playwright against the production build) Navigation: `/agents` updates URL, title, `aria-current`, breadcrumb and content · Collapse: 248px → 56px, persisted to storage, **survives a full page load** · Error boundary: a deliberately throwing route renders it, shows a digest and **does not leak the raw error message** (§16) · **LCP 32 ms against a 2500 ms budget** (FCP 32 ms, TTFB 6 ms, 47 KB transfer). Routes: `/`→302, `/projects`, `/agents`, `/settings`, `/projects/[id]` all 200; unknown route 404. 52 tests. All seven gates exit 0.
 **Notes** Fixed a spec violation found only by looking at the running app: `resolveInitialTheme` preferred the OS `prefers-color-scheme` over the dark default, so a light-mode OS overrode §18's dark-first product decision. Now dark unless explicitly stored; revisit at M083 when light mode formally ships. Also added `THEME_BASE_COLOR` — browser-chrome metadata cannot read a CSS variable, so the two literals are duplicated by necessity and a test asserts they stay equal to `--bg-base`.
 
-### M010 · Local development environment · S · 🏗
+### M010 · Local development environment · S · 🏗 — ✅ **Done** (2026-07-28)
 **Objective** One-command onboarding.
 **Dependencies** M004 ✅
 **Deliverables** `docker-compose.yml` (Postgres + Redis), `pnpm db:up/migrate/seed/dev` scripts, synthetic seed data.
@@ -154,7 +154,7 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 - **`pnpm dev` served 500 on every route.** `turbo.json`'s `dev` task had no `dependsOn`, so `@atelier/ui` resolved to a `dist/` that a fresh checkout does not have. It only ever worked because a stale `dist/` was on disk — the same class as the bug M003's first CI run found.
 **Notes** The migrate and seed entrypoints live in `scripts/`, not `packages/db`: the boundaries rule rejected the first attempt, and it was right — a data-access package that reads `process.env` cannot be embedded, tested against a second database, or reused. Seeds are synthetic **by construction**: addresses use `example.test`, which RFC 2606 reserves and nobody can register, and a test fails the build if that stops being true. Two organizations are seeded rather than one, because with a single tenant a broken RLS policy looks exactly like correct behaviour.
 
-### M011 · Deploy pipeline to staging · M · ✅
+### M011 · Deploy pipeline to staging · M · 🏗 — ✅ **Done** (2026-07-29)
 **Objective** Stages 8–11 of §24.
 **Dependencies** M003 ✅, M005 ✅
 **Deliverables** Container builds (multi-arch, digest-pinned, signed, SBOM), staging environment via OpenTofu, automatic deploy on merge, smoke tests, graceful shutdown.
@@ -166,7 +166,7 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Five defects the pipeline only revealed against real infrastructure**, each one invisible locally: the licence gate was platform-dependent; `test:integration` assumed a built `dist/`; "deploy by digest" was computed and then never used; OCI references must be lowercase and `github.repository` is not; and `ARG GIT_SHA` was never declared, so Docker discarded the build-arg and the revision check — the one that catches a deploy doing nothing — was silently inert. That last one had passed local verification because I set `GIT_SHA` at run time with `-e`, testing a mechanism that was not the one shipping.
 **Notes** [ADR-009](../decisions/ADR-009-railway-staging.md) chose Railway and GHCR, staging only. §24 asked for OpenTofu; Railway is configured by dashboard and CLI instead, because IaC for a platform we intend to leave is written twice — recorded as debt **D-010**, not skipped. Rollback is **by digest, never by tag**: a tag can be moved, a digest is the image. Migrations are deliberately not run by the deploy workflow — §15's expand→migrate→contract needs them sequenced independently of code. `apps/api` gained a real `node:http` server, not Fastify: the framework choice is M016's and still open, and none of listening, probing or draining depends on it.
 
-### M012 · Developer guide · XS · 📄
+### M012 · Developer guide · XS · 📄 — ✅ **Done** (2026-07-28)
 **Objective** A new contributor productive in under an hour.
 **Dependencies** M010, M011
 **Deliverables** `docs/guides/developer-guide.md`.
@@ -178,7 +178,7 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 
 ## Stage 1B — Identity & tenancy (M013–M022)
 
-### M013 · Domain package: organizations and users · S · 🏗
+### M013 · Domain package: organizations and users · S · 🏗 — ✅ **Done** (2026-07-28)
 **Objective** Pure domain entities with invariants, zero dependencies.
 **Dependencies** M001 ✅
 **Deliverables** `packages/domain/organizations`, `users`, `memberships`; `ports/clock.port.ts`; errors.
@@ -187,7 +187,7 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **The invariant worth having:** an organization must always keep at least one owner. Without it the last owner can demote or remove themselves and the organization becomes permanently unadministrable — nobody can invite, change billing or delete it, and recovery means a support engineer editing the database by hand. Enforced over the whole membership SET, because that is the level it is true at; a function taking one membership cannot see the others. Every escape route is covered: demote to any role, remove, remove-when-sole-member. `transferOwnership` exists because promote-then-demote can be interrupted midway and demote-then-promote trips the rule.
 **Notes** Time arrives through `ports/clock.port.ts` as branded epoch milliseconds, not `Date` — `Date` is mutable, carries a meaningless timezone and compares by reference. Everything is immutable and returns new values. Email normalisation lowercases and trims but deliberately does NOT strip dots or `+tags`: those are Gmail conventions, not standards, and merging `a.b@` with `ab@` conflates two real accounts. Changing an address clears verification, or someone verifies a throwaway and swaps in one they do not own.
 
-### M014 · Authentication · M · ✅
+### M014 · Authentication · M · 🔒✨ — ✅ **Done** (2026-07-29)
 **Objective** Email/password and OAuth sign-in.
 **Dependencies** M004 ✅, M013 ✅
 **Deliverables** Better Auth integration, Argon2id hashing, session cookies (httpOnly/Secure/SameSite), GitHub + Google OAuth, email verification, password reset, session revocation.
@@ -199,11 +199,17 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Not done here** FR-AUTH-6 (TOTP), 7 (SAML/OIDC SSO) and 8 (SCIM) are P1/P3 and out of scope. FR-AUTH-9's session *listing* UI belongs to the frontend; the server-side revocation it needs is done.
 **Notes** Rate-limit counters are in-memory, which is correct for one replica and wrong for several — the option to supply shared storage exists and the caveat is on the type. Migration 0003 reconciles Better Auth's required `emailVerified` boolean with our audit-bearing `email_verified_at` timestamp via a bidirectional trigger plus a CHECK constraint, because a GENERATED column is read-only and the library writes the flag. Migration 0004 corrects a UNIQUE index 0002 put on the wrong column.
 
-### M015 · Organization and membership management · M · ✨
+### M015 · Organization and membership management · M · ✨ — ✅ **Done** (2026-07-29)
 **Objective** Tenancy in the product, not just the schema.
-**Dependencies** M014
+**Dependencies** M014 ✅
 **Deliverables** Personal org on signup, org CRUD, membership records, tenant resolution middleware setting the RLS session variable.
 **Acceptance** FR-ORG-1..3 · every request resolves exactly one org context · a user cannot address an org they don't belong to.
+**Status — COMPLETE (2026-07-29)**, verified through the ORDINARY `atelier_app` role so RLS actually applies. Run as the owner these tests would pass no matter what the policies said.
+**The trick that avoided a policy change** `provisionPersonalOrganization` claims an organization that does not exist yet. M004's policy is `WITH CHECK (id = app_current_organization_id())`, so an insert is permitted exactly when the row being written is the tenant currently claimed — generating the id first and claiming it lets the ordinary role bootstrap a tenant with **no new grant and no policy change**. Widening `atelier_app` would have loosened the boundary for every query to solve a once-per-user problem.
+**`resolveTenant` is shaped like its claim** Set the tenant claim to the *requested* organization, then look for the caller's membership; RLS filters that lookup, so a row returns only if the membership genuinely exists there. The naive `SELECT organization_id FROM memberships WHERE user_id = ?` is worse twice over — with no claim it returns nothing, and if someone "fixed" that by widening the policy, an attacker-supplied id would never be tested against anything.
+**Proven adversarially** Removing the membership check fails 5 tests, including *"ada resolved a tenant she does not belong to"*.
+**Deliberately NOT built** "List the organizations a user belongs to" — a cross-tenant read needing a second session claim (`app.current_user_id`) and a policy change. M015's acceptance does not require it; the organization switcher does, and it can arrive with its own ADR rather than riding in on this one.
+**Known gap** **D-013** — the user row is committed before the provisioning hook runs, so a failure there leaves a user with no organization. Repairing it lazily needs the same cross-tenant read.
 
 ### M016 · API conventions and error envelope · S · 🏗
 **Objective** §16 implemented once, centrally.

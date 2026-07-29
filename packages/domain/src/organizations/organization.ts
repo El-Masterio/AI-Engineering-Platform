@@ -37,7 +37,7 @@ const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const NAME_MAX_LENGTH = 120;
 
 /** Reserved because they would collide with routes or be confusing in a URL. */
-const RESERVED_SLUGS = new Set([
+export const RESERVED_SLUGS = new Set([
   "admin",
   "api",
   "app",

@@ -68,6 +68,8 @@ Recorded now so it isn't rediscovered as a surprise:
 | **D-010** | No ZDR (managed runtime constraint) | Blocks some enterprise | First lost deal citing ZDR | 7 |
 | **D-011** | Rolling deploys, no canary | Fine at low traffic | Traffic sufficient for a meaningful canary signal | 6 |
 | **D-012** | Documentation Writer role folded into Director | Fine for MVP | Doc quality complaints, or Director prompt bloat | 3 |
+| **D-013** | A signup whose personal-organization provisioning fails leaves a user with no organization | The user row is committed before the hook runs, so the two are not atomic. Repairing it lazily means asking "does this user have ANY organization?", which is a cross-tenant read needing a second session claim and a policy change (M015 deliberately made neither) | Any occurrence in staging, or the organization-switcher feature — whichever forces the cross-tenant read first | 15 |
+| **D-014** | The debt register has two rows numbered **D-010** | Pre-existing; "Staging is not IaC" and "No ZDR" share an id, so a reference to D-010 is ambiguous. Not renumbered here because ADR-009 cites D-010 and silently moving it would break that link | Next deliberate pass over this document | — |
 
 Each of these is a *decision with an exit*, which is the entire point of the distinction.
 

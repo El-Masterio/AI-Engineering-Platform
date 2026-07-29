@@ -58,6 +58,20 @@ export type CreateAuthOptions = {
    * that happens by forgetting.
    */
   readonly rateLimitEnabled?: boolean;
+  /**
+   * Called after a user row is created, before sign-up returns.
+   *
+   * Exists so FR-ORG-1 ("a personal org is created on signup") can be
+   * satisfied without this package knowing what an organization is. Tenancy
+   * lives on the other side of ADR-010's boundary — `atelier_auth` has no grant
+   * on `organizations` at all — so the work has to happen on the application
+   * connection, and the only thing crossing back here is a callback.
+   *
+   * **Throwing fails the sign-up.** That is deliberate: FR-ORG-2 scopes all
+   * domain data by `organization_id`, so a user with no organization cannot own
+   * anything and is worse than a user who was told to try again.
+   */
+  readonly onUserCreated?: (user: { id: string; email: string; name?: string }) => Promise<void>;
 };
 
 /** Seconds. */
@@ -76,6 +90,18 @@ export function createAuth(options: CreateAuthOptions) {
     database: drizzleAdapter(options.database, {
       provider: "pg",
       schema: { users, sessions, accounts, verifications },
+    }),
+
+    ...(options.onUserCreated && {
+      databaseHooks: {
+        user: {
+          create: {
+            after: async (user: { id: string; email: string; name?: string }) => {
+              await options.onUserCreated?.(user);
+            },
+          },
+        },
+      },
     }),
 
     // ── Model mapping ────────────────────────────────────────────────────

@@ -9,6 +9,25 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M015 — organizations and tenant resolution.** FR-ORG-1..3.
+  - A **personal organization on signup**, created atomically with its owner membership. It works
+    without a new grant or a policy change by claiming an organization that does not exist yet:
+    M004's `WITH CHECK (id = app_current_organization_id())` permits an insert exactly when the row
+    being written is the tenant currently claimed.
+  - **`resolveTenant`** proves a user may act as an organization by claiming the *requested* one and
+    then looking for their membership — RLS filters the lookup, so a row returns only if the
+    membership genuinely exists there. Removing that check fails five tests.
+  - Slug derivation is deterministic and retries on collision; the unique index is the arbiter
+    rather than a pre-flight `SELECT`, which is a race that loses silently under concurrency.
+
+### Fixed
+
+- The unique-violation retry in provisioning was **dead code**: Drizzle wraps driver errors, so the
+  Postgres code sits on `.cause` and the top-level check never matched. Only a test that forced a
+  collision revealed it — a retry loop nobody exercises is a retry loop that does not work.
+
+### Added
+
 - **M014 — authentication.** Email/password and OAuth sign-in on Better Auth, with Argon2id
   (`m=19456,t=2,p=1`), httpOnly/SameSite=Lax session cookies, server-side revocation, email
   verification, single-use password reset, and rate-limited login. FR-AUTH-1..5 and 9's server half.

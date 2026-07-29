@@ -19,7 +19,9 @@ const { env, logger } = bootstrap();
 // is exactly what makes it worth stating here.
 const sql = createClient({ connectionString: env.DATABASE_URL, max: 5 });
 
-const authWiring = isAuthConfigured(env) ? createAuthWiring(env, logger) : undefined;
+const authWiring = isAuthConfigured(env)
+  ? createAuthWiring(env, logger, { appSql: sql })
+  : undefined;
 if (authWiring === undefined) {
   // Not fatal: a worker or migration job has no reason to hold a connection
   // that can read credentials. Loud, because a missing /api/auth/* on a service
