@@ -73,8 +73,17 @@ On the `api` service → **Variables**:
 
 | Kind | Name | Value |
 |---|---|---|
-| Secret | `RAILWAY_TOKEN` | Railway → Account Settings → Tokens → Create. Scope it to the project. |
+| Secret | `RAILWAY_TOKEN` | A **project token** — see below. Not an account token. |
 | Variable | `RAILWAY_SERVICE` | `api` |
+
+> **Railway has two kinds of token and the CLI treats them differently.** `RAILWAY_TOKEN` must be a
+> **project token**, created at **Project Settings → Tokens** and scoped to a project *and*
+> environment. An account token (Account Settings → Tokens) goes in `RAILWAY_API_TOKEN` instead;
+> putting one in `RAILWAY_TOKEN` fails with `Invalid RAILWAY_TOKEN`, which reads like the token is
+> malformed rather than the wrong kind.
+>
+> Use the project token regardless: it is scoped to this one project and environment, so a leaked CI
+> secret cannot reach anything else in the account. An account token can.
 
 **Settings → Environments → New environment → `staging`.** Optionally add yourself as a required
 reviewer if you want deploys to pause for approval.
@@ -147,6 +156,10 @@ on a milestone branch is not enough. Fix CI first.
 **Job [10] warns "Railway is not configured".**
 `RAILWAY_TOKEN` or `RAILWAY_SERVICE` is missing. The image is published regardless; that warning is
 by design, so the very first run can produce the image Railway needs before Railway exists.
+
+**Job [10] fails with `Invalid RAILWAY_TOKEN`.**
+Almost always the wrong *kind* of token rather than a malformed one — `RAILWAY_TOKEN` must be a
+project token (Project Settings → Tokens), not an account token. See step 4.
 
 **Job [11] warns "STAGING_URL is not set".**
 Expected until step 5. Railway issues a domain only after a successful deploy.
