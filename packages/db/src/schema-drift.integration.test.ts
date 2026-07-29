@@ -5,7 +5,7 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import type { Sql } from "postgres";
 import { createClient } from "./client.js";
 import { migrateUp } from "./migrate.js";
-import { idempotencyKeys, memberships, organizations, users } from "./schema/tenancy.js";
+import { auditLog, idempotencyKeys, memberships, organizations, users } from "./schema/tenancy.js";
 import { accounts, sessions, verifications } from "./schema/authentication.js";
 import { POSTGRES_IMAGE } from "./testing/harness.js";
 
@@ -67,6 +67,7 @@ const TABLES: { drizzle: PgTable; name: string }[] = [
   { drizzle: accounts, name: "accounts" },
   { drizzle: verifications, name: "verifications" },
   { drizzle: idempotencyKeys, name: "idempotency_keys" },
+  { drizzle: auditLog, name: "audit_log" },
 ];
 
 describe("the Drizzle schema matches the migrated database", () => {
@@ -116,10 +117,18 @@ describe("the Drizzle schema matches the migrated database", () => {
   });
 
   it("every table the migration creates is declared in Drizzle", async () => {
+    // `relispartition = false` excludes audit_log's monthly partitions. They
+    // are one logical table with one Drizzle definition; listing each month
+    // here would make this test fail on the first of every month.
     const rows = await sql<{ tablename: string }[]>`
-      SELECT tablename FROM pg_tables
-      WHERE schemaname = 'public' AND tablename <> 'schema_migrations'
-      ORDER BY tablename
+      SELECT c.relname AS tablename
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public'
+        AND c.relkind IN ('r', 'p')
+        AND c.relispartition = false
+        AND c.relname <> 'schema_migrations'
+      ORDER BY c.relname
     `;
 
     // schema_migrations is the runner's own ledger and deliberately has no

@@ -141,3 +141,36 @@ export const idempotencyKeys = pgTable(
     index("idx_idempotency_keys_expires_at").on(table.expiresAt),
   ],
 );
+
+/**
+ * Audit log (§17 Control 8, migration 0006).
+ *
+ * Range-partitioned by month in the database; Drizzle sees the parent, which is
+ * what queries address. The application role holds SELECT and INSERT only, so
+ * there is deliberately no update or delete path to express here either.
+ */
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: uuid("id").notNull().defaultRandom(),
+    organizationId: uuid("organization_id").notNull(),
+    /** Null for system actions — not every state change has a human behind it. */
+    actorUserId: uuid("actor_user_id"),
+    actorType: text("actor_type").notNull().default("user"),
+    action: text("action").notNull(),
+    resourceKind: text("resource_kind"),
+    resourceId: text("resource_id"),
+    outcome: text("outcome").notNull(),
+    /** Ties an audit row to the §16 error envelope a user was shown. */
+    requestId: text("request_id"),
+    ipAddress: text("ip_address"),
+    /** Redacted BEFORE it arrives — an audit row is a log kept forever. */
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_audit_log_org_created").on(table.organizationId, table.createdAt),
+    index("idx_audit_log_org_actor").on(table.organizationId, table.actorUserId, table.createdAt),
+    index("idx_audit_log_org_action").on(table.organizationId, table.action, table.createdAt),
+  ],
+);

@@ -60,9 +60,22 @@ export {
   type MembershipRole,
   type OrganizationPlan,
   idempotencyKeys,
+  auditLog,
 } from "./schema/tenancy.js";
 
 export { sessions, accounts, verifications } from "./schema/authentication.js";
+
+export {
+  writeAudit,
+  queryAudit,
+  ensureAuditPartition,
+  auditEventForDecision,
+  type AuditEvent,
+  type AuditQuery,
+  type AuditRecord,
+  type AuditOutcome,
+  type AuditActorType,
+} from "./audit.js";
 
 export {
   withIdempotency,

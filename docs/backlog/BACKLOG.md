@@ -237,11 +237,17 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Lint rule verified adversarially** A probe file with `user.role === "owner"`, `"admin" !== membership.role` and `switch (user.role)` produced three errors naming §16; clean after removal. Scoped to `apps/**` — `packages/policy` defines the rules and `packages/domain` owns `canManage`, so both compare roles legitimately.
 **Coverage** 100% of `packages/policy`; 96.0% overall.
 
-### M018 · Immutable audit log · M · 🔒🏗
+### M018 · Immutable audit log · M · 🔒🏗 — ✅ **Done** (2026-07-29)
 **Objective** Every state change recorded, permanently.
-**Dependencies** M016, M017
+**Dependencies** M016 ✅, M017 ✅
 **Deliverables** `audit_log` table (range-partitioned), same-transaction write helper, `UPDATE`/`DELETE` revoked from the app role, query API for admins.
 **Acceptance** FR-AUDIT-1..4 · an `UPDATE` attempt from the app role fails at the database · a rolled-back action leaves no audit row · partition creation automated.
+**Immutability is a GRANT** `atelier_app` holds SELECT and INSERT and nothing else, so `UPDATE audit_log SET …` fails at the database rather than at a code review. FR-AUDIT-4 says "there is no update or delete path"; the only way to make that true is for the path not to exist. TRUNCATE is called out separately because **RLS does not filter it** — a role holding it could empty the table for every tenant at once.
+**Completeness is a TYPE** `writeAudit` takes a `ScopedTransaction`, which only `withTenant` can produce, so it cannot open its own transaction and therefore cannot be called after the action has already committed. A helper taking a `Database` would silently become a separate transaction, and the rows it lost would be the ones for actions that succeeded.
+**Two defects the tests found** The partition function ran as its *caller*, so `atelier_app` could not create one — `SECURITY DEFINER` with an empty `search_path`, rather than granting the app role CREATE on the schema to solve a one-table problem. And the schema-drift check counted each monthly partition as an undeclared table, which would have failed the build on the first of every month.
+**A new partition inherits RLS but NOT grants**, so the function re-grants explicitly — forgetting it would be an outage on the first of the month, every month. The test writes a row dated into a future partition and reads it back **out of that partition**, not the parent, because reading the parent would pass even if routing had put the row elsewhere.
+**Verified adversarially** Granting `UPDATE, DELETE` to `atelier_app` fails the two immutability tests with *"audit rows are mutable by the app role"*.
+**Wired to M017** `auditEventForDecision` translates a policy decision into an audit event, and distinguishes an `api_key` actor from a `user` — an audit log that cannot tell them apart cannot answer "who did this". The adapter lives in `packages/db`, not `packages/policy`: the policy engine runs on every request and must not depend on a database connection.
 
 ### M019 · API keys · S · 🔒✨
 **Objective** Programmatic access with scopes.
