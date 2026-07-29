@@ -9,6 +9,29 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M017 — policy engine.** `packages/policy` is the single decision point §16 requires: every
+  handler calls `policy.assert(principal, action, resource)` and a lint rule now refuses
+  `if (user.role === "owner")` anywhere in `apps/**`.
+  - **Deny-by-default is structural**, not a trailing `else`: unknown action, unknown role, no
+    membership, wrong tenant and un-granted action each return a denial with a reason.
+  - **§17 Control 7 is checked before the role matrix**, so the approval gate holds even if the
+    matrix is wrong. An approval names the action it approved — §17: "an approval for one action
+    never generalizes to the next".
+  - API-key scopes **narrow, never widen**: a key is bounded by its scopes *and* its owner's role.
+  - `AuthorizationError` carries a fixed message and the reason as a field. A 403 that explains
+    itself confirms the resource exists.
+  - Every decision, allowed or denied, reaches a `DecisionSink` — the port M018's audit log will
+    implement.
+
+### Fixed
+
+- **The approval gate was initially unusable.** Reading §17's "not overridable at any autonomy
+  level" as "no role grants these" meant an approval could be presented and the action still refused
+  for lack of a role — the control was not stricter, it was broken. Role and approval are now
+  independent requirements.
+
+### Added
+
 - **M016 — API conventions.** §16 implemented once, centrally. `apps/api` moves from the
   placeholder `node:http` server to **Fastify** (§14's choice; the NestJS revisit is triggered by
   the P1 gate retrospective, not by this milestone).

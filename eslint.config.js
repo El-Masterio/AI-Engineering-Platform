@@ -365,6 +365,53 @@ export default tseslint.config(
   // Components reference SEMANTIC tokens only. A literal colour or raw px size
   // is invisible to theming, so it silently breaks light mode and the contrast
   // guarantee that scripts/check-contrast.mjs enforces over the token set.
+  /**
+   * §16: "No `if (user.role === "owner")` in a route handler, ever."
+   *
+   * Scattered permission logic cannot be audited or tested, and the permission
+   * model is a security boundary (§17). Scoped to apps because that is where
+   * handlers live — `packages/policy` DEFINES the rules and `packages/domain`
+   * owns `canManage`, so both compare roles legitimately.
+   */
+  {
+    files: ["apps/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "TSEnumDeclaration",
+          message: "TS enums are prohibited (§21). Use an `as const` object plus a union type.",
+        },
+        {
+          // anything.role === "…" / !== / == / !=
+          selector: "BinaryExpression[operator=/^[!=]==?$/][left.property.name='role']",
+          message:
+            "Inline role check (§16). Call policy.assert(principal, action, resource) — scattered permission logic cannot be audited or tested.",
+        },
+        {
+          // the mirrored form: "…" === anything.role
+          selector: "BinaryExpression[operator=/^[!=]==?$/][right.property.name='role']",
+          message:
+            "Inline role check (§16). Call policy.assert(principal, action, resource) — scattered permission logic cannot be audited or tested.",
+        },
+        {
+          // switch (user.role) { … }
+          selector: "SwitchStatement[discriminant.property.name='role']",
+          message:
+            "Branching on a role (§16). Call policy.assert(principal, action, resource) rather than deciding permissions per handler.",
+        },
+        {
+          // ["owner","admin"].includes(user.role)
+          selector:
+            "CallExpression[callee.property.name='includes'] > MemberExpression.arguments[property.name='role']",
+          message:
+            "Inline role membership test (§16). Call policy.assert(principal, action, resource).",
+        },
+      ],
+    },
+  },
+
   // tokens.css is exempt by construction — it is CSS, not linted here.
   {
     files: ["packages/ui/**/*.{ts,tsx}", "apps/web/**/*.{ts,tsx}"],
