@@ -10,6 +10,7 @@ import { bootstrap } from "./index.js";
 import { createClient } from "@atelier/db";
 import { startApiServer } from "./server.js";
 import { createAuthWiring, isAuthConfigured } from "./auth-wiring.js";
+import { createRateLimitStore } from "./rate-limit-wiring.js";
 
 const { env, logger } = bootstrap();
 
@@ -29,10 +30,13 @@ if (authWiring === undefined) {
   logger.warn("AUTH_DATABASE_URL or BETTER_AUTH_SECRET absent; /api/auth/* will 404");
 }
 
+const rateLimit = createRateLimitStore(env, logger);
+
 const server = await startApiServer({
   port: env.PORT,
   logger,
   sql,
+  rateLimitStore: rateLimit.store,
   ...(env.GIT_SHA !== undefined && { revision: env.GIT_SHA }),
   ...(authWiring !== undefined && { authHandler: authWiring.auth.handler }),
 });
@@ -43,5 +47,6 @@ const stopServer = server.shutdown;
 server.shutdown = async () => {
   await stopServer();
   await authWiring?.close();
+  await rateLimit.close();
   await sql.end({ timeout: 5 });
 };

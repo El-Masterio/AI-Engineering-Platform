@@ -553,6 +553,7 @@ export default tseslint.config(
       // Vitest, Vite and friends read a default export; that is their contract.
       "*.config.{ts,mjs,js}",
       "packages/*/*.config.{ts,mjs,js}",
+      "apps/*/*.config.{ts,mjs,js}",
     ],
     rules: { "import-x/no-default-export": "off" },
   },

@@ -7,7 +7,9 @@
     "rootDir": ".",
     // The workspace view now spans .tsx (packages/ui) as well as .ts.
     "jsx": "react-jsx",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    // ES2024 to match the base config and the Node 24 runtime — this file
+    // overrode it back to ES2023, so the tooling view disagreed with every build.
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "outDir": ".turbo/tsconfig-noemit",
     // No `baseUrl` — deprecated in TS 7; `paths` resolves relative to this file.
     // Maps workspace packages to SOURCE rather than dist. Without this,
@@ -29,7 +31,10 @@
     ".storybook/**/*.ts",
     "vitest.config.ts",
     "vitest.setup.ts",
-    "packages/*/vitest.*.config.ts"
+    "packages/*/vitest.*.config.ts",
+    // apps too, or an app's integration config belongs to no project and ESLint
+    // reports a parse error rather than a rule violation.
+    "apps/*/vitest.*.config.ts"
   ],
   "exclude": ["node_modules", "**/dist/**", "**/.turbo/**", "**/.next/**"]
 }

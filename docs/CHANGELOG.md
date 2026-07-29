@@ -9,6 +9,30 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M020 — rate limiting.** §16's tiers as a **sliding** window, in Redis.
+  - A fixed window is wrong at the only moment that matters: 100 requests at 11:59:59 and 100 more
+    at 12:00:00 is 200 in one second, and the burst is what the limit exists to prevent.
+  - The window is a **Lua script, not a pipeline**. A pipeline batches round trips without making
+    them atomic. Verified against a real Redis: 50 simultaneous hits counted exactly once each.
+  - **Fails open, loudly.** A Redis outage must not become a total outage; the warning is what stops
+    that being a silent loss of the control.
+  - `RateLimit-*` headers on **every** response, not just the 429 — a client that can see it has 4
+    left can slow down; one that only learns at rejection can only retry.
+  - Probes are exempt: an orchestrator polls `/readyz` constantly, and limiting it kills the
+    container for being healthy.
+  - `REDIS_URL` joins the schema; its absence warns in production. This is what M014's
+    `secondaryStorage` caveat was waiting for.
+
+### Fixed
+
+- The root tsconfig included `packages/*/vitest.*.config.ts` but no `apps/*` equivalent, so an
+  integration config under `apps/` belonged to no project and ESLint reported a **parse error**
+  rather than a rule violation.
+- The root tsconfig still pinned `lib` to ES2023, overriding M016 — the tooling view disagreed with
+  every build.
+
+### Added
+
 - **M019 — API keys.** `atl_…` bearer tokens, scoped per §16, hashed at rest, prefix-visible,
   revocable immediately.
   - **SHA-256, deliberately not Argon2id** — the opposite choice to M014's passwords for the

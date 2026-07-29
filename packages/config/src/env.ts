@@ -148,6 +148,22 @@ const envObject = z.object({
   GIT_SHA: z.string().optional(),
 
   /**
+   * Shared store for rate-limit windows (§16, M020).
+   *
+   * Optional, and its absence is the interesting case: without it the limiter
+   * keeps windows in process memory, which is correct for ONE replica and wrong
+   * for several — N replicas each counting separately enforce N times the
+   * limit. That is not an approximation, it is the limit not existing, and the
+   * failure is silent because each replica looks perfectly correct.
+   */
+  REDIS_URL: z
+    .string()
+    .refine((value) => value.startsWith("redis://") || value.startsWith("rediss://"), {
+      message: "must be a redis:// or rediss:// connection string",
+    })
+    .optional(),
+
+  /**
    * Connection for the authentication module (ADR-010).
    *
    * The same database as DATABASE_URL, as a DIFFERENT ROLE. `atelier_auth` can

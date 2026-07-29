@@ -35,7 +35,7 @@
     "storybook": "storybook dev -p 6006",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:integration": "pnpm --filter @atelier/db --filter @atelier/observability --filter @atelier/auth test:integration",
+    "test:integration": "pnpm --filter @atelier/db --filter @atelier/observability --filter @atelier/auth --filter @atelier/api test:integration",
     "test:watch": "vitest",
     "typecheck": "turbo run typecheck",
     "verify": "pnpm format:check && pnpm lint && pnpm depcruise && pnpm knip && pnpm check:contrast && pnpm check:licenses && pnpm typecheck && pnpm test:coverage && pnpm build",
