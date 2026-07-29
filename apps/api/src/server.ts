@@ -69,7 +69,17 @@ function createApiServer(options: ServerOptions): Server {
         const report = await readiness(
           sql === undefined
             ? []
-            : [{ name: "database", probe: async () => void (await sql`SELECT 1`) }],
+            : [
+                {
+                  name: "database",
+                  probe: async () => void (await sql`SELECT 1`),
+                  // The wire gets "check failed"; the log gets the reason.
+                  // Without this a failing deploy is undiagnosable from outside
+                  // the container.
+                  onError: (error) =>
+                    logger.error({ err: error, check: "database" }, "readiness check failed"),
+                },
+              ],
         );
         json(response, healthStatusCode(report), report);
       })();

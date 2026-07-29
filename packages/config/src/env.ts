@@ -42,17 +42,41 @@ const LOG_LEVELS = ["trace", "debug", "info", "warn", "error", "fatal"] as const
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
 /** A Postgres connection string, not merely a URL. */
-const postgresUrl = z.string().refine(
-  (value) => {
-    try {
-      const url = new URL(value);
-      return url.protocol === "postgres:" || url.protocol === "postgresql:";
-    } catch {
-      return false;
-    }
-  },
-  { message: "must be a postgres:// or postgresql:// connection string" },
-);
+const postgresUrl = z.string().superRefine((value, ctx) => {
+  // An unresolved platform reference, caught before the generic message.
+  //
+  // Railway, Render and Fly all use this `${{Service.VAR}}` shape, and when the
+  // reference does not resolve the LITERAL template arrives as the value. The
+  // generic message below is then actively misleading: it sends you to inspect
+  // a connection string, when the thing to fix is the reference that was meant
+  // to produce one. This cost an evening on the first staging deploy — the
+  // container crash-looped eleven times saying "must be a postgres:// …" while
+  // the actual fault was a reference that had never been applied.
+  if (value.includes("${{")) {
+    ctx.addIssue({
+      code: "custom",
+      message:
+        "is an unresolved platform reference (it still contains `${{…}}`). " +
+        "Check that the referenced service name matches EXACTLY — they are " +
+        "case-sensitive — and that the variable change was applied and redeployed",
+    });
+    return;
+  }
+
+  let protocol: string | undefined;
+  try {
+    protocol = new URL(value).protocol;
+  } catch {
+    /* falls through to the issue below */
+  }
+
+  if (protocol !== "postgres:" && protocol !== "postgresql:") {
+    ctx.addIssue({
+      code: "custom",
+      message: "must be a postgres:// or postgresql:// connection string",
+    });
+  }
+});
 
 const envObject = z.object({
   NODE_ENV: z.enum(NODE_ENVIRONMENTS).default("development"),
