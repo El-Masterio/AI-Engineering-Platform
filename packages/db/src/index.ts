@@ -62,3 +62,10 @@ export {
 } from "./schema/tenancy.js";
 
 export { sessions, accounts, verifications } from "./schema/authentication.js";
+
+export {
+  provisionPersonalOrganization,
+  resolveTenant,
+  type ProvisionPersonalOrganizationInput,
+  type ProvisionedOrganization,
+} from "./tenancy.js";

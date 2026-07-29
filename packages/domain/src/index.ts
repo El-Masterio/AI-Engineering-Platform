@@ -19,6 +19,10 @@ export {
 
 export { toTimestamp, fixedClock, type Clock, type Timestamp } from "./ports/clock.port.js";
 export { EmailDeliveryError, type EmailPort, type EmailMessage } from "./ports/email.port.js";
+export {
+  personalOrganizationSlug,
+  personalOrganizationName,
+} from "./organizations/personal-organization.js";
 
 export {
   createOrganization,

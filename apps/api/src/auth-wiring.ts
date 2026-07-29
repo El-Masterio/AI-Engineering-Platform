@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import { createClient } from "@atelier/db";
+import { createClient, createDatabase, provisionPersonalOrganization } from "@atelier/db";
 import { createAuth, type Auth } from "@atelier/auth";
 import { createConsoleEmailAdapter, createResendEmailAdapter } from "@atelier/email";
 import type { EmailPort } from "@atelier/domain";
@@ -24,6 +24,19 @@ import type { Sql } from "postgres";
  */
 
 export type AuthWiring = { auth: Auth; sql: Sql; close: () => Promise<void> };
+
+export type CreateAuthWiringOptions = {
+  /**
+   * The APPLICATION connection (`atelier_app`), not the auth one.
+   *
+   * FR-ORG-1's personal organization is tenant data, and `atelier_auth` has no
+   * grant on `organizations` (ADR-010) — so provisioning has to run on the
+   * other side of the boundary. Passing the wrong connection here fails loudly
+   * at the first signup rather than silently widening anything, because the
+   * grant simply is not there.
+   */
+  readonly appSql: Sql;
+};
 
 class AuthConfigurationError extends Error {
   override readonly name = "AuthConfigurationError";
@@ -58,7 +71,11 @@ function selectEmailAdapter(env: Env, logger: Logger): EmailPort {
   });
 }
 
-export function createAuthWiring(env: Env, logger: Logger): AuthWiring {
+export function createAuthWiring(
+  env: Env,
+  logger: Logger,
+  options: CreateAuthWiringOptions,
+): AuthWiring {
   if (env.AUTH_DATABASE_URL === undefined || env.BETTER_AUTH_SECRET === undefined) {
     throw new AuthConfigurationError(
       "AUTH_DATABASE_URL and BETTER_AUTH_SECRET are both required to serve authentication. " +
@@ -71,8 +88,35 @@ export function createAuthWiring(env: Env, logger: Logger): AuthWiring {
   // the one that can read credentials, so its concurrency is worth keeping low.
   const sql = createClient({ connectionString: env.AUTH_DATABASE_URL, max: 5 });
 
+  const appDb = createDatabase(options.appSql);
+
   const auth = createAuth({
     database: drizzle(sql),
+    /**
+     * FR-ORG-1, at the only moment it can happen.
+     *
+     * Runs on the APP connection, so the organization and its owner membership
+     * are written by the role that owns tenant data. Throwing fails the signup
+     * on purpose — FR-ORG-2 scopes everything by `organization_id`, so a user
+     * with no organization cannot own anything.
+     *
+     * KNOWN GAP (D-011): the user row is already committed by the time this
+     * runs, so a failure here leaves a user with no organization. Repairing
+     * that lazily needs to ask "does this user have any organization?", which
+     * is a cross-tenant read and needs the session-claim change this milestone
+     * deliberately did not make. Recorded rather than hidden.
+     */
+    onUserCreated: async (user) => {
+      const organization = await provisionPersonalOrganization(appDb, {
+        userId: user.id,
+        email: user.email,
+        ...(user.name !== undefined && { name: user.name }),
+      });
+      logger.info(
+        { userId: user.id, organizationId: organization.organizationId, slug: organization.slug },
+        "provisioned personal organization",
+      );
+    },
     secret: env.BETTER_AUTH_SECRET,
     baseUrl: env.AUTH_BASE_URL ?? `http://localhost:${env.PORT}`,
     email: selectEmailAdapter(env, logger),

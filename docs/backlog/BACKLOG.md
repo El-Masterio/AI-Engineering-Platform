@@ -199,11 +199,17 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Not done here** FR-AUTH-6 (TOTP), 7 (SAML/OIDC SSO) and 8 (SCIM) are P1/P3 and out of scope. FR-AUTH-9's session *listing* UI belongs to the frontend; the server-side revocation it needs is done.
 **Notes** Rate-limit counters are in-memory, which is correct for one replica and wrong for several — the option to supply shared storage exists and the caveat is on the type. Migration 0003 reconciles Better Auth's required `emailVerified` boolean with our audit-bearing `email_verified_at` timestamp via a bidirectional trigger plus a CHECK constraint, because a GENERATED column is read-only and the library writes the flag. Migration 0004 corrects a UNIQUE index 0002 put on the wrong column.
 
-### M015 · Organization and membership management · M · ✨
+### M015 · Organization and membership management · M · ✅
 **Objective** Tenancy in the product, not just the schema.
-**Dependencies** M014
+**Dependencies** M014 ✅
 **Deliverables** Personal org on signup, org CRUD, membership records, tenant resolution middleware setting the RLS session variable.
 **Acceptance** FR-ORG-1..3 · every request resolves exactly one org context · a user cannot address an org they don't belong to.
+**Status — COMPLETE (2026-07-29)**, verified through the ORDINARY `atelier_app` role so RLS actually applies. Run as the owner these tests would pass no matter what the policies said.
+**The trick that avoided a policy change** `provisionPersonalOrganization` claims an organization that does not exist yet. M004's policy is `WITH CHECK (id = app_current_organization_id())`, so an insert is permitted exactly when the row being written is the tenant currently claimed — generating the id first and claiming it lets the ordinary role bootstrap a tenant with **no new grant and no policy change**. Widening `atelier_app` would have loosened the boundary for every query to solve a once-per-user problem.
+**`resolveTenant` is shaped like its claim** Set the tenant claim to the *requested* organization, then look for the caller's membership; RLS filters that lookup, so a row returns only if the membership genuinely exists there. The naive `SELECT organization_id FROM memberships WHERE user_id = ?` is worse twice over — with no claim it returns nothing, and if someone "fixed" that by widening the policy, an attacker-supplied id would never be tested against anything.
+**Proven adversarially** Removing the membership check fails 5 tests, including *"ada resolved a tenant she does not belong to"*.
+**Deliberately NOT built** "List the organizations a user belongs to" — a cross-tenant read needing a second session claim (`app.current_user_id`) and a policy change. M015's acceptance does not require it; the organization switcher does, and it can arrive with its own ADR rather than riding in on this one.
+**Known gap** **D-013** — the user row is committed before the provisioning hook runs, so a failure there leaves a user with no organization. Repairing it lazily needs the same cross-tenant read.
 
 ### M016 · API conventions and error envelope · S · 🏗
 **Objective** §16 implemented once, centrally.
