@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql as raw } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { personalOrganizationName, personalOrganizationSlug } from "@atelier/domain";
 import { memberships, organizations } from "./schema/tenancy.js";
@@ -175,16 +175,43 @@ export async function resolveTenant(
   return membership === undefined ? undefined : context;
 }
 
-// NOT here: "the organizations a user belongs to".
+// "The organizations a user belongs to" lives below, added in M022.
 //
-// That is a cross-tenant read — it spans every tenant they belong to, so no
-// single value of `app.current_organization_id` can authorise it. Doing it
-// properly needs a second session claim (`app.current_user_id`) and a policy
-// admitting a user to their own membership rows: additive to M004, but a change
-// to the security boundary and therefore an ADR.
-//
-// M015 does not need it. Its acceptance is that every request resolves exactly
-// ONE organization and that a user cannot address one they do not belong to,
-// both of which `resolveTenant` satisfies without touching a policy. The
-// feature that needs a list is the organization switcher, which can arrive with
-// the decision it deserves rather than riding in on this one.
+// M015 left it out on purpose: it is a cross-tenant read that no single value
+// of the tenant claim can authorise, and the choice between a narrow
+// SECURITY DEFINER function and a second session claim was a security-boundary
+// decision rather than an implementation detail. Migration 0008 records which
+// was chosen and why.
+
+export type UserOrganization = {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly role: string;
+};
+
+/**
+ * The organizations a user belongs to (migration 0008, M022).
+ *
+ * The comment M015 left here said this was deliberately not implemented,
+ * because it is a cross-tenant read that no single value of the tenant claim
+ * can authorise. That was correct, and this is the decision it was waiting for:
+ * a narrow `SECURITY DEFINER` function rather than a second session claim and a
+ * widened `memberships` policy.
+ *
+ * The difference matters. A widened policy gives every query against
+ * `memberships` a second way to match, forever, for one screen's benefit. This
+ * gives one screen exactly what it needs and nothing else — the function cannot
+ * list members, read settings, or answer "which organizations exist".
+ *
+ * Takes no `TenantContext`, because having one would defeat the purpose.
+ */
+export async function listOrganizationsForUser(
+  db: Database,
+  userId: string,
+): Promise<readonly UserOrganization[]> {
+  const rows = await db.execute(
+    raw`SELECT id, slug, name, role FROM app_organizations_for_user(${userId})`,
+  );
+  return rows as unknown as UserOrganization[];
+}

@@ -289,11 +289,18 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Two things the generator taught me** The UPDATE probe first named `updated_at`, which `idempotency_keys` does not have; it now assigns the tenant column to itself, a no-op that exists on every scoped table by definition. And an unknown scoped table with no INSERT fixture **throws** rather than being skipped — being skipped is how a table goes untested for months.
 **CI** `test:integration` was already a required job; it now carries a comment saying it is a release blocker and why, so nobody makes it `continue-on-error` to get a build through.
 
-### M022 · Auth and organization UI · M · ✨
+### M022 · Auth and organization UI · M · ✨ — ✅ **Done** (2026-07-29)
 **Objective** Sign-up through org context in the product.
-**Dependencies** M009, M015
+**Dependencies** M009 ✅, M015 ✅
 **Deliverables** Sign-up, sign-in, OAuth, verification, password reset, org switcher, member list, settings screens.
 **Acceptance** Full journey works · keyboard complete · axe clean · errors surface the §16 message, never internals.
+**The decision M015 deferred came due** The org switcher needs "which organizations does this user belong to?", a read spanning tenants that no single value of the RLS claim can authorise. Owner chose the narrow option: migration 0008 adds `app_organizations_for_user`, a `SECURITY DEFINER` function returning four columns for one user. The alternative — a second session claim plus a widened `memberships` policy — is more general and would have given every query against `memberships` a second way to match, forever, for one screen.
+**Errors show the SERVER's message, never a friendlier one** M014 makes sign-in failures deliberately generic so the form cannot enumerate accounts. A UI rewording "invalid credentials" into "no account with that email" hands back the oracle the server avoided, so `messageFor` prefers what arrived and falls back only when there is nothing. Tested by asserting the alert contains no such phrasing.
+**axe caught a real bug** The switcher marked the active row with `aria-selected` on a `<button>` — invalid, because only roles with selection semantics (option, row, tab, treeitem) accept it. The first version had a confident comment explaining why it was fine. Now `aria-current`, which is valid anywhere and means exactly "the current item in a set"; a real listbox would make options non-focusable and drag in `aria-activedescendant` for a list of two.
+**`role="alert"` is centralised** in `AuthForm` rather than repeated on six screens, because getting it onto all six by remembering it six times is how five of them get it. Without it the message renders and is never announced: the user submits and nothing appears to happen.
+**One organization renders as text, not a control** Every user has exactly one until invitations land (FR-ORG-4, P1), and a control that cannot change anything should not look interactive.
+**Two conventions I had to learn from the codebase** `apps/web` uses the `@/` alias with no extension (bundler resolution, not NodeNext) — my NodeNext-style relative imports failed the build in 17 places. And `Badge` takes `tone`, not `variant`; typecheck passed while the wrong prop was silently spread onto the DOM.
+**A third stale `lib` override** `apps/web/tsconfig.json` still pinned ES2023 after M016 bumped the base — the same class of gap as the root tsconfig in M020.
 
 **═══ GATE 1B ═══** Authorization matrix fully tested · cross-tenant suite green on every table · every state change audited.
 
