@@ -27,9 +27,37 @@ export default defineConfig({
    * precisely this reason — it was covered, just not the copy being measured.
    */
   resolve: {
-    alias: {
-      "@atelier/ui": fileURLToPath(new URL("packages/ui/src/index.ts", import.meta.url)),
-    },
+    /**
+     * EVERY workspace package, not just `@atelier/ui`.
+     *
+     * Aliasing one package fixed one symptom and left the reasoning above
+     * applying to the other ten. It resurfaced the moment `@atelier/domain`
+     * gained an export: the tests resolved to a `dist/` built before it
+     * existed and failed with "EmailDeliveryError is not a constructor" —
+     * a missing build presenting as a missing export.
+     *
+     * Listed explicitly rather than globbed. A glob would silently start
+     * aliasing a package that has no `src/index.ts`, and the failure would be
+     * another unresolvable import at a distance.
+     */
+    alias: Object.fromEntries(
+      [
+        "agent-runtime",
+        "capability-packs",
+        "config",
+        "contracts",
+        "cost",
+        "db",
+        "domain",
+        "email",
+        "observability",
+        "policy",
+        "ui",
+      ].map((name) => [
+        `@atelier/${name}`,
+        fileURLToPath(new URL(`packages/${name}/src/index.ts`, import.meta.url)),
+      ]),
+    ),
   },
   test: {
     environment: "jsdom",

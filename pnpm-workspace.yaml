@@ -30,3 +30,6 @@ allowBuilds:
   # Testcontainers' transport to the Docker daemon — pure JS, and here it talks
   # to a local socket rather than over SSH at all.
   ssh2: false
+
+minimumReleaseAgeExclude:
+  - resend@6.18.1

@@ -23,6 +23,7 @@ The *choices* were and remain decided.
 | Agent runtime | Claude Managed Agents behind an `AgentRuntime` port | Medium *(deliberately reversible)* |
 | Models | Claude, tiered (ADR-004) | High |
 | Auth | Better Auth | Medium |
+| Transactional email | Resend ([ADR-011](../decisions/ADR-011-transactional-email.md)) | Low |
 | Billing | Stripe | High |
 | Object storage | S3-compatible (Cloudflare R2) | High |
 | Observability | OpenTelemetry → Grafana stack; Langfuse for LLM traces | Medium-high |
