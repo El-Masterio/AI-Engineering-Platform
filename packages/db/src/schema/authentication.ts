@@ -80,7 +80,9 @@ export const verifications = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("uq_verifications_value").on(table.value),
+    // NOT unique — see migration 0004. `value` holds the subject (a user id
+    // for a reset), not the token, so it repeats legitimately.
+    index("idx_verifications_value").on(table.value),
     index("idx_verifications_identifier").on(table.identifier),
     index("idx_verifications_expires_at")
       .on(table.expiresAt)

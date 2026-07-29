@@ -43,6 +43,7 @@ export default defineConfig({
     alias: Object.fromEntries(
       [
         "agent-runtime",
+        "auth",
         "capability-packs",
         "config",
         "contracts",
