@@ -187,11 +187,17 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **The invariant worth having:** an organization must always keep at least one owner. Without it the last owner can demote or remove themselves and the organization becomes permanently unadministrable — nobody can invite, change billing or delete it, and recovery means a support engineer editing the database by hand. Enforced over the whole membership SET, because that is the level it is true at; a function taking one membership cannot see the others. Every escape route is covered: demote to any role, remove, remove-when-sole-member. `transferOwnership` exists because promote-then-demote can be interrupted midway and demote-then-promote trips the rule.
 **Notes** Time arrives through `ports/clock.port.ts` as branded epoch milliseconds, not `Date` — `Date` is mutable, carries a meaningless timezone and compares by reference. Everything is immutable and returns new values. Email normalisation lowercases and trims but deliberately does NOT strip dots or `+tags`: those are Gmail conventions, not standards, and merging `a.b@` with `ab@` conflates two real accounts. Changing an address clears verification, or someone verifies a throwaway and swaps in one they do not own.
 
-### M014 · Authentication · M · 🔒✨
+### M014 · Authentication · M · ✅
 **Objective** Email/password and OAuth sign-in.
-**Dependencies** M004, M013
+**Dependencies** M004 ✅, M013 ✅
 **Deliverables** Better Auth integration, Argon2id hashing, session cookies (httpOnly/Secure/SameSite), GitHub + Google OAuth, email verification, password reset, session revocation.
 **Acceptance** FR-AUTH-1..5, 9 satisfied · login rate-limited · failure messages generic · sessions revocable server-side · 95% coverage.
+**Status — COMPLETE (2026-07-29)**, verified against a real database and then again through the shipped container image.
+**Decisions** [ADR-010](../decisions/ADR-010-authentication-identity-boundary.md) — identity reads through a dedicated `atelier_auth` role, because `users` under FORCE RLS makes sign-in *structurally impossible*: no tenant context, so the lookup returns zero rows and the app reports "no such user" for every user in the database. [ADR-011](../decisions/ADR-011-transactional-email.md) — Resend behind an `EmailPort`; §14 named no provider and FR-AUTH-4/5 are both P0.
+**Verified in the container** sign-up 200 · credential stored as `$argon2id$v=19$m=19456,t=2,p=1` · cookie `HttpOnly; SameSite=Lax` and correctly *not* `Secure` over http · `x-request-id` present · and `app_login` gets **permission denied for table accounts** — the boundary holding in a real deployment, not only in tests.
+**Owner-gated** GitHub and Google OAuth apps, plus a Resend sending domain (SPF/DKIM). None blocks email/password sign-in; the schema refuses half an OAuth pair rather than failing at the redirect.
+**Not done here** FR-AUTH-6 (TOTP), 7 (SAML/OIDC SSO) and 8 (SCIM) are P1/P3 and out of scope. FR-AUTH-9's session *listing* UI belongs to the frontend; the server-side revocation it needs is done.
+**Notes** Rate-limit counters are in-memory, which is correct for one replica and wrong for several — the option to supply shared storage exists and the caveat is on the type. Migration 0003 reconciles Better Auth's required `emailVerified` boolean with our audit-bearing `email_verified_at` timestamp via a bidirectional trigger plus a CHECK constraint, because a GENERATED column is read-only and the library writes the flag. Migration 0004 corrects a UNIQUE index 0002 put on the wrong column.
 
 ### M015 · Organization and membership management · M · ✨
 **Objective** Tenancy in the product, not just the schema.

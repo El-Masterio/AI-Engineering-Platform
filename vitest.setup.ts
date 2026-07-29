@@ -7,13 +7,22 @@ import axe from "axe-core";
  * jsdom gaps that Radix's positioned overlays (Select, Tooltip, Dropdown) rely
  * on. These are environment shims, not behaviour stubs — the components' real
  * logic still runs; only layout measurement, which jsdom has none of, is faked.
+ *
+ * Guarded on `Element` existing, because this file is the suite-wide setup and
+ * a test file may opt into the node environment with `@vitest-environment node`
+ * (packages/auth does — it reaches @atelier/db, which resolves a directory from
+ * import.meta.url at import time and cannot do that under jsdom). Without the
+ * guard, opting out of the DOM makes the SETUP throw, and the failure reads as
+ * a broken test file rather than a missing global.
  */
-if (!Element.prototype.scrollIntoView) {
+const hasDom = typeof Element !== "undefined";
+
+if (hasDom && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function scrollIntoView() {
     /* no layout in jsdom */
   };
 }
-if (!Element.prototype.hasPointerCapture) {
+if (hasDom && !Element.prototype.hasPointerCapture) {
   Element.prototype.hasPointerCapture = () => false;
   Element.prototype.setPointerCapture = () => undefined;
   Element.prototype.releasePointerCapture = () => undefined;
@@ -47,7 +56,8 @@ if (!globalThis.DOMRect) {
 }
 
 afterEach(() => {
-  cleanup();
+  // Nothing to unmount outside the DOM environment.
+  if (hasDom) cleanup();
 });
 
 /**

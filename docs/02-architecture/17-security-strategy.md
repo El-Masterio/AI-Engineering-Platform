@@ -147,7 +147,7 @@ Agents choose and install dependencies. That is arbitrary code execution by desi
 | SSRF | Outbound HTTP goes through a client that resolves and validates the destination and blocks private address space. Applies to webhook targets and any user-supplied URL |
 | Path traversal | All file operations resolve to a canonical path and assert containment within the project root; symlink escapes rejected |
 | Insecure deserialization | JSON only, schema-validated at every boundary |
-| Auth failures | Argon2id, rate-limited login, generic failure messages, server-side session revocation |
+| Auth failures | Argon2id (`m=19456,t=2,p=1`), rate-limited login (5/min), generic failure messages, server-side session revocation. Implemented M014; identity runs as a separate database role ([ADR-010](../decisions/ADR-010-authentication-identity-boundary.md)) so the request-serving role cannot read a password hash. |
 | Cryptographic failures | TLS 1.3 in transit; AES-256 at rest; KMS-managed keys; no home-rolled crypto |
 | Security misconfiguration | IaC-only infrastructure; config validated at startup; secure headers by default |
 | Logging failures | Immutable audit log; alerting on security events |

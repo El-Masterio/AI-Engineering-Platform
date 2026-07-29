@@ -280,3 +280,84 @@ describe("an unresolved platform reference is named as such", () => {
     expect((thrown as EnvironmentError).message).not.toContain("Postgres.DATABASE_URL}}");
   });
 });
+
+describe("OAuth credentials come in pairs (FR-AUTH-2)", () => {
+  const base = { NODE_ENV: "development" as const, DATABASE_URL: "postgresql://u:p@h:5432/d" };
+
+  it("rejects an id without its secret", () => {
+    // Half a provider boots fine, renders the button, and fails at the
+    // redirect with the user already committed.
+    expect(() => loadEnv({ ...base, GITHUB_CLIENT_ID: "id" })).toThrow(EnvironmentError);
+  });
+
+  it("rejects a secret without its id", () => {
+    expect(() => loadEnv({ ...base, GOOGLE_CLIENT_SECRET: "shh" })).toThrow(EnvironmentError);
+  });
+
+  it("names the MISSING half, not the one that was supplied", () => {
+    let thrown: unknown;
+    try {
+      loadEnv({ ...base, GITHUB_CLIENT_ID: "id" });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+    expect((thrown as EnvironmentError).issues[0]?.variable).toBe("GITHUB_CLIENT_SECRET");
+  });
+
+  it("accepts a complete pair", () => {
+    expect(() =>
+      loadEnv({ ...base, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "shh" }),
+    ).not.toThrow();
+  });
+
+  it("accepts neither half", () => {
+    expect(() => loadEnv(base)).not.toThrow();
+  });
+
+  it("treats the two providers independently", () => {
+    expect(() =>
+      loadEnv({ ...base, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "shh" }),
+    ).not.toThrow();
+    expect(() =>
+      loadEnv({
+        ...base,
+        GITHUB_CLIENT_ID: "id",
+        GITHUB_CLIENT_SECRET: "shh",
+        GOOGLE_CLIENT_ID: "g",
+      }),
+    ).toThrow(EnvironmentError);
+  });
+});
+
+describe("the new auth secrets are secrets", () => {
+  it("never echoes their value in an error", () => {
+    // §17: a validation error is exactly the kind of thing that gets pasted
+    // into a ticket.
+    for (const name of ["AUTH_DATABASE_URL", "BETTER_AUTH_SECRET", "RESEND_API_KEY"]) {
+      expect(isSecretVariable(name), `${name} is not marked secret`).toBe(true);
+    }
+  });
+
+  it("does not echo a bad AUTH_DATABASE_URL", () => {
+    // `mysql://` and not a malformed postgres URL: the first draft used
+    // "postgresql://…?bad", which is a perfectly VALID postgres URL, so nothing
+    // threw and the redaction assertion passed against undefined. An inert
+    // test that reports the security property it never checked.
+    let thrown: unknown;
+    try {
+      loadEnv({
+        NODE_ENV: "development",
+        DATABASE_URL: "postgresql://u:p@h:5432/d",
+        AUTH_DATABASE_URL: "mysql://auth_user:hunter2@h:5432/d",
+      });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+
+    expect(thrown, "nothing was rejected, so nothing was redacted").toBeInstanceOf(
+      EnvironmentError,
+    );
+    expect((thrown as EnvironmentError).message).toContain("AUTH_DATABASE_URL");
+    expect((thrown as EnvironmentError).message).not.toContain("hunter2");
+  });
+});

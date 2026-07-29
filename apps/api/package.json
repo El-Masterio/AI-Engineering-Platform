@@ -25,10 +25,13 @@
     "@atelier/db": "workspace:*",
     "@atelier/domain": "workspace:*",
     "@atelier/observability": "workspace:*",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "@atelier/auth": "workspace:*",
+    "@atelier/email": "workspace:*",
+    "@atelier/config": "workspace:*",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
-    "@atelier/config": "workspace:*",
     "typescript": "^5.9.3"
   }
 }

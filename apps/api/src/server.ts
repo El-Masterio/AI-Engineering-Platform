@@ -1,4 +1,4 @@
-import { createServer, type Server, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import {
   healthStatusCode,
   liveness,
@@ -32,7 +32,19 @@ export type ServerOptions = {
   sql?: Sql;
   /** Surfaced on `/` so a deploy can be identified without guessing. */
   revision?: string;
+  /**
+   * Handles everything under `/api/auth/*` (M014).
+   *
+   * A Web `Request` → `Response` function, which is what Better Auth exposes.
+   * Absent means the process serves no auth routes and those paths 404 — a
+   * worker or a migration job has no reason to hold a connection that can read
+   * password hashes.
+   */
+  authHandler?: (request: Request) => Promise<Response>;
 };
+
+/** Everything Better Auth owns lives under this prefix. */
+const AUTH_PREFIX = "/api/auth";
 
 export type RunningServer = {
   server: Server;
@@ -50,8 +62,57 @@ function json(response: ServerResponse, status: number, body: unknown): void {
   response.end(payload);
 }
 
+/**
+ * Adapt a `node:http` request into a Web `Request`.
+ *
+ * Better Auth speaks the Web platform's shapes; `node:http` predates them. The
+ * body is buffered rather than streamed because auth payloads are a few hundred
+ * bytes and streaming would add a failure mode for no benefit.
+ */
+async function toWebRequest(request: IncomingMessage, origin: string): Promise<Request> {
+  const method = request.method ?? "GET";
+  const hasBody = method !== "GET" && method !== "HEAD";
+
+  let body: Buffer | undefined;
+  if (hasBody) {
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) chunks.push(chunk as Buffer);
+    body = Buffer.concat(chunks);
+  }
+
+  const headers = new Headers();
+  const incoming = Object.entries(request.headers);
+  for (const [name, value] of incoming) {
+    if (value === undefined) continue;
+    // A repeated header (Set-Cookie, Accept) arrives as an array.
+    const values = Array.isArray(value) ? value : [value];
+    for (const single of values) headers.append(name, single);
+  }
+
+  return new Request(new URL(request.url ?? "/", origin), {
+    method,
+    headers,
+    ...(body !== undefined && body.length > 0 && { body }),
+  });
+}
+
+/** Write a Web `Response` back through `node:http`. */
+async function writeWebResponse(response: ServerResponse, result: Response): Promise<void> {
+  for (const [name, value] of result.headers) {
+    // getSetCookie() rather than get(): several cookies must stay several
+    // headers, and Headers joins them with a comma that browsers mis-parse.
+    if (name.toLowerCase() === "set-cookie") continue;
+    response.setHeader(name, value);
+  }
+  const cookies = result.headers.getSetCookie();
+  if (cookies.length > 0) response.setHeader("set-cookie", cookies);
+
+  response.writeHead(result.status);
+  response.end(result.body === null ? undefined : Buffer.from(await result.arrayBuffer()));
+}
+
 function createApiServer(options: ServerOptions): Server {
-  const { logger, sql, revision } = options;
+  const { logger, sql, revision, authHandler } = options;
 
   return createServer((request, response) => {
     const url = request.url ?? "/";
@@ -88,6 +149,29 @@ function createApiServer(options: ServerOptions): Server {
 
     const correlationId = newCorrelationId();
     const requestId = sanitizeRequestId(request.headers[REQUEST_ID_HEADER]);
+
+    // Authentication owns its whole prefix, including the paths it 404s. It is
+    // handled inside the correlation scope so an auth failure is traceable,
+    // but the body is entirely Better Auth's.
+    if (authHandler !== undefined && url.startsWith(`${AUTH_PREFIX}/`)) {
+      void withCorrelation({ correlationId, ...(requestId && { requestId }) }, async () => {
+        response.setHeader(REQUEST_ID_HEADER, correlationId);
+        try {
+          const origin = `http://${request.headers.host ?? "localhost"}`;
+          await writeWebResponse(response, await authHandler(await toWebRequest(request, origin)));
+        } catch (error: unknown) {
+          // Never leak an auth-layer error to the caller: the detail belongs in
+          // the redacting log, and the caller gets a shape it can act on.
+          logger.error({ err: error, path: url }, "auth handler failed");
+          if (!response.headersSent) {
+            json(response, 500, {
+              error: { code: "INTERNAL", message: "Authentication is unavailable." },
+            });
+          }
+        }
+      });
+      return;
+    }
 
     void withCorrelation({ correlationId, ...(requestId && { requestId }) }, async () => {
       // NFR-OBS-6: the id is on the response whether or not anything went wrong.

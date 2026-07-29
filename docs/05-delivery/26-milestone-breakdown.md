@@ -116,7 +116,7 @@ Updated in the same commit as each milestone's work.
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
 | **Total** | **11** | **132** | █░░░░░░░░░ **8%** |
 
-**Currently in progress:** `M014 — Authentication`. **Last completed:** `M011 — staging deploy`, live at `api-production-9f7c.up.railway.app`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
+**Currently in progress:** none. **Next up:** `M015 — Organization and membership management`. **Last completed:** `M014 — Authentication`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
 
 ### Completed
 

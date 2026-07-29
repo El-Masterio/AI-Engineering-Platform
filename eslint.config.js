@@ -18,7 +18,13 @@ import jsxA11y from "eslint-plugin-jsx-a11y";
 import prettierConfig from "eslint-config-prettier";
 
 /** Packages that sit above domain but below the apps. */
-const PLATFORM_PACKAGES = "agent-runtime,policy,cost,capability-packs,observability";
+// Cross-cutting infrastructure packages. `auth` and `email` belong here rather
+// than in a bucket of their own: they are adapters over an external service or
+// library, they depend on domain and db, and nothing depends on them except an
+// app. Registering them is not a formality — an unregistered package is
+// classified "unknown", and `no-unknown-dependencies` exists because an
+// unclassified import is silently exempt from every rule below.
+const PLATFORM_PACKAGES = "agent-runtime,policy,cost,capability-packs,observability,auth,email";
 
 export default tseslint.config(
   // ── Ignores ──────────────────────────────────────────────────────────────

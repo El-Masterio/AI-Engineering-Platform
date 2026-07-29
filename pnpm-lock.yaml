@@ -110,22 +110,31 @@ importers:
 
   apps/api:
     dependencies:
+      '@atelier/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@atelier/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@atelier/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@atelier/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@atelier/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@atelier/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(kysely@0.29.4)(postgres@3.4.9)
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
     devDependencies:
-      '@atelier/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
