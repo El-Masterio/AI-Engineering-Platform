@@ -53,6 +53,18 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# The commit this image was built from, surfaced on `/` so a running deploy can
+# be identified without guessing.
+#
+# An ARG must be redeclared in the stage that uses it — the workflow passed
+# --build-arg GIT_SHA from the start and Docker silently discarded it, because
+# no stage declared it. `/` then reported no revision, which quietly disarmed
+# the one smoke check that catches a deploy doing nothing. Local verification
+# missed it by passing GIT_SHA at RUN time with -e, testing the mechanism that
+# was not the one being shipped.
+ARG GIT_SHA=""
+ENV GIT_SHA=${GIT_SHA}
+
 # Non-root. `node` already exists in the base image with uid 1000.
 USER node
 

@@ -222,7 +222,15 @@ jobs:
           # Railway re-pulls `:staging`, which now resolves to DIGEST. The health
           # check on /readyz is what holds traffic on the old container until the
           # new one answers — that is where zero-downtime actually comes from.
-          railway redeploy --service "${RAILWAY_SERVICE}" --yes
+          if ! railway redeploy --service "${RAILWAY_SERVICE}" --yes 2>&1 | tee /tmp/railway.log; then
+            if grep -q "Invalid RAILWAY_TOKEN" /tmp/railway.log; then
+              # Railway has two token kinds and the CLI's message does not say
+              # which one it wanted, so it reads as "malformed" rather than
+              # "wrong kind". This is the single most likely cause.
+              echo "::error::RAILWAY_TOKEN must be a PROJECT token (Railway → Project Settings → Tokens), not an account token (Account Settings → Tokens). See docs/04-engineering/26-staging-runbook.md."
+            fi
+            exit 1
+          fi
           {
             echo "### Deployed"
             echo ""
