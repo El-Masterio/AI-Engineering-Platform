@@ -5,7 +5,7 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import type { Sql } from "postgres";
 import { createClient } from "./client.js";
 import { migrateUp } from "./migrate.js";
-import { memberships, organizations, users } from "./schema/tenancy.js";
+import { idempotencyKeys, memberships, organizations, users } from "./schema/tenancy.js";
 import { accounts, sessions, verifications } from "./schema/authentication.js";
 import { POSTGRES_IMAGE } from "./testing/harness.js";
 
@@ -66,6 +66,7 @@ const TABLES: { drizzle: PgTable; name: string }[] = [
   { drizzle: sessions, name: "sessions" },
   { drizzle: accounts, name: "accounts" },
   { drizzle: verifications, name: "verifications" },
+  { drizzle: idempotencyKeys, name: "idempotency_keys" },
 ];
 
 describe("the Drizzle schema matches the migrated database", () => {

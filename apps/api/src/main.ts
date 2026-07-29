@@ -43,4 +43,5 @@ const stopServer = server.shutdown;
 server.shutdown = async () => {
   await stopServer();
   await authWiring?.close();
+  await sql.end({ timeout: 5 });
 };

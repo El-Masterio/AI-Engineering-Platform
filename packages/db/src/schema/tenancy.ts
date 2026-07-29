@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -109,3 +110,34 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Membership = typeof memberships.$inferSelect;
 export type NewMembership = typeof memberships.$inferInsert;
+
+/**
+ * Idempotency records (§16, migration 0005).
+ *
+ * Here rather than in a file of its own because the table is tenant-scoped and
+ * shares this file's policy shape — it is tenancy infrastructure, not a domain
+ * concept.
+ */
+export const idempotencyKeys = pgTable(
+  "idempotency_keys",
+  {
+    id: uuid("id").primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    route: text("route").notNull(),
+    /** SHA-256 of the body, so a key reused with different content is caught. */
+    requestHash: text("request_hash").notNull(),
+    responseStatus: integer("response_status"),
+    responseBody: jsonb("response_body"),
+    /** Null means in flight — what makes a CONCURRENT duplicate detectable. */
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_idempotency_keys_scope").on(table.organizationId, table.route, table.key),
+    index("idx_idempotency_keys_expires_at").on(table.expiresAt),
+  ],
+);

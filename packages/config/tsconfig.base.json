@@ -2,8 +2,12 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "//": "Shared TypeScript baseline for every workspace package. The compiler flags below are the non-negotiable set from docs/04-engineering/21-coding-standards.md — removing one requires an ADR.",
   "compilerOptions": {
-    "target": "ES2023",
-    "lib": ["ES2023"],
+    // ES2024, matching the runtime: Node 24 (.nvmrc) implements it in full.
+    // ES2023 made TypeScript hide APIs that genuinely exist — Promise.withResolvers
+    // among them — so the compiler and the lint rules disagreed about what was
+    // available, and the workaround was always to write the older form.
+    "target": "ES2024",
+    "lib": ["ES2024"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
 
