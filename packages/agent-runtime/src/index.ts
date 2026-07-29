@@ -1,6 +1,49 @@
 /**
- * AgentRuntime port and its adapters (managed, self-hosted, fake, replay)
+ * The AgentRuntime port and its adapters (ADR-002, ADR-012).
  *
- * See ADR-002. Placeholder — M001 establishes the skeleton only.
+ * This package is the seam ADR-002 is reversible through. Nothing here mentions
+ * a provider, and a test asserts that stays true.
  */
-export const PACKAGE_NAME = "@atelier/agent-runtime" as const;
+export type {
+  AgentRuntime,
+  RunContext,
+  RunHandle,
+  RuntimeCapabilities,
+  StreamOptions,
+  ToolVeto,
+} from "./port.js";
+
+export {
+  MODEL_TIERS,
+  EFFORT_LEVELS,
+  isExecutableAllowed,
+  isToolGranted,
+  toAgentRef,
+  type AgentBudget,
+  type AgentPermissions,
+  type AgentRef,
+  type AgentSpec,
+  type EffortLevel,
+  type ModelTier,
+  type ToolGrant,
+  type ToolName,
+} from "./spec.js";
+
+export {
+  isTerminal,
+  type EventCursor,
+  type InboundEvent,
+  type RunEvent,
+  type RunEventBody,
+  type RunEventKind,
+  type RunStatus,
+  type UsageReport,
+} from "./events.js";
+
+export {
+  createFakeRuntime,
+  type FakeRuntime,
+  type FakeRuntimeOptions,
+  type ScriptedStep,
+} from "./fake.js";
+export { runConformanceSuite, CONFORMANCE_SPEC, type TestHarness } from "./conformance.js";

@@ -7,7 +7,10 @@
     // among them — so the compiler and the lint rules disagreed about what was
     // available, and the workaround was always to write the older form.
     "target": "ES2024",
-    "lib": ["ES2024"],
+    // ESNext.Array adds Array.fromAsync, which Node 24 implements but TypeScript
+    // still files under esnext. Named precisely rather than widening to "ESNext",
+    // so nothing else unshipped becomes visible.
+    "lib": ["ES2024", "ESNext.Array"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
 

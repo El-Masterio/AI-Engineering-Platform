@@ -9,6 +9,28 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M023 — the AgentRuntime port.** `packages/agent-runtime`: five methods, the spec and event types,
+  an in-memory fake adapter, and the **shared conformance suite** every adapter must pass.
+  [ADR-012](decisions/ADR-012-agent-runtime-port.md).
+  - This is the seam [ADR-002](decisions/ADR-002-managed-agents-runtime.md) rates its own reversal
+    cost against. If it is wrong, that rating is wrong.
+  - **Purity is tested.** `port-purity.test.ts` reads the interface files and fails on a vendor name
+    or a provider stream shape — and asserts the file list matches what is on disk, so a new
+    interface file cannot go unchecked while the test passes.
+  - **The suite has teeth**, proven by three deliberately broken adapters: replay-from-now, an
+    inclusive cursor (a double charge per reconnect on a `usage` event), and a tool result reported
+    before its call.
+  - Tool enforcement in three layers — declared in the spec, streamed before the result, vetoed
+    where an adapter supports it. §13 requires orchestrator enforcement; ADR-002's hosted loop may
+    offer no pre-execution hook, and `capabilities` makes which layers apply visible.
+
+### Changed
+
+- `lib` gained `ESNext.Array` for `Array.fromAsync`, which Node 24 implements while TypeScript still
+  files it under esnext. Named precisely rather than widening to `ESNext`.
+
+### Added
+
 - **M022 — auth and organization UI.** Sign-up, sign-in, OAuth, verification, password reset, org
   switcher, member list and organization settings. **Closes Stage 1B.**
   - Migration **0008** adds `app_organizations_for_user` — the cross-tenant read M015 deferred,
