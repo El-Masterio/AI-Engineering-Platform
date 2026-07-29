@@ -133,6 +133,13 @@ jobs:
       # block — it manages container lifecycle itself. Using `services:` would
       # pin one shared database for the whole job and lose the per-file
       # isolation the suite relies on.
+      # RELEASE BLOCKER (M021). The cross-tenant suite is generated from what
+      # the database actually contains, so a new table with an
+      # `organization_id` and no policy fails this job without anyone
+      # remembering to extend the tests. NFR-SEC-1 makes zero cross-tenant
+      # access non-negotiable, and the MVP success criteria put security
+      # incidents at "0 — non-negotiable", so this job is never made
+      # `continue-on-error` and never marked optional.
       - name: Cross-tenant isolation, migrations, and schema drift
         run: pnpm test:integration
 
