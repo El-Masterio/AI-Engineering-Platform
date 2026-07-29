@@ -61,9 +61,21 @@ export {
   type OrganizationPlan,
   idempotencyKeys,
   auditLog,
+  apiKeys,
 } from "./schema/tenancy.js";
 
 export { sessions, accounts, verifications } from "./schema/authentication.js";
+
+export {
+  issueApiKey,
+  resolveApiKey,
+  listApiKeys,
+  revokeApiKey,
+  isMatchingSecret,
+  type ApiKeyRecord,
+  type IssuedApiKey,
+  type ResolvedApiKey,
+} from "./api-keys.js";
 
 export {
   writeAudit,

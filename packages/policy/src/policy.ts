@@ -1,5 +1,6 @@
 import { isAction, requiresHumanApproval, type Action } from "./actions.js";
 import { ROLE_PERMISSIONS, isRole, type Role } from "./roles.js";
+import { isGrantedByScopes } from "./scopes.js";
 
 /**
  * The single decision point (§16: "Authorization is one call").
@@ -20,6 +21,8 @@ export type Principal = {
   readonly role?: Role;
   /**
    * Scopes, when the principal is an API key rather than a session (§16).
+   *
+   * §16's coarse scope names (`projects:write`), not action names.
    *
    * A key is bounded by BOTH its scopes and the role of whoever owns it —
    * intersection, never union. A key cannot grant its holder more than the
@@ -141,7 +144,11 @@ function decide(principal: Principal, action: string, resource: Resource): Decis
 
   // Scopes narrow, never widen. Absent scopes means a session principal, which
   // is bounded by its role alone.
-  if (principal.scopes !== undefined && !principal.scopes.includes(action)) {
+  //
+  // A scope is a BUNDLE of actions, not an action name — see scopes.ts. The
+  // first version compared them directly, which would have refused every write
+  // a `projects:write` key was created to perform.
+  if (principal.scopes !== undefined && !isGrantedByScopes(principal.scopes, action)) {
     return deny("scope_lacks_permission");
   }
 

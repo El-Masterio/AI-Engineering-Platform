@@ -249,11 +249,17 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Verified adversarially** Granting `UPDATE, DELETE` to `atelier_app` fails the two immutability tests with *"audit rows are mutable by the app role"*.
 **Wired to M017** `auditEventForDecision` translates a policy decision into an audit event, and distinguishes an `api_key` actor from a `user` — an audit log that cannot tell them apart cannot answer "who did this". The adapter lives in `packages/db`, not `packages/policy`: the policy engine runs on every request and must not depend on a database connection.
 
-### M019 · API keys · S · 🔒✨
+### M019 · API keys · S · 🔒✨ — ✅ **Done** (2026-07-29)
 **Objective** Programmatic access with scopes.
-**Dependencies** M017
+**Dependencies** M017 ✅
 **Deliverables** Key generation with a visible prefix, hashed storage, scope model, `Authorization: Bearer` auth, revocation.
 **Acceptance** Key shown once only · scopes enforced by the policy engine · revocation immediate · usage audited.
+**Corrected an M017 mistake** M017 claimed policy actions and §16 scopes were "the same vocabulary". They are not: §16's scopes are **coarse and plural** (`projects:write`), the actions **fine and singular** (`project:create`). The engine compared them directly, so a key scoped `projects:write` would have been refused every write it was created to perform. A scope is now a **bundle** of actions, and the coarse names stay because those are what a customer sees.
+**SHA-256, deliberately NOT Argon2id** — the opposite choice to M014's passwords, for the opposite reason. A password is low-entropy and human-chosen, so slowness buys resistance to guessing. An API key is 256 bits of CSPRNG output: there is no dictionary to defend against, and a slow hash on **every authenticated request** is a denial-of-service vector wearing the costume of extra security.
+**One answer for every invalid key** Unknown, malformed, revoked and expired all resolve to undefined. Distinguishing them tells an attacker which of their guesses was once real.
+**Verification has no tenant** — which organization the caller belongs to is what the call determines. It goes through a narrow `SECURITY DEFINER` function that returns nothing for a dead key, rather than a widened RLS policy, so the exemption is one auditable statement and a caller cannot accept a revoked key by forgetting a check the function already made.
+**Lookup is by HASH, never by prefix** A prefix is public and not unique; finding a row by prefix and then comparing would leak which prefixes exist through timing and row counts.
+**A test I had to correct** I first asserted the listing contained no `atl_` anywhere — which contradicts §16's "prefix-visible for identification". The real assertion is that nothing listed can authenticate, verified by feeding every exposed prefix back through `resolveApiKey`.
 
 ### M020 · Rate limiting · S · 🔒
 **Objective** §16's limits enforced.

@@ -24,3 +24,4 @@ export {
   type Action,
 } from "./actions.js";
 export { ROLES, ROLE_PERMISSIONS, actionsNoRoleGrants, isRole, type Role } from "./roles.js";
+export { SCOPES, DEFAULT_SCOPES, isScope, isGrantedByScopes, type Scope } from "./scopes.js";

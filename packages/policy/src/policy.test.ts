@@ -7,6 +7,7 @@ import {
   actionsNoRoleGrants,
   AuthorizationError,
   createPolicy,
+  DEFAULT_SCOPES,
   type Principal,
   type Role,
 } from "./index.js";
@@ -151,7 +152,7 @@ describe("Control 7 — approval gates are not overridable", () => {
 describe("API-key scopes narrow, never widen", () => {
   it("refuses an action the role allows but the scope omits", () => {
     const decision = createPolicy().check(
-      principal("owner", { scopes: ["project:read"] }),
+      principal("owner", { scopes: ["projects:read"] }),
       "project:create",
       resource,
     );
@@ -161,7 +162,7 @@ describe("API-key scopes narrow, never widen", () => {
   it("cannot grant more than the role holds", () => {
     // A key must not let its holder exceed the person who created it.
     const decision = createPolicy().check(
-      principal("viewer", { scopes: ["project:delete"] }),
+      principal("viewer", { scopes: ["projects:write"] }),
       "project:delete",
       resource,
     );
@@ -170,7 +171,7 @@ describe("API-key scopes narrow, never widen", () => {
 
   it("permits what both allow", () => {
     const decision = createPolicy().check(
-      principal("member", { scopes: ["project:read"] }),
+      principal("member", { scopes: ["projects:read"] }),
       "project:read",
       resource,
     );
@@ -260,3 +261,62 @@ function capture(run: () => unknown): unknown {
   }
   return undefined;
 }
+
+describe("scopes are BUNDLES of actions, not action names (§16)", () => {
+  it("lets a projects:write key perform every project write", () => {
+    // The bug this corrects: comparing scopes to action names directly would
+    // have refused every write the key was created to perform.
+    for (const action of ["project:create", "project:update", "project:archive"] as const) {
+      const decision = createPolicy().check(
+        principal("owner", { scopes: ["projects:write"] }),
+        action,
+        resource,
+      );
+      expect(decision.allowed, `projects:write was refused ${action}`).toBe(true);
+    }
+  });
+
+  it("does not let a read scope perform a write", () => {
+    const decision = createPolicy().check(
+      principal("owner", { scopes: ["projects:read"] }),
+      "project:update",
+      resource,
+    );
+    expect(reasonOf(decision)).toBe("scope_lacks_permission");
+  });
+
+  it("ignores an unknown scope rather than failing the request", () => {
+    // A key carrying a scope from a future release must degrade to LESS access,
+    // never to an error that takes the caller's whole request down.
+    const decision = createPolicy().check(
+      principal("owner", { scopes: ["telepathy:read", "projects:read"] }),
+      "project:read",
+      resource,
+    );
+    expect(decision.allowed).toBe(true);
+  });
+
+  it("grants nothing for an empty scope list", () => {
+    const decision = createPolicy().check(
+      principal("owner", { scopes: [] }),
+      "project:read",
+      resource,
+    );
+    expect(reasonOf(decision)).toBe("scope_lacks_permission");
+  });
+
+  it("still cannot exceed the role", () => {
+    const decision = createPolicy().check(
+      principal("viewer", { scopes: ["projects:write"] }),
+      "project:create",
+      resource,
+    );
+    expect(reasonOf(decision)).toBe("role_lacks_permission");
+  });
+
+  it("defaults a new key to read-only (§16 least privilege)", () => {
+    for (const scope of DEFAULT_SCOPES) {
+      expect(scope.endsWith(":read"), `${scope} is not read-only`).toBe(true);
+    }
+  });
+});
