@@ -116,7 +116,7 @@ Updated in the same commit as each milestone's work.
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
 | **Total** | **11** | **132** | █░░░░░░░░░ **8%** |
 
-**Currently in progress:** none. **Next up:** `M021 — Cross-tenant test suite (generated)`. **Last completed:** `M020 — Rate limiting`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
+**Currently in progress:** none. **Next up:** `M022 — Auth and organization UI`. **Last completed:** `M021 — Cross-tenant test suite`. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
 
 ### Completed
 

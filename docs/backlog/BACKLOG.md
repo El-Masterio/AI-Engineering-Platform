@@ -275,11 +275,19 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Not in scope** §16's run-start limits are **admission control, not rejection** — "a queued run is better than a lost one" — so they belong to the queue milestone rather than to a rejecting limiter.
 **Three latent gaps closed** The root tsconfig included `packages/*/vitest.*.config.ts` but no `apps/*` equivalent, so an integration config under `apps/` belonged to no project and ESLint reported a parse error rather than a rule violation. The same file needed `import-x/no-extraneous-dependencies` satisfied. And the root tsconfig still pinned `lib` to ES2023, overriding M016 — the tooling view disagreed with every build.
 
-### M021 · Cross-tenant test suite (generated) · M · 🔒✅
+### M021 · Cross-tenant test suite (generated) · M · 🔒✅ — ✅ **Done** (2026-07-29)
 **Objective** The most important test suite in the codebase.
-**Dependencies** M018
+**Dependencies** M018 ✅
 **Deliverables** A generator enumerating every table with `organization_id` × every operation, asserting denial as the wrong tenant; CI integration as a release blocker.
 **Acceptance** Every tenant-scoped table covered automatically · adding a table without a policy fails the suite · runs on every commit · 95% coverage on the isolation path.
+**Generated from the database, not from a list** A hand-written list of tables stops being complete the moment someone adds one, and it fails in the worst direction: the suite still passes, still looks thorough, and no longer covers what was just introduced. The failure mode of a cross-tenant suite is not "it fails" — it is "it passes and means less than it did". So the suite asks `pg_class` what exists and generates a case per table.
+**Verified adversarially** Adding a table with an `organization_id`, no RLS and no policy fails **four** tests, each naming `probe_leaky`. That is the acceptance criterion, demonstrated rather than asserted.
+**Escaping the suite requires a written reason** `NON_TENANT_TABLES` maps each exempt table to why (identity is global, credentials carry no grant at all, the migration ledger predates tenancy). A test asserts every reason is more than a token, and another asserts no exemption names a table that no longer exists — a stale exemption is how a real table later slips through under a name someone once excused.
+**The non-vacuity check** Alice must be able to read her OWN rows. Without it, a database that returned nothing to anyone would pass every isolation assertion perfectly while the product was completely broken.
+**Four operations, not one** SELECT, INSERT, UPDATE and DELETE. `WITH CHECK` is the half people forget: a policy with only `USING` filters reads and cheerfully accepts a write into another tenant.
+**A fifth case with no claim at all** — a query that forgot `withTenant()` must return an empty result, never an unscoped one.
+**Two things the generator taught me** The UPDATE probe first named `updated_at`, which `idempotency_keys` does not have; it now assigns the tenant column to itself, a no-op that exists on every scoped table by definition. And an unknown scoped table with no INSERT fixture **throws** rather than being skipped — being skipped is how a table goes untested for months.
+**CI** `test:integration` was already a required job; it now carries a comment saying it is a release blocker and why, so nobody makes it `continue-on-error` to get a build through.
 
 ### M022 · Auth and organization UI · M · ✨
 **Objective** Sign-up through org context in the product.

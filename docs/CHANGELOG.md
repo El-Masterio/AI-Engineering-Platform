@@ -9,6 +9,22 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M021 — the generated cross-tenant suite.** Cases are produced from what Postgres actually
+  contains, not from a list. A hand-written list stops being complete the moment someone adds a
+  table, and fails in the worst direction: the suite still passes and covers less than it did.
+  - Four operations per scoped table — SELECT, INSERT, UPDATE, DELETE. `WITH CHECK` is the half
+    people forget: a policy with only `USING` filters reads and accepts writes into another tenant.
+  - A fifth case with **no tenant claim at all**, because a query that forgot `withTenant()` must
+    return an empty result rather than an unscoped one.
+  - A **non-vacuity** check: Alice must see her own rows. Without it a database returning nothing to
+    anyone would pass every isolation assertion while the product was broken.
+  - Escaping the suite requires a written reason. Tests assert every exemption has one and that none
+    names a table that no longer exists.
+  - **Verified adversarially:** a table with `organization_id`, no RLS and no policy fails four
+    tests, each naming it.
+
+### Added
+
 - **M020 — rate limiting.** §16's tiers as a **sliding** window, in Redis.
   - A fixed window is wrong at the only moment that matters: 100 requests at 11:59:59 and 100 more
     at 12:00:00 is 200 in one second, and the burst is what the limit exists to prevent.
