@@ -99,6 +99,8 @@ export {
 export {
   provisionPersonalOrganization,
   resolveTenant,
+  listOrganizationsForUser,
   type ProvisionPersonalOrganizationInput,
   type ProvisionedOrganization,
+  type UserOrganization,
 } from "./tenancy.js";

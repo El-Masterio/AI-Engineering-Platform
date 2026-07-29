@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { provisionPersonalOrganization, resolveTenant } from "./tenancy.js";
+import {
+  listOrganizationsForUser,
+  provisionPersonalOrganization,
+  resolveTenant,
+} from "./tenancy.js";
 import { startHarness, type Harness } from "./testing/harness.js";
 
 /**
@@ -22,6 +26,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await h?.stop();
 }, 60_000);
+
+const byId = (a: string, b: string): number => a.localeCompare(b);
 
 /** Create a user as the owner — signup is authentication's job, not this file's. */
 async function seedUser(email: string, id?: string): Promise<string> {
@@ -202,5 +208,96 @@ describe("resolveTenant — a user cannot address an org they don't belong to", 
     expect(adaContext?.organizationId).toBe(adaOrg);
     // And still not a third one.
     expect(await resolveTenant(h.appDb, { userId, organizationId: graceOrg })).toBeUndefined();
+  });
+});
+
+describe("listOrganizationsForUser (M022)", () => {
+  it("returns only the organizations the user belongs to", async () => {
+    const userId = await seedUser("switcher@example.test");
+    const own = await provisionPersonalOrganization(h.appDb, {
+      userId,
+      email: "switcher@example.test",
+    });
+
+    const listed = await listOrganizationsForUser(h.appDb, userId);
+    expect(listed.map((o) => o.id)).toEqual([own.organizationId]);
+    expect(listed[0]?.role).toBe("owner");
+  });
+
+  it("does NOT return organizations belonging to anyone else", async () => {
+    // The whole reason this needed a decision rather than a query.
+    const mine = await seedUser("mine@example.test");
+    const theirs = await seedUser("theirs@example.test");
+    await provisionPersonalOrganization(h.appDb, { userId: mine, email: "mine@example.test" });
+    const other = await provisionPersonalOrganization(h.appDb, {
+      userId: theirs,
+      email: "theirs@example.test",
+    });
+
+    const listed = await listOrganizationsForUser(h.appDb, mine);
+    expect(
+      listed.some((o) => o.id === other.organizationId),
+      "another user's org leaked",
+    ).toBe(false);
+  });
+
+  it("returns several when a user belongs to several", async () => {
+    const userId = await seedUser("dual-list@example.test");
+    const own = await provisionPersonalOrganization(h.appDb, {
+      userId,
+      email: "dual-list@example.test",
+    });
+    const host = await seedUser("host@example.test");
+    const hosted = await provisionPersonalOrganization(h.appDb, {
+      userId: host,
+      email: "host@example.test",
+    });
+    await h.owner`
+      INSERT INTO memberships (id, organization_id, user_id, role, accepted_at)
+      VALUES (gen_random_uuid(), ${hosted.organizationId}, ${userId}, 'member', now())
+    `;
+
+    const listed = await listOrganizationsForUser(h.appDb, userId);
+    expect(listed.map((o) => o.id).toSorted(byId)).toEqual(
+      [own.organizationId, hosted.organizationId].toSorted(byId),
+    );
+  });
+
+  it("omits an organization the user has been removed from", async () => {
+    const userId = await seedUser("removed-list@example.test");
+    const org = await provisionPersonalOrganization(h.appDb, {
+      userId,
+      email: "removed-list@example.test",
+    });
+    await h.owner`
+      UPDATE memberships SET deleted_at = now()
+      WHERE organization_id = ${org.organizationId} AND user_id = ${userId}
+    `;
+
+    expect(await listOrganizationsForUser(h.appDb, userId)).toEqual([]);
+  });
+
+  it("omits an invitation that has not been accepted", async () => {
+    // A pending invitation is not membership; showing it in a switcher would
+    // let someone act as an organization before they joined it.
+    const userId = await seedUser("pending@example.test");
+    const host = await seedUser("pending-host@example.test");
+    const hosted = await provisionPersonalOrganization(h.appDb, {
+      userId: host,
+      email: "pending-host@example.test",
+    });
+    await h.owner`
+      INSERT INTO memberships (id, organization_id, user_id, role)
+      VALUES (gen_random_uuid(), ${hosted.organizationId}, ${userId}, 'member')
+    `;
+
+    const listed = await listOrganizationsForUser(h.appDb, userId);
+    expect(listed.some((o) => o.id === hosted.organizationId)).toBe(false);
+  });
+
+  it("returns nothing for a user who does not exist", async () => {
+    expect(await listOrganizationsForUser(h.appDb, "00000000-0000-4000-8000-000000000000")).toEqual(
+      [],
+    );
   });
 });

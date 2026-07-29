@@ -9,6 +9,25 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M022 — auth and organization UI.** Sign-up, sign-in, OAuth, verification, password reset, org
+  switcher, member list and organization settings. **Closes Stage 1B.**
+  - Migration **0008** adds `app_organizations_for_user` — the cross-tenant read M015 deferred,
+    resolved as a narrow `SECURITY DEFINER` function rather than a second session claim and a
+    widened `memberships` policy.
+  - Errors show the **server's** message. M014 makes sign-in failures generic so the form cannot
+    enumerate accounts; rewording them here would hand back that oracle.
+  - `role="alert"` lives in `AuthForm` rather than on six screens — without it the message renders
+    and is never announced.
+
+### Fixed
+
+- The org switcher marked the active row with `aria-selected` on a `<button>`, which is invalid —
+  only roles with selection semantics accept it. **axe caught it.** Now `aria-current`.
+- `apps/web/tsconfig.json` still pinned `lib` to ES2023 after M016 bumped the base — the third place
+  that override was hiding.
+
+### Added
+
 - **M021 — the generated cross-tenant suite.** Cases are produced from what Postgres actually
   contains, not from a list. A hand-written list stops being complete the moment someone adds a
   table, and fails in the worst direction: the suite still passes and covers less than it did.
