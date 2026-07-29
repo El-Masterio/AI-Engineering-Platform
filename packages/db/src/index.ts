@@ -60,3 +60,5 @@ export {
   type MembershipRole,
   type OrganizationPlan,
 } from "./schema/tenancy.js";
+
+export { sessions, accounts, verifications } from "./schema/authentication.js";

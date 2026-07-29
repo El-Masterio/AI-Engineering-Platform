@@ -6,6 +6,7 @@ import type { Sql } from "postgres";
 import { createClient } from "./client.js";
 import { migrateUp } from "./migrate.js";
 import { memberships, organizations, users } from "./schema/tenancy.js";
+import { accounts, sessions, verifications } from "./schema/authentication.js";
 import { POSTGRES_IMAGE } from "./testing/harness.js";
 
 /**
@@ -62,6 +63,9 @@ const TABLES: { drizzle: PgTable; name: string }[] = [
   { drizzle: organizations, name: "organizations" },
   { drizzle: users, name: "users" },
   { drizzle: memberships, name: "memberships" },
+  { drizzle: sessions, name: "sessions" },
+  { drizzle: accounts, name: "accounts" },
+  { drizzle: verifications, name: "verifications" },
 ];
 
 describe("the Drizzle schema matches the migrated database", () => {

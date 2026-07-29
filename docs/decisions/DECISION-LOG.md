@@ -18,6 +18,8 @@ Format and rules: [§20](../04-engineering/20-documentation-structure.md#archite
 | [007](ADR-007-verification-gates-structural.md) | Verification gates enforced structurally, not by prompt | Accepted | 2026-07-27 | **Very high — this is the product** |
 | [008](ADR-008-design-system-v2.md) | Design System v2.0: warm neutral, light-only, orange-and-blue | Accepted | 2026-07-27 | High — replaces the entire visual identity; supersedes §18 v1.0 and inverts §8's theme scope |
 | [009](ADR-009-railway-staging.md) | Railway for staging, GHCR for images, no production yet | Accepted | 2026-07-28 | Medium — the artifact stays portable, so the host is a week to change rather than a rewrite |
+| [010](ADR-010-authentication-identity-boundary.md) | Authentication reads identity through a dedicated `atelier_auth` role | Accepted | 2026-07-29 | High — widens the security boundary deliberately; the bypass is a named principal with an asserted blast radius rather than an absence |
+| [011](ADR-011-transactional-email.md) | Resend for transactional email, behind an `EmailPort` | Accepted | 2026-07-29 | Low — fills a gap §14 left open; the port makes the vendor one file to replace |
 
 ## Pending decisions
 

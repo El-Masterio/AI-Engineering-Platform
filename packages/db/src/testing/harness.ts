@@ -23,6 +23,8 @@ export const POSTGRES_IMAGE = "postgres:17-alpine";
 
 const APP_USER = "atelier_app_login";
 const APP_PASSWORD = "atelier_test_password";
+const AUTH_USER = "atelier_auth_login";
+const AUTH_PASSWORD = "atelier_test_password";
 
 export type Harness = {
   container: StartedPostgreSqlContainer;
@@ -32,6 +34,16 @@ export type Harness = {
   app: Sql;
   /** Drizzle handle over `app` — what withTenant() takes. */
   appDb: Database;
+  /**
+   * Ordinary role holding `atelier_auth` (ADR-010).
+   *
+   * Present so the suite can assert what this role CANNOT do. That is the
+   * assertion that matters: a role-scoped policy granting identity access is
+   * exactly the kind of control that looks correct and does nothing, and a test
+   * proving only that auth can read `users` would pass identically if the role
+   * were a superuser.
+   */
+  auth: Sql;
   stop: () => Promise<void>;
 };
 
@@ -55,20 +67,41 @@ export async function startHarness(): Promise<Harness> {
     GRANT atelier_app TO ${APP_USER};
   `);
 
-  const uri = new URL(container.getConnectionUri());
-  uri.username = APP_USER;
-  uri.password = APP_PASSWORD;
-  const app = createClient({ connectionString: uri.href, max: 4 });
+  await owner.unsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${AUTH_USER}') THEN
+        CREATE ROLE ${AUTH_USER} LOGIN PASSWORD '${AUTH_PASSWORD}';
+      END IF;
+    END
+    $$;
+    GRANT atelier_auth TO ${AUTH_USER};
+  `);
 
-  // Guard the guard: if this role were ever a superuser the entire suite would
-  // be meaningless, so assert it rather than assume it.
-  const [role] = await app<{ is_superuser: boolean }[]>`
-    SELECT rolsuper AS is_superuser FROM pg_roles WHERE rolname = current_user
-  `;
-  if (role?.is_superuser !== false) {
-    throw new Error(
-      "The application test role is a superuser. RLS assertions would pass vacuously.",
-    );
+  const connectAs = (user: string, password: string): Sql => {
+    const uri = new URL(container.getConnectionUri());
+    uri.username = user;
+    uri.password = password;
+    return createClient({ connectionString: uri.href, max: 4 });
+  };
+
+  const app = connectAs(APP_USER, APP_PASSWORD);
+  const auth = connectAs(AUTH_USER, AUTH_PASSWORD);
+
+  // Guard the guard: if either role were a superuser the entire suite would be
+  // meaningless, so assert it rather than assume it.
+  for (const [label, connection] of [
+    ["application", app],
+    ["authentication", auth],
+  ] as const) {
+    const [role] = await connection<{ is_superuser: boolean }[]>`
+      SELECT rolsuper AS is_superuser FROM pg_roles WHERE rolname = current_user
+    `;
+    if (role?.is_superuser !== false) {
+      throw new Error(
+        `The ${label} test role is a superuser. RLS assertions would pass vacuously.`,
+      );
+    }
   }
 
   return {
@@ -76,7 +109,9 @@ export async function startHarness(): Promise<Harness> {
     owner,
     app,
     appDb: createDatabase(app),
+    auth,
     stop: async () => {
+      await auth.end({ timeout: 5 });
       await app.end({ timeout: 5 });
       await owner.end({ timeout: 5 });
       await container.stop();
