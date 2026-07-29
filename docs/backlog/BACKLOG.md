@@ -261,11 +261,19 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Lookup is by HASH, never by prefix** A prefix is public and not unique; finding a row by prefix and then comparing would leak which prefixes exist through timing and row counts.
 **A test I had to correct** I first asserted the listing contained no `atl_` anywhere — which contradicts §16's "prefix-visible for identification". The real assertion is that nothing listed can authenticate, verified by feeding every exposed prefix back through `resolveApiKey`.
 
-### M020 · Rate limiting · S · 🔒
+### M020 · Rate limiting · S · 🔒 — ✅ **Done** (2026-07-29)
 **Objective** §16's limits enforced.
-**Dependencies** M016
+**Dependencies** M016 ✅
 **Deliverables** Redis sliding-window limiter, per-key/per-org/per-IP tiers, `RateLimit-*` headers.
 **Acceptance** Limits enforced per §16 · headers present · `429` includes `Retry-After` · limits are per-tenant, not global.
+**Sliding, not fixed** A fixed window is simpler and wrong at the only moment that matters: a caller limited to 100/min can send 100 at 11:59:59 and 100 more at 12:00:00, so the real ceiling is 200 in one second and the limit holds only on average. The burst is the entire thing the control exists to prevent.
+**Lua, not a pipeline** A pipeline batches round trips without making them atomic — two concurrent requests can interleave between the trim and the count and both see room. Verified against a real Redis: **50 simultaneous hits counted exactly once each**, the one property the in-memory tests cannot check.
+**Unique member per hit** Two requests in the same millisecond would otherwise collide on score *and* member, so `ZADD` overwrites instead of adding — under-counting exactly when load is highest.
+**Fails OPEN, loudly** If Redis is unreachable the choice is between rejecting everything and enforcing nothing. Rejecting turns a dependency blip into a total outage; abuse during a Redis outage is the smaller problem. The warning is what stops it being a silent loss of the control.
+**Probes exempt** An orchestrator polls `/readyz` far more often than any user polls anything, and limiting it means the container is killed for being healthy.
+**Redis finally has a job** — M014 left `secondaryStorage` on the type with the caveat that in-memory counters are correct for one replica and wrong for several. `REDIS_URL` is now in the schema, and its absence warns in production rather than passing quietly.
+**Not in scope** §16's run-start limits are **admission control, not rejection** — "a queued run is better than a lost one" — so they belong to the queue milestone rather than to a rejecting limiter.
+**Three latent gaps closed** The root tsconfig included `packages/*/vitest.*.config.ts` but no `apps/*` equivalent, so an integration config under `apps/` belonged to no project and ESLint reported a parse error rather than a rule violation. The same file needed `import-x/no-extraneous-dependencies` satisfied. And the root tsconfig still pinned `lib` to ES2023, overriding M016 — the tooling view disagreed with every build.
 
 ### M021 · Cross-tenant test suite (generated) · M · 🔒✅
 **Objective** The most important test suite in the codebase.

@@ -13,6 +13,8 @@ import {
 } from "@atelier/observability";
 import type { Sql } from "postgres";
 import { registerErrorHandler } from "./plugins/error-handler.plugin.js";
+import { registerRateLimit } from "./plugins/rate-limit.plugin.js";
+import { createMemoryStore, type RateLimitStore } from "./lib/rate-limit.js";
 
 /**
  * The API service, on Fastify (§14, M016).
@@ -38,6 +40,15 @@ export type ServerOptions = {
   revision?: string;
   /** Handles everything under `/api/auth/*` (M014). */
   authHandler?: (request: Request) => Promise<Response>;
+  /**
+   * Where rate-limit windows live (§16, M020).
+   *
+   * Omitted means in-memory, which is correct for ONE process and wrong for
+   * several — N replicas each keeping their own counter enforce N times the
+   * limit. `main.ts` supplies a Redis store when `REDIS_URL` is set and warns
+   * when it is not.
+   */
+  rateLimitStore?: RateLimitStore;
 };
 
 export type RunningServer = {
@@ -75,6 +86,14 @@ export async function buildServer(options: ServerOptions): Promise<FastifyInstan
   });
 
   registerErrorHandler(app, logger);
+
+  // Before every route, including the auth prefix: sign-in is exactly what an
+  // unauthenticated attacker hammers, and Better Auth's own limiter (M014)
+  // covers its endpoints while this covers everything else.
+  registerRateLimit(app, {
+    store: options.rateLimitStore ?? createMemoryStore(),
+    logger,
+  });
 
   // ETag on GET responses, so §16's optimistic concurrency has a validator to
   // compare against. Strong, not weak — a conditional WRITE needs byte equality.
