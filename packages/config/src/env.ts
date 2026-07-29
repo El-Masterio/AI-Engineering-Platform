@@ -29,6 +29,14 @@ const SECRET_VARIABLES = new Set([
   "OPENROUTER_API_KEY",
   "GROQ_API_KEY",
   "DATABASE_URL",
+  // M014. AUTH_DATABASE_URL differs from DATABASE_URL only in credentials, and
+  // those credentials reach password hashes (ADR-010) - so it is at least as
+  // sensitive as the one above it.
+  "AUTH_DATABASE_URL",
+  "BETTER_AUTH_SECRET",
+  "RESEND_API_KEY",
+  "GITHUB_CLIENT_SECRET",
+  "GOOGLE_CLIENT_SECRET",
 ]);
 
 export function isSecretVariable(name: string): boolean {
@@ -138,6 +146,45 @@ const envObject = z.object({
 
   /** Git SHA of the running build, surfaced on / so a deploy is identifiable. */
   GIT_SHA: z.string().optional(),
+
+  /**
+   * Connection for the authentication module (ADR-010).
+   *
+   * The same database as DATABASE_URL, as a DIFFERENT ROLE. `atelier_auth` can
+   * read identity and cannot touch tenant data; `atelier_app` is the reverse
+   * and cannot read a password hash. Pointing both at the same credentials
+   * would collapse that boundary silently — everything would work, and the
+   * separation asserted by the isolation suite would be fiction.
+   *
+   * Optional: a process that serves no auth routes does not need it. `apps/api`
+   * requires it explicitly at the point it builds the auth handler, which is
+   * the only place that can tell.
+   */
+  AUTH_DATABASE_URL: postgresUrl.optional(),
+
+  /** Signs session cookies and tokens. Rotating it invalidates every session. */
+  BETTER_AUTH_SECRET: z.string().min(32, "must be at least 32 characters").optional(),
+
+  /** Public origin the auth endpoints are reached on, e.g. https://api.example.com */
+  AUTH_BASE_URL: z.url().optional(),
+
+  /** Transactional email (ADR-011). Keys are `re_…`. */
+  RESEND_API_KEY: z
+    .string()
+    .min(1)
+    .refine((value) => value.startsWith("re_"), {
+      message: "does not look like a Resend API key (expected an re_ prefix)",
+    })
+    .optional(),
+
+  /** From address for verification and reset mail. Must be a verified domain. */
+  EMAIL_FROM: z.string().min(1).optional(),
+
+  /** OAuth (FR-AUTH-2). Both halves of a pair are required together. */
+  GITHUB_CLIENT_ID: z.string().min(1).optional(),
+  GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 });
 
 /** Every credential that can reach a model. */
@@ -147,7 +194,25 @@ export const MODEL_PROVIDER_VARIABLES = [
   "ANTHROPIC_API_KEY",
 ] as const;
 
+/** OAuth providers, as the pairs they have to be configured in. */
+const OAUTH_PAIRS = [
+  ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
+  ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+] as const;
+
 export const envSchema = envObject.superRefine((env, ctx) => {
+  // Half a provider is worse than none: the app boots, the button renders, and
+  // the failure arrives at the redirect with the user already committed.
+  for (const [id, secret] of OAUTH_PAIRS) {
+    if ((env[id] === undefined) !== (env[secret] === undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [env[id] === undefined ? id : secret],
+        message: `is required when ${env[id] === undefined ? secret : id} is set — a provider needs both halves`,
+      });
+    }
+  }
+
   // At least one provider in production, not a specific one. A deploy that
   // cannot reach any model is not a working deploy, and finding that out on the
   // first request is worse than refusing to boot — but which provider is still

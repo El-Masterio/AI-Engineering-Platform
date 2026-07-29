@@ -1,0 +1,40 @@
+{
+  "name": "@atelier/auth",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Better Auth configuration, Argon2id hashing, and the identity connection (ADR-010)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "test:integration": "turbo run build --filter=@atelier/auth && vitest run --config vitest.integration.config.ts"
+  },
+  "devDependencies": {
+    "@atelier/config": "workspace:*",
+    "@types/node": "^26.1.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10",
+    "@testcontainers/postgresql": "^12.0.4",
+    "postgres": "^3.4.9",
+    "@atelier/email": "workspace:*"
+  },
+  "dependencies": {
+    "@atelier/db": "workspace:*",
+    "@atelier/domain": "workspace:*",
+    "@node-rs/argon2": "^2.0.2",
+    "better-auth": "^1.6.25",
+    "drizzle-orm": "^0.45.2"
+  }
+}

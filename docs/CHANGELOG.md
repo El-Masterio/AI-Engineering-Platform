@@ -9,6 +9,39 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M014 — authentication.** Email/password and OAuth sign-in on Better Auth, with Argon2id
+  (`m=19456,t=2,p=1`), httpOnly/SameSite=Lax session cookies, server-side revocation, email
+  verification, single-use password reset, and rate-limited login. FR-AUTH-1..5 and 9's server half.
+  - **[ADR-010](decisions/ADR-010-authentication-identity-boundary.md)** — identity reads through a
+    dedicated `atelier_auth` role. `users` under `FORCE ROW LEVEL SECURITY` makes sign-in
+    *structurally impossible*: a sign-in request has no tenant context, so the lookup returns zero
+    rows and the application reports "no such user" for **every** user in the database. No later
+    milestone closes this — tenant resolution is M015 and authentication is M014.
+    - `atelier_auth` → identity only, **no grant** on organizations or memberships.
+    - `atelier_app` → unchanged from M004, **no grant at all** on `accounts`. A password hash is
+      now unreachable from the request-serving role by *privilege*, not by policy — stronger than
+      before this milestone, not weaker.
+  - **[ADR-011](decisions/ADR-011-transactional-email.md)** — Resend behind an `EmailPort`; §14
+    named no provider and FR-AUTH-4/5 both need one.
+  - Migration **0003** reconciles Better Auth's required `emailVerified` boolean with our
+    audit-bearing `email_verified_at` timestamp — a bidirectional trigger plus a CHECK constraint,
+    because a `GENERATED` column is read-only and the library writes the flag.
+  - Migration **0004** removes a UNIQUE index 0002 put on `verifications.value`: the token lives in
+    `identifier`, and `value` holds the *subject* (a user id for a reset), so a second reset for one
+    user collided with the first.
+
+### Changed
+
+- `vitest.config.ts` aliases **every** workspace package to source, not just `@atelier/ui`. Adding
+  one export to `@atelier/domain` surfaced the gap as `EmailDeliveryError is not a constructor` — a
+  missing build presenting as a missing export.
+- Integration scripts run through `turbo`, which builds workspace dependencies first. `packages/auth`
+  built itself but not `@atelier/db`, so its tests ran against a stale `dist/`.
+- The migration suite no longer hard-codes "there is exactly one migration"; the rollback test walks
+  every migration in reverse, since the older a down file is the less anyone has run it.
+
+### Added
+
 - **M011 — staging deploy pipeline** ([ADR-009](decisions/ADR-009-railway-staging.md): Railway, GHCR,
   staging only). Code complete; the deploy itself awaits a Railway project.
   - `apps/api` gained a real HTTP server with `/`, `/healthz`, `/readyz`, correlation ids and

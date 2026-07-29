@@ -7,6 +7,12 @@
     "packages/observability": {
       "entry": ["src/**/*.test.ts", "src/testing/*.mjs"],
       "ignoreDependencies": ["@opentelemetry/instrumentation"]
+    },
+    "packages/auth": {
+      "entry": ["src/**/*.test.ts"]
+    },
+    "packages/email": {
+      "entry": ["src/**/*.test.ts"]
     }
   }
 }

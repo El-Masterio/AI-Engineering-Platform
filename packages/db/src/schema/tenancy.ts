@@ -1,5 +1,14 @@
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 /**
  * Drizzle definitions for the tenancy and identity core.
@@ -46,6 +55,13 @@ export const users = pgTable(
     name: text("name"),
     avatarUrl: text("avatar_url"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    /**
+     * Better Auth's core schema requires a boolean (ADR-010, migration 0003).
+     * A database trigger keeps this and `emailVerifiedAt` in agreement, and a
+     * CHECK constraint refuses any row where they disagree — so this is a
+     * projection of the timestamp, never an independent fact.
+     */
+    emailVerified: boolean("email_verified").notNull().default(false),
     ...timestamps,
   },
   (table) => [

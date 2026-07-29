@@ -102,3 +102,46 @@ true. Do not paste production rows in here to reproduce a bug — write a test.
 - [§15 Database Strategy](../02-architecture/15-database-strategy.md) — migration policy and tenancy
 - [§23 Testing Strategy](23-testing-strategy.md) — what each layer is for
 - `.env.example` — every variable the system reads
+
+## Authentication locally (M014)
+
+Two database roles, not one. `atelier_app` serves requests and cannot read a password hash;
+`atelier_auth` reads identity and cannot touch tenant data ([ADR-010](../decisions/ADR-010-authentication-identity-boundary.md)).
+`pnpm setup` provisions both; if you are wiring an environment by hand, `AUTH_DATABASE_URL` must be
+the **auth** role's credentials. Pointing it at `DATABASE_URL` works perfectly and silently deletes
+the boundary — every route responds, every test passes, and the request-serving role holds
+credentials.
+
+### Getting a verification or reset link
+
+With no `RESEND_API_KEY` set, mail is logged instead of sent — and **the logged link is not
+clickable**. §M006's redaction rewrites secret-shaped strings, so the token comes out as
+`token=199[REDACTED]@`. That is the redaction layer working as specified (§17 treats a
+secret-shaped string in a log as a P1 incident), not a bug to route around.
+
+Read the token from the database instead:
+
+```bash
+psql "$AUTH_DATABASE_URL" -c \
+  "SELECT identifier, value, expires_at FROM verifications
+   WHERE consumed_at IS NULL ORDER BY created_at DESC LIMIT 1"
+```
+
+For **email verification** the token is the `identifier`; visit
+`{AUTH_BASE_URL}/api/auth/verify-email?token=<identifier>`.
+
+For a **password reset** the token is also the `identifier` (`value` holds the user id — see
+migration 0004), and the link shape is `/api/auth/reset-password/<token>`.
+
+Or set a real `RESEND_API_KEY` and receive the mail properly.
+
+### OAuth
+
+Both halves of a provider are required together; the env schema refuses half a pair, because half a
+provider boots cleanly, renders the button, and fails at the redirect with the user already
+committed. Register these callback URLs:
+
+```
+{AUTH_BASE_URL}/api/auth/callback/github
+{AUTH_BASE_URL}/api/auth/callback/google
+```
