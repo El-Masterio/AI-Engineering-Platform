@@ -363,7 +363,23 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Dependencies** M023, M024
 **Deliverables** Managed adapter implementing the port; environment configuration with **deny-by-default egress and an allowlist**; per-run session provisioning; repository mounting; graceful failure handling.
 **Acceptance** Adapter passes the same conformance suite as the fake · sandbox has no host network · egress allowlist verified by test · cloud metadata endpoints blocked · provisioning p95 < 20 s.
+
+**⛔ BLOCKED (2026-07-30) — needs an API key with Managed Agents beta access.** Four of the five acceptance criteria can only be demonstrated against a live session, and the build environment has no `ANTHROPIC_API_KEY`, no `ant` CLI, and no OAuth profile. Writing the adapter and declaring the milestone done would break the rule that a milestone is not complete until its criteria are *demonstrably* met. M034 was taken instead.
+
+**Owner decision on the provider question (2026-07-30): keep both.** ADR-002 stands — build the managed adapter as specified — and add a second provider behind the same port, which must pass the same conformance suite. See M026b.
+
+**Design work already banked from reading the API surface:**
+- **[ADR-012](../decisions/ADR-012-agent-runtime-port.md) revisit trigger 3 has fired.** M023 left `vetoTool` optional because it was unknown whether the managed runtime exposed a pre-execution tool hook. It does: `permission_policy: {type: "always_ask"}` pauses the session and emits the tool call with `evaluated_permission: "ask"`, answered with a `user.tool_confirmation` event carrying `allow`/`deny` and a `deny_message`. ADR-012 says this makes `vetoTool` required and collapses its three enforcement layers to two — to be written when M026 runs.
+- **The egress allowlist is first-class:** `environments.create({config: {networking: {type: "limited", allowed_hosts: […], allow_package_managers: false, allow_mcp_servers: false}}})` — deny-by-default, as §17 Control 4 requires.
+- **SSE has no replay.** ADR-012's cursor requirement is satisfiable only by composing the paginated `events.list()` history with the live stream and deduping on event id. An implementation constraint, not a blocker — and it retroactively justifies putting `after` in the port signature from line one.
 **Note** 🔒 **The ADR-002 bet is validated or falsified here.** A negative finding triggers immediate re-planning per §25, not a workaround.
+
+### M026b · Second-provider runtime adapter · L · 🏗🔒
+**Objective** Prove the ADR-012 seam holds with a provider that has no hosted agent loop.
+**Dependencies** M023, M026, M034
+**Deliverables** An adapter for a second model provider (owner's plan: OpenRouter primary with Groq failover) implementing the same `AgentRuntime` port; a second `MODEL_PROVIDERS` entry in the tier registry ([ADR-015](../decisions/ADR-015-provider-keyed-tier-registry.md)); **our own agent loop, sandbox, and egress control**, since the provider supplies inference only.
+**Acceptance** Passes the same conformance suite as the fake and the managed adapter, unmodified · no model ID outside the registry · sandbox and egress guarantees equal to M026's, verified by the same tests · a run is reproducible from its recorded provider, tier and effort.
+**Note** 🔒 Owner decision 2026-07-30: **keep both** runtimes rather than switching. This is the milestone where "the port makes ADR-002 reversible" stops being a claim. Substantially larger than M026 — the managed runtime supplies the agent loop, the sandbox and the credential vault, and none of those come with a bare inference API. Sequenced after M026 so the conformance suite has two passing implementations to compare, not one.
 
 ### M027 · Credential vault integration · M · 🔒
 **Objective** Secrets never enter an agent's context or sandbox.
@@ -407,11 +423,23 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Deliverables** `cost_entries` (append-only, partitioned), per-call accounting including cache-read tokens, rollups, per-run budget ceiling that **pauses** the run, no-progress circuit breaker, credit conversion (integer arithmetic).
 **Acceptance** FR-COST-1..3, 7 · exceeding the ceiling pauses and requests approval, never silently overspends · circuit breaker halts a no-progress loop · ledger and rollup reconcile · 95% coverage · no floating-point money.
 
-### M034 · Model tiering resolution · S · 🤖
+### M034 · Model tiering resolution · S · 🤖 — ✅ **Done** (2026-07-30)
 **Objective** Tiers as named abstractions, never hardcoded IDs.
 **Dependencies** M024
 **Deliverables** Tier → model mapping table, effort resolution, refusal-fallback configuration on reasoning-tier calls, `stop_reason` handling before content access.
 **Acceptance** No model ID appears outside the mapping table (lint-enforced) · a refusal is handled gracefully with fallback · ADR-004 implemented as specified.
+
+**Outcome** All three met. [ADR-015](../decisions/ADR-015-provider-keyed-tier-registry.md). Taken out of order because M026 is blocked on credentials — see M026 below.
+
+**Keyed by provider from the start** The owner decided to keep the managed runtime *and* add a second provider behind the port, so ADR-004's "single mapping table" becomes one table per provider. Retrofitting that key later would mean touching every call site — the repository-wide edit ADR-004 exists to prevent — and it would land at the moment we were already doing the risky work.
+
+**Resolution returns a whole request, not a model name** Four per-model constraints cannot live in a `{tier → model}` map: the utility tier's model REJECTS the `effort` parameter (ADR-004's "n/a" is literal), the reasoning tier accepts disabled thinking at `high` and 400s at `xhigh`, the frontier tier rejects any explicit thinking config including the adaptive one, and sampling parameters are gone from all four. Left out of the table, each becomes a 400 that the first adapter to forget it discovers in production.
+
+**The lint rule broke another one first** Declaring it once repo-wide silently disabled §18's hardcoded-colour guard for `packages/ui` and `apps/web` — flat config REPLACES a rule's options rather than merging them. The only visible symptom was two `eslint-disable` comments becoming unused. Fixed by spreading the selectors into every block; verified by probing both guards at once.
+
+**ASSUMPTION-010 resolved** ADR-004's prices re-verified against the authoritative capability pack; all four match. Documentary, not live — no credentials in this environment. A test reads ADR-004's own decision table and fails on drift, including an introductory price left past its end date.
+
+**Nothing was verifying M024's tier/effort pairs, either** Same class of gap M025 found for pack references: six roles declare `{tier, effort}` and no test confirmed they resolved. A `max`-effort utility role would have failed at run time.
 
 ### M035 · Prompt assembly with cache stability · M · 🤖
 **Objective** Protect the cache hit rate, which is a primary margin lever.

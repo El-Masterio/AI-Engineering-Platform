@@ -116,7 +116,7 @@ Updated in the same commit as each milestone's work.
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
 | **Total** | **11** | **132** | █░░░░░░░░░ **8%** |
 
-**Currently in progress:** none. **Next up:** `M026 — Managed runtime adapter and sandbox provisioning` — 🔒 **the ADR-002 bet is validated or falsified here.** **Last completed:** `M025 — Capability pack loader and scanner` (ADR-014). CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
+**Currently in progress:** none. **Next up:** `M035 — Prompt assembly with cache stability` (deps M025 ✅, M034 ✅). **⛔ M026 is BLOCKED** on an API key with Managed Agents beta access — four of its five acceptance criteria need a live session; owner chose **keep both** runtimes, so a second-provider adapter is scheduled as M026b. **Last completed:** `M034 — Model tiering resolution` (ADR-015). CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
 
 ### Completed
 
@@ -147,6 +147,7 @@ Updated in the same commit as each milestone's work.
 | M023 | AgentRuntime port and fake adapter | 2026-07-30 | Purity tested, not asserted; suite proven by three broken adapters. Shipped a tier vocabulary that contradicted ADR-004 — caught in M024 |
 | M024 | Agent specification schema | 2026-07-30 | Six roles as YAML, loaded by listing a directory; immutability enforced by trigger, proven by raw UPDATE/DELETE as the owner |
 | M025 | Capability pack loader and scanner | 2026-07-30 | `skills/` is the corpus (ADR-014); benign look-alike fixture caught 5 false positives; found M024's pack references were unverified |
+| M034 | Model tiering resolution | 2026-07-30 | ADR-004 implemented + lint-enforced; resolved ASSUMPTION-010; taken out of order because M026 is credential-blocked. Found a repo-wide lint block had disabled §18's colour guard |
 
 ## Milestone hygiene rules
 

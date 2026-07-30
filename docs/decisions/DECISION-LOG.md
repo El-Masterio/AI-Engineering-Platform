@@ -23,6 +23,7 @@ Format and rules: [§20](../04-engineering/20-documentation-structure.md#archite
 | [012](ADR-012-agent-runtime-port.md) | The AgentRuntime port: five methods, no provider types, tool enforcement in three layers | Accepted | 2026-07-30 | **High** — this is the seam ADR-002's Medium reversal cost depends on; if it is wrong, that rating is wrong |
 | [013](ADR-013-agent-definitions-as-per-tenant-data.md) | Agent definitions are per-tenant rows materialised from an on-disk corpus | Accepted | 2026-07-30 | Low |
 | [014](ADR-014-capability-pack-corpus-and-trust.md) | Capability-pack corpus rooted at `skills/`; platform packs trusted, org packs scanned | Accepted | 2026-07-30 | Low |
+| [015](ADR-015-provider-keyed-tier-registry.md) | Tier registry keyed by provider; resolution returns a whole request shape | Accepted | 2026-07-30 | Low |
 
 ## Pending decisions
 

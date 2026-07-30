@@ -9,6 +9,42 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M034 — model tiering resolution.** ADR-004 implemented: `packages/agent-runtime/src/models/`.
+  [ADR-015](decisions/ADR-015-provider-keyed-tier-registry.md).
+  - **No model ID outside the mapping table, lint-enforced.** A `Literal[value=/^claude[-.]/]` rule with
+    exactly two exemptions, both by path with a written reason. The tests pin the table by reading
+    ADR-004's own decision table — including its prices — so no test names a model either.
+  - **Keyed by provider from the start**, because the owner chose to keep the managed runtime *and* add a
+    second provider behind the port. Retrofitting the key later is the repository-wide edit ADR-004
+    exists to prevent.
+  - **Resolution returns a whole request shape.** Four per-model constraints cannot live in a
+    `{tier → model}` map: the utility tier's model rejects `effort` outright (ADR-004's "n/a" is
+    literal), the reasoning tier accepts disabled thinking at `high` and 400s at `xhigh`, the frontier
+    tier rejects any explicit thinking config, and sampling parameters are gone from all four.
+  - **`stop_reason` before content access** (ADR-004 control 5). A refusal is a *successful* HTTP 200
+    with empty or partial content, so `content[0]` is not a style problem — it reports a mysterious
+    failure instead of a declined request. A partial is flagged as one and must be discarded.
+  - **ASSUMPTION-010 resolved.** Prices re-verified against the authoritative capability pack; a test
+    fails on drift from ADR-004 or on an introductory rate left past its end date.
+
+### Fixed
+
+- **A repo-wide `no-restricted-syntax` block silently disabled §18's hardcoded-colour guard** for
+  `packages/ui` and `apps/web`. ESLint flat config *replaces* a rule's options rather than merging them,
+  so a later repo-wide block wipes every scoped selector below it. The only visible symptom was two
+  `eslint-disable` comments becoming unused. The model-ID selectors are now spread into every block, and
+  both guards were probed simultaneously to confirm.
+
+### Changed
+
+- **M026 is blocked, not skipped.** Four of its five acceptance criteria need a live Managed Agents
+  session and this environment has no credentials. Owner decision on the provider question: **keep
+  both** — ADR-002 stands and a second-provider adapter is scheduled as M026b. Recorded in the backlog
+  with the design work already banked, including that
+  [ADR-012](decisions/ADR-012-agent-runtime-port.md)'s third revisit trigger has fired: the managed
+  runtime *does* expose a pre-execution tool hook, so `vetoTool` becomes required when M026 runs.
+### Added
+
 - **M025 — capability packs: loader, corpus, and injection scanner.**
   `packages/capability-packs`. [ADR-014](decisions/ADR-014-capability-pack-corpus-and-trust.md).
   - **Progressive disclosure is a property, not a comment.** `indexPacks` reads a bounded prefix of
