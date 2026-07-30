@@ -116,7 +116,7 @@ Updated in the same commit as each milestone's work.
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
 | **Total** | **11** | **132** | █░░░░░░░░░ **8%** |
 
-**Currently in progress:** none. **Next up:** `M024 — Agent specification schema`. **Last completed:** `M023 — AgentRuntime port and fake adapter`, the seam ADR-002 is reversible through. CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
+**Currently in progress:** none. **Next up:** `M025 — Capability pack loader and scanner`. **Last completed:** `M024 — Agent specification schema`, agents as versioned per-tenant data (ADR-013). CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
 
 ### Completed
 
@@ -133,6 +133,19 @@ Updated in the same commit as each milestone's work.
 | M006 | Observability skeleton | 2026-07-28 | Trace across HTTP→service→DB; 8 secret classes redacted; found OTel auto-instrumentation silently traced nothing |
 | M010 | Local development environment | 2026-07-28 | Clean clone to running app in 3 commands (~27 s); the clone found 4 bugs a working tree hid |
 | M013 | Domain: organizations and users | 2026-07-28 | 94 tests, zero external imports, 90% floor; last-owner invariant enforced set-wide |
+| M012 | Developer guide | 2026-07-28 | Verified by following it on a clean clone, not by reading it |
+| M011 | Deploy pipeline to staging | 2026-07-29 | Live on Railway via GHCR; found `ARG GIT_SHA` undeclared, which made the smoke test's revision check inert |
+| M014 | Authentication | 2026-07-29 | Better Auth on a dedicated `atelier_auth` role (ADR-010); Argon2id; email behind an `EmailPort` (ADR-011) |
+| M015 | Organization and membership management | 2026-07-29 | Invitations, role changes, last-owner protection at the API boundary |
+| M016 | API conventions and error envelope | 2026-07-29 | Three Fastify error paths unified; found `@fastify/swagger` producing a valid EMPTY document |
+| M017 | Policy engine | 2026-07-29 | Corrected two of my own modelling errors: gated actions ungranted by every role, and scopes conflated with actions |
+| M018 | Immutable audit log | 2026-07-29 | Partitioned; append-only proven by trying to UPDATE and DELETE as the owner; partition creation needed SECURITY DEFINER |
+| M019 | API keys | 2026-07-29 | SHA-256 (not Argon2 — opposite choice for the opposite reason); shown once |
+| M020 | Rate limiting | 2026-07-29 | Sliding window as an atomic Redis **Lua script**; a pipeline is not atomic |
+| M021 | Cross-tenant test suite (generated) | 2026-07-29 | Cases generated from `pg_class`; every exemption carries a written reason. M024 found it was silently skipping INSERT coverage for new tables |
+| M022 | Auth and organization UI | 2026-07-29 | 16 tests; axe caught `aria-selected` on a `button`, which my comment had confidently defended |
+| M023 | AgentRuntime port and fake adapter | 2026-07-30 | Purity tested, not asserted; suite proven by three broken adapters. Shipped a tier vocabulary that contradicted ADR-004 — caught in M024 |
+| M024 | Agent specification schema | 2026-07-30 | Six roles as YAML, loaded by listing a directory; immutability enforced by trigger, proven by raw UPDATE/DELETE as the owner |
 
 ## Milestone hygiene rules
 

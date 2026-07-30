@@ -14,6 +14,7 @@ import {
   users,
 } from "./schema/tenancy.js";
 import { accounts, sessions, verifications } from "./schema/authentication.js";
+import { agentDefinitions } from "./schema/agents.js";
 import { POSTGRES_IMAGE } from "./testing/harness.js";
 
 /**
@@ -76,6 +77,7 @@ const TABLES: { drizzle: PgTable; name: string }[] = [
   { drizzle: idempotencyKeys, name: "idempotency_keys" },
   { drizzle: auditLog, name: "audit_log" },
   { drizzle: apiKeys, name: "api_keys" },
+  { drizzle: agentDefinitions, name: "agent_definitions" },
 ];
 
 describe("the Drizzle schema matches the migrated database", () => {

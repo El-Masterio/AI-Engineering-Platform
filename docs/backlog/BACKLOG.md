@@ -321,11 +321,21 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 **Replay is in the signature from line one** §12 needs the gateway to replay from history; that is impossible unless the port resumes. Two properties the suite pins: omitting the cursor replays from the **beginning, not from now**, and the cursor is **exclusive**.
 **Two type problems worth recording** `Omit` over a union does not distribute — it collapses to the common fields and rejects a variant's own discriminant as unknown, so `RunEventBody` is named separately. And `lib` gained `ESNext.Array` for `Array.fromAsync`, which Node 24 implements while TypeScript still files it under esnext.
 
-### M024 · Agent specification schema · M · 🤖🏗
+### M024 · Agent specification schema · M · 🤖🏗 — ✅ **Done** (2026-07-30)
 **Objective** Agents as versioned data.
 **Dependencies** M023, M004
 **Deliverables** `agent_definitions` table, Zod schema for the §13 spec, version pinning, loader, seed of the 6 MVP roles as YAML.
 **Acceptance** A new role is added by authoring a file with no code change · versions immutable once referenced by a run · invalid spec rejected at load.
+
+**Outcome** All three met. `agent_definitions` (migration 0009), `agentSpecSchema` in `packages/contracts`, a directory-listing loader, and the six MVP roles in `packages/agent-runtime/roles/`. [ADR-013](../decisions/ADR-013-agent-definitions-as-per-tenant-data.md).
+
+**The tenancy question, answered against the first design** Built-in roles were going to be one global row each with `organization_id IS NULL`. That puts `organization_id IS NULL` in the RLS policy, which makes rows readable with **no tenant claim set at all** — the one thing ADR-003's model promises never happens, and the property the cross-tenant suite checks for every table. Rewritten: the corpus lives on disk and is materialised per tenant on first use. The row then records something truer — not "the platform defines an architect" but "this organization ran exactly this spec".
+
+**Immutability is a trigger, not a convention** The repository raises an actionable error, and `BEFORE UPDATE`/`BEFORE DELETE` triggers refuse the write whatever issued it. Verified by driving a raw UPDATE and a DELETE past the repository as the table owner. Freezing UPDATE alone would have left DELETE-then-INSERT as a way to rewrite history that passes every other check.
+
+**Two of my own errors, corrected** M023's tier names (`planning`/`review`) contradicted ADR-004, which groups planning, architecture, code review and security review into one `reasoning` tier and adds `frontier`; `xhigh` and `max` were missing from the effort levels. `adr-004-alignment.test.ts` now reads the ADR and pins both — verified by renaming a tier and watching it fail. And `restrict_violation` is `23001`, not the `2BF01` I first wrote; the test still saw an error thrown, so asserting only "something failed" would have passed with a classifier that matched nothing.
+
+**A real defect in M021's guardrail** `insertForeignRow` throws when a table has no fixture, but the call sat inside the `try`/bare-`catch` that reads a thrown error as "the write was refused" — so a new tenant-scoped table got no INSERT coverage while the suite stayed green. Found by deleting M024's own fixture and watching it pass. Fixed and re-probed.
 
 ### M025 · Capability pack loader and scanner · M · 🤖🔒
 **Objective** Expertise as versioned documents, safely.

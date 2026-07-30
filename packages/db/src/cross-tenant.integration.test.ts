@@ -64,6 +64,10 @@ beforeAll(async () => {
     INSERT INTO api_keys (id, organization_id, created_by, prefix, key_hash, name)
     VALUES (gen_random_uuid(), ${alice.organizationId}, ${aliceUserId}, 'atl_x', 'hash-x', 'k')
   `;
+  await h.owner`
+    INSERT INTO agent_definitions (organization_id, agent_id, version, origin, spec)
+    VALUES (${alice.organizationId}, 'cross-tenant-probe', 1, 'platform', '{}'::jsonb)
+  `;
 }, 240_000);
 
 afterAll(async () => {
@@ -171,10 +175,19 @@ describe("writing into another tenant", () => {
     for (const table of scoped) {
       if (!table.grants.includes("INSERT")) continue;
 
+      // Built OUTSIDE the try, and this matters. `insertForeignRow` throws when a
+      // table has no fixture, and inside the try that throw was caught by the
+      // bare `catch` below and read as "the write was refused" — so a new
+      // tenant-scoped table got no INSERT coverage while the suite stayed green.
+      // That is precisely the failure mode this file's own comment calls the
+      // worst one, sitting inside the check meant to prevent it. Found in M024 by
+      // deleting the new table's fixture and watching the suite pass.
+      const foreignInsert = insertForeignRow(table, alice.organizationId, aliceUserId);
+
       let wasRefused = true;
       try {
         await withTenant(h.appDb, bob, async (tx) => {
-          await tx.execute(insertForeignRow(table, alice.organizationId, aliceUserId));
+          await tx.execute(foreignInsert);
           wasRefused = false;
         });
       } catch {
@@ -268,6 +281,10 @@ function insertForeignRow(table: TenantScopedTable, organizationId: string, user
     case "api_keys": {
       return raw`INSERT INTO api_keys (id, organization_id, created_by, prefix, key_hash, name)
                  VALUES (gen_random_uuid(), ${organizationId}, ${userId}, 'atl_f', 'forged', 'f')`;
+    }
+    case "agent_definitions": {
+      return raw`INSERT INTO agent_definitions (organization_id, agent_id, version, origin, spec)
+                 VALUES (${organizationId}, 'forged-agent', 1, 'platform', '{}'::jsonb)`;
     }
     default: {
       // A new scoped table with no fixture here fails loudly rather than being

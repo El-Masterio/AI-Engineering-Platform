@@ -21,6 +21,7 @@ Format and rules: [§20](../04-engineering/20-documentation-structure.md#archite
 | [010](ADR-010-authentication-identity-boundary.md) | Authentication reads identity through a dedicated `atelier_auth` role | Accepted | 2026-07-29 | High — widens the security boundary deliberately; the bypass is a named principal with an asserted blast radius rather than an absence |
 | [011](ADR-011-transactional-email.md) | Resend for transactional email, behind an `EmailPort` | Accepted | 2026-07-29 | Low — fills a gap §14 left open; the port makes the vendor one file to replace |
 | [012](ADR-012-agent-runtime-port.md) | The AgentRuntime port: five methods, no provider types, tool enforcement in three layers | Accepted | 2026-07-30 | **High** — this is the seam ADR-002's Medium reversal cost depends on; if it is wrong, that rating is wrong |
+| [013](ADR-013-agent-definitions-as-per-tenant-data.md) | Agent definitions are per-tenant rows materialised from an on-disk corpus | Accepted | 2026-07-30 | Low |
 
 ## Pending decisions
 

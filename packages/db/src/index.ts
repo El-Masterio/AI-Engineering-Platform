@@ -104,3 +104,17 @@ export {
   type ProvisionedOrganization,
   type UserOrganization,
 } from "./tenancy.js";
+
+export { agentDefinitions, AGENT_ORIGINS, type AgentOrigin } from "./schema/agents.js";
+
+export {
+  findAgentDefinition,
+  findLatestAgentDefinition,
+  isImmutabilityViolation,
+  listAgentDefinitions,
+  pinForRun,
+  PublishedDefinitionConflictError,
+  upsertAgentDefinition,
+  type AgentDefinitionRecord,
+  type UpsertAgentDefinition,
+} from "./agent-definitions.js";
