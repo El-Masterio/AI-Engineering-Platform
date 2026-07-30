@@ -16,7 +16,7 @@ guesses as facts, each is recorded here with its impact if wrong and its resolut
 | **007** | One-level agent delegation is both our design and a runtime constraint (§13) | Low. If the runtime allows deeper delegation we simply don't use it | Confirmed at M026 | Open |
 | **008** | Technology version numbers current at authoring (§14) | Low. Pins need refreshing | Re-check at M001 | **Invalidated (corrected)** |
 | **009** | Team size of 2–4 engineers plus agent assistance (§25) | **High.** Every duration estimate scales with it | Owner confirms team composition | Open |
-| **010** | Model pricing current at authoring (ADR-004) | Medium. Directly affects COGS modeling | Re-verify at M034; monitor continuously | Open |
+| **010** | Model pricing current at authoring (ADR-004) | Medium. Directly affects COGS modeling | Re-verified at M034 (2026-07-30) against the `claude-api` capability pack — all four tiers match as authored. Documentary, not live: no credentials in the build environment. A test now pins the registry to ADR-004's table and fails on an expired introductory rate ([ADR-015](ADR-015-provider-keyed-tier-registry.md)). | **Resolved** |
 
 ## Resolutions
 

@@ -26,6 +26,33 @@ import prettierConfig from "eslint-config-prettier";
 // unclassified import is silently exempt from every rule below.
 const PLATFORM_PACKAGES = "agent-runtime,policy,cost,capability-packs,observability,auth,email";
 
+/**
+ * ADR-004: "No model ID appears anywhere else in the codebase — enforced by lint."
+ *
+ * This is that rule. A model identifier scattered through the codebase turns
+ * every model launch into a repository-wide edit with no single place to test the
+ * migration, and it moves model policy out of the ADR into whichever file
+ * happened to need a model name.
+ *
+ * Spread into EVERY `no-restricted-syntax` block rather than declared once
+ * repo-wide, because flat config REPLACES a rule's options rather than merging
+ * them: a later repo-wide block silently disables the scoped selectors below it.
+ * The first version of this was exactly that mistake — it turned off §18's
+ * hardcoded-colour guard for `packages/ui` and `apps/web`, and the only visible
+ * symptom was two now-unused disable comments.
+ */
+const MODEL_ID_SELECTORS = [
+  {
+    selector: "Literal[value=/^claude[-.]/]",
+    message:
+      "Hardcoded model identifier. Resolve a TIER instead — resolveModel(tier, effort) from @atelier/agent-runtime. ADR-004 keeps every model ID in packages/agent-runtime/src/models/registry.ts so a model launch is one diff plus one eval run.",
+  },
+  {
+    selector: "TemplateElement[value.raw=/claude[-.](?:opus|sonnet|haiku|fable|mythos|[0-9])/]",
+    message: "Hardcoded model identifier in a template literal. Resolve a TIER instead (ADR-004).",
+  },
+];
+
 export default tseslint.config(
   // ── Ignores ──────────────────────────────────────────────────────────────
   {
@@ -108,6 +135,7 @@ export default tseslint.config(
       // No TS enums — surprising runtime semantics. Use `as const` + unions.
       "no-restricted-syntax": [
         "error",
+        ...MODEL_ID_SELECTORS,
         {
           selector: "TSEnumDeclaration",
           message: "TS enums are prohibited (§21). Use an `as const` object plus a union type.",
@@ -345,6 +373,7 @@ export default tseslint.config(
       ],
       "no-restricted-syntax": [
         "error",
+        ...MODEL_ID_SELECTORS,
         {
           selector: "TSEnumDeclaration",
           message: "TS enums are prohibited (§21). Use an `as const` object plus a union type.",
@@ -379,6 +408,7 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": [
         "error",
+        ...MODEL_ID_SELECTORS,
         {
           selector: "TSEnumDeclaration",
           message: "TS enums are prohibited (§21). Use an `as const` object plus a union type.",
@@ -418,6 +448,7 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": [
         "error",
+        ...MODEL_ID_SELECTORS,
         {
           selector: "TSEnumDeclaration",
           message: "TS enums are prohibited (§21). Use an `as const` object plus a union type.",
@@ -442,6 +473,32 @@ export default tseslint.config(
           selector: String.raw`Literal[value=/var\(\s*--(?:n|a|ok|warn|err|info|run)-[0-9]/]`,
           message:
             "Primitive token referenced directly. Components must use SEMANTIC tokens (--bg-*, --text-*, --border-*, --status-*), never a raw scale (§18).",
+        },
+      ],
+    },
+  },
+
+  /**
+   * The two files that may name a model identifier, and why.
+   *
+   * Flat config replaces rather than merges, so this block re-states what still
+   * applies to these files instead of just subtracting. Listed by path rather
+   * than waived with a comment, so the exemption cannot spread by copy-paste.
+   */
+  {
+    files: [
+      // ADR-004's mapping table itself — the one place a model ID belongs.
+      "packages/agent-runtime/src/models/registry.ts",
+      // M023's purity test, which asserts the PORT names no vendor. It contains
+      // the string in order to forbid it, which is the opposite of a violation.
+      "packages/agent-runtime/src/port-purity.test.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "TSEnumDeclaration",
+          message: "TS enums are prohibited (§21). Use an `as const` object plus a union type.",
         },
       ],
     },

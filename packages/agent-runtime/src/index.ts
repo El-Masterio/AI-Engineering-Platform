@@ -54,3 +54,32 @@ export {
   PLATFORM_ROLES_DIR,
   type LoadedDefinition,
 } from "./definitions/loader.js";
+
+export {
+  tierEntry,
+  tierRegistry,
+  MODEL_PROVIDERS,
+  REFUSAL_FALLBACK_BETA,
+  type ModelProvider,
+  type ModelTierEntry,
+  type ThinkingMode,
+  type TokenPricing,
+} from "./models/registry.js";
+
+export {
+  canDisableThinking,
+  priceTokens,
+  resolveForSpec,
+  resolveModel,
+  UnsupportedEffortError,
+  type ResolvedModel,
+} from "./models/resolve.js";
+
+export {
+  fallbackConfig,
+  isComplete,
+  readContent,
+  INCOMPLETE_STOP_REASONS,
+  type RefusalCandidate,
+  type RefusalOutcome,
+} from "./models/refusal.js";
