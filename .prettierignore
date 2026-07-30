@@ -12,3 +12,7 @@ docs/api/openapi.json
 # would reflow tables and diagrams. Reviewed by humans instead.
 docs/
 skills/
+
+# Scanner fixtures are byte-exact by design — reflowing an attack string changes
+# what is under test.
+packages/capability-packs/test-corpus/

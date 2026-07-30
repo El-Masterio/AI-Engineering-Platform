@@ -22,6 +22,7 @@ Format and rules: [§20](../04-engineering/20-documentation-structure.md#archite
 | [011](ADR-011-transactional-email.md) | Resend for transactional email, behind an `EmailPort` | Accepted | 2026-07-29 | Low — fills a gap §14 left open; the port makes the vendor one file to replace |
 | [012](ADR-012-agent-runtime-port.md) | The AgentRuntime port: five methods, no provider types, tool enforcement in three layers | Accepted | 2026-07-30 | **High** — this is the seam ADR-002's Medium reversal cost depends on; if it is wrong, that rating is wrong |
 | [013](ADR-013-agent-definitions-as-per-tenant-data.md) | Agent definitions are per-tenant rows materialised from an on-disk corpus | Accepted | 2026-07-30 | Low |
+| [014](ADR-014-capability-pack-corpus-and-trust.md) | Capability-pack corpus rooted at `skills/`; platform packs trusted, org packs scanned | Accepted | 2026-07-30 | Low |
 
 ## Pending decisions
 
@@ -86,6 +87,7 @@ without buying anything.
 |---|---|---|
 | §18 v1.0 visual language (dark-first, near-black `#0d1116`, deep-teal accent, 13px dense scale) | [ADR-008](ADR-008-design-system-v2.md) | Owner directive replaced the visual identity wholesale with a warm-neutral, light-only, orange-and-blue system. The *token architecture* from v1.0 was not superseded — it is what made the replacement a one-file change. |
 | §8 "dark mode only in MVP" | [ADR-008](ADR-008-design-system-v2.md) | Inverted: light only in MVP, dark deferred to M083. |
+| §19's `packages/capability-packs/platform/` corpus path | [ADR-014](ADR-014-capability-pack-corpus-and-trust.md) | The corpus is rooted at `skills/` with an explicit curation manifest. Copying it into the package would create a second copy of ~1.5 MB of prose that drifts silently. |
 
 ## Related
 

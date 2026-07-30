@@ -116,7 +116,7 @@ Updated in the same commit as each milestone's work.
 | P8 Ecosystem | 0 | 4 | ░░░░░░░░░░ 0% |
 | **Total** | **11** | **132** | █░░░░░░░░░ **8%** |
 
-**Currently in progress:** none. **Next up:** `M025 — Capability pack loader and scanner`. **Last completed:** `M024 — Agent specification schema`, agents as versioned per-tenant data (ADR-013). CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
+**Currently in progress:** none. **Next up:** `M026 — Managed runtime adapter and sandbox provisioning` — 🔒 **the ADR-002 bet is validated or falsified here.** **Last completed:** `M025 — Capability pack loader and scanner` (ADR-014). CI stage 3 (integration) went live with M004. (Sequence deviation: M007→M008→M009 were pulled ahead of M003–M006, owner-approved — see BACKLOG.md.)
 
 ### Completed
 
@@ -146,6 +146,7 @@ Updated in the same commit as each milestone's work.
 | M022 | Auth and organization UI | 2026-07-29 | 16 tests; axe caught `aria-selected` on a `button`, which my comment had confidently defended |
 | M023 | AgentRuntime port and fake adapter | 2026-07-30 | Purity tested, not asserted; suite proven by three broken adapters. Shipped a tier vocabulary that contradicted ADR-004 — caught in M024 |
 | M024 | Agent specification schema | 2026-07-30 | Six roles as YAML, loaded by listing a directory; immutability enforced by trigger, proven by raw UPDATE/DELETE as the owner |
+| M025 | Capability pack loader and scanner | 2026-07-30 | `skills/` is the corpus (ADR-014); benign look-alike fixture caught 5 false positives; found M024's pack references were unverified |
 
 ## Milestone hygiene rules
 

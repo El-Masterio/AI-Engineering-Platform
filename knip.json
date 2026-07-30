@@ -16,6 +16,9 @@
     },
     "apps/api": {
       "entry": ["src/main.ts", "src/**/*.test.ts"]
+    },
+    "packages/capability-packs": {
+      "entry": ["src/**/*.test.ts"]
     }
   }
 }

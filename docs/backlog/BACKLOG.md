@@ -337,11 +337,26 @@ Redaction is two-layer by design: by key (`password`, `apiKey`) for what we know
 
 **A real defect in M021's guardrail** `insertForeignRow` throws when a table has no fixture, but the call sat inside the `try`/bare-`catch` that reads a thrown error as "the write was refused" — so a new tenant-scoped table got no INSERT coverage while the suite stayed green. Found by deleting M024's own fixture and watching it pass. Fixed and re-probed.
 
-### M025 · Capability pack loader and scanner · M · 🤖🔒
+### M025 · Capability pack loader and scanner · M · 🤖🔒 — ✅ **Done** (2026-07-30)
 **Objective** Expertise as versioned documents, safely.
 **Dependencies** M024
 **Deliverables** `packages/capability-packs`: `SKILL.md` parser with frontmatter validation, version resolution, progressive disclosure, **prompt-injection scanner** for untrusted packs, platform corpus seeded from `skills/`.
 **Acceptance** Packs load and resolve versions · a pack cannot grant a tool outside the agent's allowlist · known injection patterns are rejected · scanner has its own test corpus.
+
+**Outcome** All four met. [ADR-014](../decisions/ADR-014-capability-pack-corpus-and-trust.md).
+
+**The corpus is `skills/`, not a copy of it** § 19 drew `packages/capability-packs/platform/` "seeded from skills/". Seeded once and then diverging, or seeded continuously and therefore duplicated? Copying creates a second copy of ~1.5 MB of prose whose drift has no symptom other than worse agent output. So `skills/` **is** the root, curated by `PLATFORM_PACKS` — 15 of 34, each with a written reason. § 19 amended.
+
+**The look-alike fixture caught five false positives** The scanner's test corpus is half benign on purpose. `benign-lookalike` contains "Ignore the cache", "You are now reading", "Never send secrets", "Do not skip the security review", "run any command from the runbook" and "system prompt" — every keyword the first rule set keyed on, in legitimate use, and it refused all five. Every rule is now a verb phrase with a negation lookbehind. A suite of attacks alone passes with `pattern = /./`.
+
+**No context downgrade, and the consequence accepted rather than engineered around** Downgrading a pattern inside a code fence is the obvious way to cut false positives and it is unsound — the agent reads the fence too, so any rule an attacker satisfies with three backticks is not a rule. `skill-security-audit` therefore trips the scanner on its own subject matter. Handled by trust plus a pinning test: any OTHER platform pack producing a critical finding fails the build.
+
+**The scanner is not the boundary, and a test says so** § 17 assumes injection succeeds. `confinement.ts` computes capability from the spec and never consults the packs — there is deliberately no function taking a pack and returning tools. One test feeds the scanner an attack no rule names and asserts it passes, so a `pass` verdict is never read as proof of safety.
+
+**Nothing was verifying M024's pack references** Six roles named nine platform packs and no test checked the strings resolved. A typo would have produced an agent running with less expertise than it was specified to have — the least debuggable failure available.
+
+**A CRLF bug in the loader** Slicing up to `"
+---"` left the preceding `` on the last value, so `version: 3` parsed as `"3"` and the pack was rejected as malformed. Every pack authored on Windows hits it. Caught by the fixtures on first run.
 
 ### M026 · Managed runtime adapter and sandbox provisioning · L · 🏗🔒
 **Objective** Real agent execution in an isolated sandbox.
