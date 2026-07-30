@@ -171,18 +171,29 @@ Every component ships `Component.tsx`, `Component.stories.tsx`, `Component.test.
 
 ## `packages/capability-packs`
 
+**Amended by [ADR-014](../decisions/ADR-014-capability-pack-corpus-and-trust.md).** There is no
+`platform/` directory inside this package. The corpus is rooted at `skills/` and curated by a manifest,
+because a copy inside the package would drift from `skills/` the moment either was edited — and nothing
+would detect it.
+
 ```
+skills/                           THE corpus. One copy, two consumers (dev tooling + product).
+│   └── <pack>/SKILL.md           15 of the 34 are product content; the manifest says which.
+│
 packages/capability-packs/
-├── platform/                     our maintained corpus (seeded from skills/)
-│   ├── backend-engineering/SKILL.md
-│   ├── api-design/SKILL.md
-│   ├── code-review-standards/SKILL.md
-│   └── …
-└── src/
-    ├── loader.ts                 parse, validate frontmatter, resolve versions
-    ├── scanner.ts                prompt-injection scan for untrusted packs
-    └── registry.ts
+├── src/
+│   ├── platform-corpus.ts        PLATFORM_PACKS — the curated 15, each with a written reason
+│   ├── loader.ts                 frontmatter index (progressive), body read, version resolution
+│   ├── reference.ts              platform/<name>[@version] — scope is part of the identity
+│   ├── scanner.ts                prompt-injection rules for untrusted packs
+│   ├── confinement.ts            the tool ceiling + untrusted-content marking (§17 Control 4)
+│   └── registry.ts               index → resolve → scan → confine → mark
+└── test-corpus/                  the scanner's own fixtures: attacks AND benign look-alikes
 ```
+
+`confinement.ts` is the file that matters. §17 assumes prompt injection succeeds, so the tool
+allowlist is the boundary and the scanner is not — there is deliberately no function in this package
+that takes a pack and returns tools.
 
 ## Naming conventions
 

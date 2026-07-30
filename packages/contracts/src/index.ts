@@ -17,3 +17,10 @@ export {
   type AgentSpecInput,
   type ValidatedAgentSpec,
 } from "./agent-spec.schema.js";
+
+export {
+  capabilityPackFrontmatterSchema,
+  InvalidCapabilityPackError,
+  parseCapabilityPackFrontmatter,
+  type CapabilityPackFrontmatter,
+} from "./capability-pack.schema.js";

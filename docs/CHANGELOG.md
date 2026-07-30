@@ -9,6 +9,43 @@ Every milestone updates this file **in its own commit** ([§22](04-engineering/2
 
 ### Added
 
+- **M025 — capability packs: loader, corpus, and injection scanner.**
+  `packages/capability-packs`. [ADR-014](decisions/ADR-014-capability-pack-corpus-and-trust.md).
+  - **Progressive disclosure is a property, not a comment.** `indexPacks` reads a bounded prefix of
+    each file and returns descriptions; `readPack` reads the body only when the task calls for it. A
+    test asserts the index carries no body and that descriptions are a fraction of body bytes.
+  - **A pack cannot grant a tool outside the allowlist.** `confinement.ts` computes capability from the
+    spec and ignores the packs when doing it — there is deliberately no function that takes a pack and
+    returns tools. Requests are recorded as refused so the mismatch is auditable.
+  - **Untrusted packs are marked structurally** (§17 Control 4), wrapped in a per-render delimiter the
+    content cannot close. A fixed delimiter is escapable: the pack writes the closing marker itself and
+    everything after it reads as trusted prompt.
+  - **The scanner has its own corpus, and half of it is benign.** Eight fixtures: six attacks (including
+    one whose payload is only in `references/`), a realistic clean pack, and a look-alike containing
+    every keyword the rules key on in legitimate use. That fixture caught **five false positives** in
+    the first rule set, which is why every rule is now a verb phrase with a negation lookbehind rather
+    than a keyword match.
+  - **Nothing was verifying that agent roles' pack references resolve.** M024 shipped six roles naming
+    nine platform packs and no test checked the strings; a typo would have produced an agent running
+    with less expertise than specified, whose only symptom is worse output.
+
+### Fixed
+
+- **The pack loader broke on CRLF frontmatter.** Slicing up to `"
+---"` left the preceding ``
+  attached to the last value, so `version: 3` parsed as the string `"3"` and the pack was rejected
+  as malformed. Every pack authored on Windows, and every working tree checked out with
+  `core.autocrlf`, hit it. The frontmatter split is now line-ending agnostic.
+
+### Changed
+
+- **§19's `packages/capability-packs/platform/` path is superseded** by
+  [ADR-014](decisions/ADR-014-capability-pack-corpus-and-trust.md): the corpus is rooted at `skills/`
+  with an explicit curation manifest, because a copy inside the package drifts the moment either side
+  is edited and nothing detects it.
+
+### Added
+
 - **M024 — agents as versioned data.** `agent_definitions` (migration 0009), a Zod schema for the
   §13 spec, a directory-listing loader, and the six MVP roles as YAML.
   [ADR-013](decisions/ADR-013-agent-definitions-as-per-tenant-data.md).

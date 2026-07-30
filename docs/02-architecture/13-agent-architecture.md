@@ -197,6 +197,21 @@ injection before it is allowed into an agent context, and it can never grant a t
 allowlist doesn't already have. (The `skill-security-audit` pack in `skills/` is the seed of that
 scanner.)
 
+### How this is implemented (M025, [ADR-014](../decisions/ADR-014-capability-pack-corpus-and-trust.md))
+
+| Concern | Where |
+|---|---|
+| The corpus | `skills/` **is** the corpus root. `PLATFORM_PACKS` curates the 15 packs that are product content, each with a written reason. |
+| Frontmatter validation | `packages/contracts/src/capability-pack.schema.ts` — permissive about unknown keys, strict about `description` being specific enough to disclose from. |
+| Progressive disclosure | `indexPacks` reads frontmatter only; `readPack` reads the body on demand. The index is what a prompt carries. |
+| Version resolution | `platform/api-design@3` resolves only to version 3. A pinned version is never substituted — rule 6 above depends on it. |
+| Injection scanning | `scanner.ts`. Org packs only; platform packs are trusted content. No context downgrade, so a payload in a code fence scores the same as one outside it. |
+| The tool ceiling | `confinement.ts`. Capability is computed from the spec and the packs are not consulted — the boundary §17 Control 4 relies on. |
+
+**The scanner is not the boundary.** §17 assumes injection succeeds; the allowlist is what makes a
+subverted pack harmless. A test asserts the scanner passes an attack no rule names, so a `pass`
+verdict is never read as proof of safety.
+
 ---
 
 ## Orchestration model
